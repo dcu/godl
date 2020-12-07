@@ -7,8 +7,9 @@ type ActivationFn func(*gorgonia.Node) (*gorgonia.Node, error)
 
 // FCOpts contains optional parameter for a layer
 type FCOpts struct {
-	ActivationFn ActivationFn
-	Dropout      float64
+	ActivationFn   ActivationFn
+	Dropout        float64
+	OutputFeatures int
 }
 
 // GBNOpts contains config options for the ghost batch normalization
