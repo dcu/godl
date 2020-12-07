@@ -1,7 +1,6 @@
 package tabnet
 
 import (
-	"log"
 	"math"
 
 	"gorgonia.org/gorgonia"
@@ -21,7 +20,12 @@ func (nn *TabNet) GBN(x *gorgonia.Node, opts GBNOpts) (*gorgonia.Node, error) {
 
 	xShape := x.Shape()
 	batchSize, inputSize := xShape[0], xShape[1]
-	batches := int(math.Floor(float64(inputSize) / float64(opts.VirtualBatchSize))) // FIXME: Use Ceil otherwise some inputs are ignored
+
+	if opts.VirtualBatchSize > inputSize {
+		opts.VirtualBatchSize = inputSize
+	}
+
+	batches := int(math.Ceil(float64(inputSize) / float64(opts.VirtualBatchSize)))
 
 	nodes := make([]*gorgonia.Node, 0, batches)
 
@@ -29,21 +33,21 @@ func (nn *TabNet) GBN(x *gorgonia.Node, opts GBNOpts) (*gorgonia.Node, error) {
 		// Split the Matrix
 		vector := gorgonia.Must(gorgonia.Slice(x, gorgonia.S(b)))
 
-		log.Printf("%v", vector.Shape())
-
 		// Split the vector in virtual batches
 		for vb := 0; vb < batches; vb++ {
 			start := vb * opts.VirtualBatchSize
+			if start > inputSize {
+				break
+			}
+
 			end := start + opts.VirtualBatchSize
 
 			if end > inputSize {
-				end = inputSize
+				break // FIXME: support end = inputSize
 			}
 
 			virtualBatch := gorgonia.Must(gorgonia.Slice(vector, gorgonia.S(start, end)))
 			virtualBatch = gorgonia.Must(gorgonia.Reshape(virtualBatch, tensor.Shape{1, virtualBatch.Shape().TotalSize(), 1, 1}))
-
-			log.Printf("%v", virtualBatch.Shape())
 
 			ret, _, _, _, err := gorgonia.BatchNorm(virtualBatch, nil, nil, opts.Momentum, opts.Epsilon)
 			if err != nil {
