@@ -11,18 +11,17 @@ import (
 // GBN implements a Ghost Batch Normalization: https://arxiv.org/pdf/1705.08741.pdf
 // momentum defaults to 0.01 if 0 is passed
 // epsilon defaults to 1e-5 if 0 is passed
-func (t *TabNet) GBN(x *gorgonia.Node, virtualBatchSize int, momentum float64, epsilon float64) (*gorgonia.Node, error) {
-	if momentum <= 0.0 {
-		momentum = 0.01
-	}
+func (nn *TabNet) GBN(x *gorgonia.Node, opts GBNOpts) (*gorgonia.Node, error) {
+	opts.setDefaults()
 
-	if epsilon <= 0.0 {
-		epsilon = 1e-5
+	if x.Dims() == 4 {
+		b, c, h, w := x.Shape()[0], x.Shape()[1], x.Shape()[2], x.Shape()[3]
+		x = gorgonia.Must(gorgonia.Reshape(x, tensor.Shape{b, c * h * w}))
 	}
 
 	xShape := x.Shape()
 	batchSize, inputSize := xShape[0], xShape[1]
-	batches := int(math.Floor(float64(inputSize) / float64(virtualBatchSize))) // FIXME: Use Ceil otherwise some inputs are ignored
+	batches := int(math.Floor(float64(inputSize) / float64(opts.VirtualBatchSize))) // FIXME: Use Ceil otherwise some inputs are ignored
 
 	nodes := make([]*gorgonia.Node, 0, batches)
 
@@ -34,8 +33,8 @@ func (t *TabNet) GBN(x *gorgonia.Node, virtualBatchSize int, momentum float64, e
 
 		// Split the vector in virtual batches
 		for vb := 0; vb < batches; vb++ {
-			start := vb * virtualBatchSize
-			end := start + virtualBatchSize
+			start := vb * opts.VirtualBatchSize
+			end := start + opts.VirtualBatchSize
 
 			if end > inputSize {
 				end = inputSize
@@ -46,7 +45,7 @@ func (t *TabNet) GBN(x *gorgonia.Node, virtualBatchSize int, momentum float64, e
 
 			log.Printf("%v", virtualBatch.Shape())
 
-			ret, _, _, _, err := gorgonia.BatchNorm(virtualBatch, nil, nil, momentum, epsilon)
+			ret, _, _, _, err := gorgonia.BatchNorm(virtualBatch, nil, nil, opts.Momentum, opts.Epsilon)
 			if err != nil {
 				return nil, err
 			}
