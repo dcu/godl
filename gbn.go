@@ -1,6 +1,8 @@
 package tabnet
 
 import (
+	"fmt"
+	"log"
 	"math"
 
 	"gorgonia.org/gorgonia"
@@ -26,8 +28,10 @@ func (nn *TabNet) GBN(x *gorgonia.Node, opts GBNOpts) (*gorgonia.Node, error) {
 	}
 
 	batches := int(math.Ceil(float64(inputSize) / float64(opts.VirtualBatchSize)))
-
 	nodes := make([]*gorgonia.Node, 0, batches)
+
+	log.Printf("batches: %d", batches)
+	log.Printf("momentum: %f eps: %f", opts.Momentum, opts.Epsilon)
 
 	for b := 0; b < batchSize; b++ {
 		// Split the Matrix
@@ -58,7 +62,10 @@ func (nn *TabNet) GBN(x *gorgonia.Node, opts GBNOpts) (*gorgonia.Node, error) {
 		}
 	}
 
-	ret := gorgonia.Must(gorgonia.Concat(0, nodes...))
+	ret, err := (gorgonia.Concat(0, nodes...))
+	if err != nil {
+		return nil, fmt.Errorf("error concatenating %d nodes: %w", len(nodes), err)
+	}
 
 	return gorgonia.Reshape(ret, xShape)
 }

@@ -38,4 +38,5 @@ type GLUOpts struct {
 	VirtualBatchSize int
 	OutputFeatures   int
 	ActivationFn     ActivationFn
+	FC               Layer
 }

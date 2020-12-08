@@ -8,7 +8,7 @@ import (
 
 // AttentiveTransformer implements an attetion transformer layer
 func (nn *TabNet) AttentiveTransformer(x *gorgonia.Node, prior *gorgonia.Node, fcOpts FCOpts, gbnOpts GBNOpts) (*gorgonia.Node, error) {
-	fc, err := nn.FC(x, fcOpts)
+	fc, err := nn.FC(fcOpts)(x)
 	if err != nil {
 		return nil, fmt.Errorf("fc(%v) failed failed: %w", x.Shape(), err)
 	}
