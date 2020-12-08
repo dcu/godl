@@ -32,3 +32,10 @@ func (o *GBNOpts) setDefaults() {
 		o.Epsilon = 1e-5
 	}
 }
+
+// GLUOpts are the supported options for GLU
+type GLUOpts struct {
+	VirtualBatchSize int
+	OutputFeatures   int
+	ActivationFn     ActivationFn
+}
