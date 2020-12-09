@@ -14,9 +14,11 @@ type FCOpts struct {
 
 // GBNOpts contains config options for the ghost batch normalization
 type GBNOpts struct {
-	Momentum         float64
-	Epsilon          float64
-	VirtualBatchSize int
+	Momentum            float64
+	Epsilon             float64
+	VirtualBatchSize    int
+	Inferring           bool
+	ScaleInit, BiasInit gorgonia.InitWFn
 }
 
 func (o *GBNOpts) setDefaults() {
@@ -30,6 +32,14 @@ func (o *GBNOpts) setDefaults() {
 
 	if o.Epsilon == 0.0 {
 		o.Epsilon = 1e-5
+	}
+
+	if o.ScaleInit == nil {
+		o.ScaleInit = gorgonia.Ones()
+	}
+
+	if o.BiasInit == nil {
+		o.BiasInit = gorgonia.Zeroes()
 	}
 }
 

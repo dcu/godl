@@ -14,15 +14,27 @@ func (t *TabNet) LayersCount() int {
 }
 
 func (t *TabNet) addWeights(shape tensor.Shape) *gorgonia.Node {
-	name := fmt.Sprintf("layer_%d_%d", len(t.learnables), shape.TotalSize())
+	return t.addLearnable("weight", shape, nil)
+}
 
-	init := gorgonia.WithInit(gorgonia.GlorotN(1.0))
+func (t *TabNet) addBias(shape tensor.Shape, initFN gorgonia.InitWFn) *gorgonia.Node {
+	return t.addLearnable("bias", shape, initFN)
+}
+
+func (t *TabNet) addLearnable(name string, shape tensor.Shape, initFN gorgonia.InitWFn) *gorgonia.Node {
+	name = fmt.Sprintf("%s_%d_%d", name, len(t.learnables), shape.TotalSize())
+
+	if initFN == nil {
+		initFN = gorgonia.GlorotN(1.0)
+	}
+
+	init := gorgonia.WithInit(initFN)
 	if val, ok := t.model[name]; ok {
 		init = gorgonia.WithValue(val)
 
-		log.Printf("Assigned %d with shape %v pre-trained weights to %v", val.Size(), val.Shape(), name)
+		log.Printf("Assigned %d with shape %v pre-trained values to %v", val.Size(), val.Shape(), name)
 	} else {
-		log.Printf("Assigned random weights to %v", name)
+		log.Printf("Assigned new values to %v", name)
 	}
 
 	var w *gorgonia.Node

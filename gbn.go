@@ -53,9 +53,18 @@ func (nn *TabNet) GBN(x *gorgonia.Node, opts GBNOpts) (*gorgonia.Node, error) {
 			virtualBatch := gorgonia.Must(gorgonia.Slice(vector, gorgonia.S(start, end)))
 			virtualBatch = gorgonia.Must(gorgonia.Reshape(virtualBatch, tensor.Shape{1, virtualBatch.Shape().TotalSize(), 1, 1}))
 
-			ret, _, _, _, err := gorgonia.BatchNorm(virtualBatch, nil, nil, opts.Momentum, opts.Epsilon)
+			scale := nn.addLearnable("scale", virtualBatch.Shape(), opts.ScaleInit)
+			bias := nn.addBias(virtualBatch.Shape(), opts.BiasInit)
+
+			ret, _, _, bnop, err := gorgonia.BatchNorm(virtualBatch, scale, bias, opts.Momentum, opts.Epsilon)
 			if err != nil {
 				return nil, err
+			}
+
+			if opts.Inferring {
+				bnop.SetTesting()
+			} else {
+				bnop.SetTraining()
 			}
 
 			nodes = append(nodes, ret)

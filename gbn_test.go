@@ -23,7 +23,7 @@ func TestGBN(t *testing.T) {
 		expectedErr   string
 	}{
 		{
-			desc: "VBS",
+			desc: "Example 1",
 			input: NewTensor(g, tensor.Float64, 2, WithShape(1, 10), WithName("input"), WithValue(
 				tensor.New(
 					tensor.WithShape(1, 10),
@@ -70,8 +70,9 @@ func TestGBN(t *testing.T) {
 
 			vm := NewTapeMachine(tn.g,
 				gorgonia.WithLogger(log.New(os.Stderr, "[gorgonia]", log.LstdFlags)),
-				gorgonia.WithValueFmt("%+v"),
-				gorgonia.WithWatchlist(),
+				gorgonia.BindDualValues(tn.learnables...),
+				// gorgonia.WithValueFmt("%+v"),
+				// gorgonia.WithWatchlist(),
 			)
 			c.NoError(vm.RunAll())
 
