@@ -48,7 +48,7 @@ func TestGBN(t *testing.T) {
 		// },
 	}
 
-	tn := &TabNet{g: g}
+	tn := &Model{g: g}
 
 	for _, tcase := range testCases {
 		t.Run(tcase.desc, func(t *testing.T) {

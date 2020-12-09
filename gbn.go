@@ -12,7 +12,7 @@ import (
 // GBN implements a Ghost Batch Normalization: https://arxiv.org/pdf/1705.08741.pdf
 // momentum defaults to 0.01 if 0 is passed
 // epsilon defaults to 1e-5 if 0 is passed
-func (nn *TabNet) GBN(x *gorgonia.Node, opts GBNOpts) (*gorgonia.Node, error) {
+func (nn *Model) GBN(x *gorgonia.Node, opts GBNOpts) (*gorgonia.Node, error) {
 	opts.setDefaults()
 
 	if x.Dims() == 4 {

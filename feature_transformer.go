@@ -15,7 +15,7 @@ type FeatureTransformerOpts struct {
 }
 
 // FeatureTransformer implements a feature transformer layer
-func (nn *TabNet) FeatureTransformer(opts FeatureTransformerOpts) Layer {
+func (nn *Model) FeatureTransformer(opts FeatureTransformerOpts) Layer {
 	shared := make([]Layer, 0, len(opts.Shared))
 	for _, fcLayer := range opts.Shared {
 		shared = append(shared, nn.GLU(GLUOpts{

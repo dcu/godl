@@ -7,7 +7,7 @@ import (
 )
 
 // GLU implements a Gated Linear Unit Block
-func (nn *TabNet) GLU(opts GLUOpts) Layer {
+func (nn *Model) GLU(opts GLUOpts) Layer {
 	if opts.ActivationFn == nil {
 		opts.ActivationFn = gorgonia.Sigmoid
 	}

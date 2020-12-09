@@ -8,7 +8,7 @@ type DecisionStepOpts struct {
 	IndependentBlocks int
 }
 
-func (nn *TabNet) DecisionStep(prior *gorgonia.Node, opts FeatureTransformerOpts) Layer {
+func (nn *Model) DecisionStep(prior *gorgonia.Node, opts FeatureTransformerOpts) Layer {
 	return func(x *gorgonia.Node) (*gorgonia.Node, error) {
 		mask, err := nn.AttentiveTransformer(x, prior, FCOpts{}, GBNOpts{})
 		if err != nil {

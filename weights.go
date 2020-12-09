@@ -9,19 +9,19 @@ import (
 )
 
 // LayersCount return the number of layers
-func (t *TabNet) LayersCount() int {
+func (t *Model) LayersCount() int {
 	return len(t.learnables)
 }
 
-func (t *TabNet) addWeights(shape tensor.Shape) *gorgonia.Node {
+func (t *Model) addWeights(shape tensor.Shape) *gorgonia.Node {
 	return t.addLearnable("weight", shape, nil)
 }
 
-func (t *TabNet) addBias(shape tensor.Shape, initFN gorgonia.InitWFn) *gorgonia.Node {
+func (t *Model) addBias(shape tensor.Shape, initFN gorgonia.InitWFn) *gorgonia.Node {
 	return t.addLearnable("bias", shape, initFN)
 }
 
-func (t *TabNet) addLearnable(name string, shape tensor.Shape, initFN gorgonia.InitWFn) *gorgonia.Node {
+func (t *Model) addLearnable(name string, shape tensor.Shape, initFN gorgonia.InitWFn) *gorgonia.Node {
 	name = fmt.Sprintf("%s_%d_%d", name, len(t.learnables), shape.TotalSize())
 
 	if initFN == nil {

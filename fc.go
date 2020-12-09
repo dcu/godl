@@ -10,7 +10,7 @@ import (
 
 type Layer func(x *gorgonia.Node) (*gorgonia.Node, error)
 
-func (nn *TabNet) FC(opts FCOpts) Layer {
+func (nn *Model) FC(opts FCOpts) Layer {
 	return func(x *gorgonia.Node) (*gorgonia.Node, error) {
 		if opts.OutputFeatures <= 0 {
 			return nil, fmt.Errorf("wrong output features count %d for FC layer", opts.OutputFeatures)
