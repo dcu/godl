@@ -45,26 +45,21 @@ func (nn *Model) GBN(x *gorgonia.Node, opts GBNOpts) (*gorgonia.Node, error) {
 			}
 
 			end := start + opts.VirtualBatchSize
-
 			if end > inputSize {
 				break // FIXME: support end = inputSize
 			}
 
 			virtualBatch := gorgonia.Must(gorgonia.Slice(vector, gorgonia.S(start, end)))
-			virtualBatch = gorgonia.Must(gorgonia.Reshape(virtualBatch, tensor.Shape{1, 1, 1, virtualBatch.Shape().TotalSize()}))
 
-			scale := nn.addLearnable("scale", virtualBatch.Shape(), opts.ScaleInit)
-			bias := nn.addBias(virtualBatch.Shape(), opts.BiasInit)
-
-			ret, _, _, bnop, err := gorgonia.BatchNorm(virtualBatch, scale, bias, opts.Momentum, opts.Epsilon)
+			ret, err := nn.BN(BNOpts{
+				Momentum:  opts.Momentum,
+				Epsilon:   opts.Epsilon,
+				Inferring: opts.Inferring,
+				ScaleInit: opts.ScaleInit,
+				BiasInit:  opts.BiasInit,
+			})(virtualBatch)
 			if err != nil {
 				return nil, err
-			}
-
-			if opts.Inferring {
-				bnop.SetTesting()
-			} else {
-				bnop.SetTraining()
 			}
 
 			nodes = append(nodes, ret)
