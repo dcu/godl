@@ -12,7 +12,9 @@ func (nn *Model) GLU(opts GLUOpts) Layer {
 		opts.ActivationFn = gorgonia.Sigmoid
 	}
 
-	return func(x *gorgonia.Node) (*gorgonia.Node, error) {
+	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, error) {
+		x := nodes[0]
+
 		var (
 			fc  *gorgonia.Node
 			err error

@@ -37,7 +37,8 @@ func (o *BNOpts) setDefaults() {
 func (nn *Model) BN(opts BNOpts) Layer {
 	opts.setDefaults()
 
-	return func(x *gorgonia.Node) (*gorgonia.Node, error) {
+	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, error) {
+		x := nodes[0]
 		xShape := x.Shape()
 		if xShape.Dims() == 1 {
 			x = gorgonia.Must(gorgonia.Reshape(x, tensor.Shape{1, 1, 1, xShape[0]}))

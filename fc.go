@@ -8,10 +8,12 @@ import (
 	"gorgonia.org/tensor"
 )
 
-type Layer func(x *gorgonia.Node) (*gorgonia.Node, error)
+type Layer func(nodes ...*gorgonia.Node) (*gorgonia.Node, error)
 
 func (nn *Model) FC(opts FCOpts) Layer {
-	return func(x *gorgonia.Node) (*gorgonia.Node, error) {
+	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, error) {
+		x := nodes[0]
+
 		if opts.OutputFeatures <= 0 {
 			return nil, fmt.Errorf("wrong output features count %d for FC layer", opts.OutputFeatures)
 		}

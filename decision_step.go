@@ -8,8 +8,14 @@ type DecisionStepOpts struct {
 	IndependentBlocks int
 }
 
-func (nn *Model) DecisionStep(prior *gorgonia.Node, opts FeatureTransformerOpts) Layer {
-	return func(x *gorgonia.Node) (*gorgonia.Node, error) {
+func (nn *Model) DecisionStep(opts DecisionStepOpts) Layer {
+	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, error) {
+		x := nodes[0]
+		size := nodes[1]
+		prior := nodes[2]
+
+		_ = size
+
 		mask, err := nn.AttentiveTransformer(x, prior, FCOpts{}, GBNOpts{})
 		if err != nil {
 			return nil, err
@@ -20,7 +26,11 @@ func (nn *Model) DecisionStep(prior *gorgonia.Node, opts FeatureTransformerOpts)
 			return nil, err
 		}
 
-		ft, err := nn.FeatureTransformer(opts)(mul)
+		ft, err := nn.FeatureTransformer(FeatureTransformerOpts{
+			Shared: opts.Shared,
+			VirtualBatchSize: opts.VirtualBatchSize,
+			IndependentBlocks: ,
+		})(mul)
 		if err != nil {
 			return nil, err
 		}
