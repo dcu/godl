@@ -22,6 +22,7 @@ func (nn *Model) FeatureTransformer(opts FeatureTransformerOpts) Layer {
 		shared = append(shared, nn.GLU(GLUOpts{
 			VirtualBatchSize: opts.VirtualBatchSize,
 			FC:               fcLayer,
+			OutputFeatures:   opts.OutputFeatures,
 		}))
 	}
 

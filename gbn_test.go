@@ -53,9 +53,9 @@ func TestGBN(t *testing.T) {
 	for _, tcase := range testCases {
 		t.Run(tcase.desc, func(t *testing.T) {
 			c := require.New(t)
-			y, err := tn.GBN(tcase.input, GBNOpts{
+			y, err := tn.GBN(GBNOpts{
 				VirtualBatchSize: tcase.vbs,
-			})
+			})(tcase.input)
 
 			if tcase.expectedErr != "" {
 				c.Error(err)

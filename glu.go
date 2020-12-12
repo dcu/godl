@@ -6,6 +6,14 @@ import (
 	"gorgonia.org/gorgonia"
 )
 
+// GLUOpts are the supported options for GLU
+type GLUOpts struct {
+	VirtualBatchSize int
+	OutputFeatures   int
+	ActivationFn     ActivationFn
+	FC               Layer
+}
+
 // GLU implements a Gated Linear Unit Block
 func (nn *Model) GLU(opts GLUOpts) Layer {
 	if opts.ActivationFn == nil {
@@ -31,9 +39,9 @@ func (nn *Model) GLU(opts GLUOpts) Layer {
 			return nil, fmt.Errorf("[glu] applying FC failed: %w", err)
 		}
 
-		gbn, err := nn.GBN(fc, GBNOpts{
+		gbn, err := nn.GBN(GBNOpts{
 			VirtualBatchSize: opts.VirtualBatchSize,
-		})
+		})(fc)
 		if err != nil {
 			return nil, fmt.Errorf("[glu] applying GBN failed: %w", err)
 		}

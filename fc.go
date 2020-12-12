@@ -8,7 +8,12 @@ import (
 	"gorgonia.org/tensor"
 )
 
-type Layer func(nodes ...*gorgonia.Node) (*gorgonia.Node, error)
+// FCOpts contains optional parameter for a layer
+type FCOpts struct {
+	ActivationFn   ActivationFn
+	Dropout        float64
+	OutputFeatures int
+}
 
 func (nn *Model) FC(opts FCOpts) Layer {
 	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, error) {
