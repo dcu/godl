@@ -11,11 +11,11 @@ import (
 
 // GBNOpts contains config options for the ghost batch normalization
 type GBNOpts struct {
-	Momentum            float64
-	Epsilon             float64
-	VirtualBatchSize    int
-	Inferring           bool
-	ScaleInit, BiasInit gorgonia.InitWFn
+	Momentum                         float64
+	Epsilon                          float64
+	VirtualBatchSize                 int
+	Inferring                        bool
+	WeightsInit, ScaleInit, BiasInit gorgonia.InitWFn
 }
 
 func (o *GBNOpts) setDefaults() {

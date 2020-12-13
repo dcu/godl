@@ -13,42 +13,46 @@ type FCOpts struct {
 	ActivationFn   ActivationFn
 	Dropout        float64
 	OutputFeatures int
+	WeightsInit    gorgonia.InitWFn
+	// TODO: support bias
 }
 
 func (nn *Model) FC(opts FCOpts) Layer {
 	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, error) {
 		x := nodes[0]
+		xShape := x.Shape()
 
 		if opts.OutputFeatures <= 0 {
 			return nil, fmt.Errorf("wrong output features count %d for FC layer", opts.OutputFeatures)
 		}
 
-		if x.Dims() == 4 {
-			b, c, h, w := x.Shape()[0], x.Shape()[1], x.Shape()[2], x.Shape()[3]
-			x = gorgonia.Must(gorgonia.Reshape(x, tensor.Shape{b, c * h * w}))
+		if x.Dims() > 2 {
+			b, v := xShape[0], tensor.Shape(xShape[1:]...).TotalSize()
+			x = gorgonia.Must(gorgonia.Reshape(x, tensor.Shape{b, v}))
 		}
 
 		shape := tensor.Shape{x.Shape()[1], opts.OutputFeatures}
+		layerNumber := nn.LayersCount() + 1
 
-		log.Printf("Layer %d: FC(%v,%v)", nn.LayersCount()+1, x.Shape(), shape)
+		log.Printf("Layer %d: FC(%v,%v)", layerNumber, x.Shape(), shape)
 
-		w := nn.addWeights(shape)
+		w := nn.addWeights(shape, opts.WeightsInit)
 		layer, err := gorgonia.Mul(x, w)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("Layer %d: error applying mul %w", layerNumber, err)
 		}
 
 		if opts.ActivationFn != nil {
 			layer, err = opts.ActivationFn(layer)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("Layer %d: error applying activation %w", layerNumber, err)
 			}
 		}
 
 		if opts.Dropout > 0.0 {
 			layer, err = gorgonia.Dropout(layer, opts.Dropout)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("Layer %d: error applying dropout %w", layerNumber, err)
 			}
 		}
 

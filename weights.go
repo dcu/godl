@@ -13,8 +13,8 @@ func (t *Model) LayersCount() int {
 	return len(t.learnables)
 }
 
-func (t *Model) addWeights(shape tensor.Shape) *gorgonia.Node {
-	return t.addLearnable("weight", shape, nil)
+func (t *Model) addWeights(shape tensor.Shape, initFN gorgonia.InitWFn) *gorgonia.Node {
+	return t.addLearnable("weight", shape, initFN)
 }
 
 func (t *Model) addBias(shape tensor.Shape, initFN gorgonia.InitWFn) *gorgonia.Node {

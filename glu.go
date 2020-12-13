@@ -2,6 +2,7 @@ package tabnet
 
 import (
 	"fmt"
+	"log"
 
 	"gorgonia.org/gorgonia"
 )
@@ -12,6 +13,7 @@ type GLUOpts struct {
 	OutputFeatures   int
 	ActivationFn     ActivationFn
 	FC               Layer
+	WeightsInit      gorgonia.InitWFn
 }
 
 // GLU implements a Gated Linear Unit Block
@@ -23,6 +25,8 @@ func (nn *Model) GLU(opts GLUOpts) Layer {
 	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, error) {
 		x := nodes[0]
 
+		log.Printf("%v", x.Shape())
+
 		var (
 			fc  *gorgonia.Node
 			err error
@@ -31,13 +35,16 @@ func (nn *Model) GLU(opts GLUOpts) Layer {
 		if opts.FC == nil {
 			opts.FC = nn.FC(FCOpts{
 				OutputFeatures: opts.OutputFeatures * 2,
+				WeightsInit:    opts.WeightsInit,
 			})
 		}
 
 		fc, err = opts.FC(x)
 		if err != nil {
-			return nil, fmt.Errorf("[glu] applying FC failed: %w", err)
+			return nil, fmt.Errorf("[glu] applying FC(%v) failed: %w", x.Shape(), err)
 		}
+
+		log.Printf("fc shape: %v", fc.Shape())
 
 		gbn, err := nn.GBN(GBNOpts{
 			VirtualBatchSize: opts.VirtualBatchSize,
@@ -47,8 +54,8 @@ func (nn *Model) GLU(opts GLUOpts) Layer {
 		}
 
 		// GLU
-		firstHalf := gorgonia.Must(gorgonia.Slice(gbn, gorgonia.S(0, opts.OutputFeatures)))
-		secondHalf := gorgonia.Must(gorgonia.Slice(gbn, gorgonia.S(opts.OutputFeatures, gbn.Shape()[1])))
+		firstHalf := gorgonia.Must(gorgonia.Slice(gbn, nil, gorgonia.S(0, opts.OutputFeatures)))
+		secondHalf := gorgonia.Must(gorgonia.Slice(gbn, nil, gorgonia.S(opts.OutputFeatures, gbn.Shape()[1])))
 
 		act, err := opts.ActivationFn(secondHalf)
 		if err != nil {

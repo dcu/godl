@@ -1,7 +1,6 @@
 package tabnet
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"testing"
@@ -16,11 +15,12 @@ func TestGBN(t *testing.T) {
 	g := NewGraph()
 
 	testCases := []struct {
-		desc          string
-		input         *Node
-		vbs           int
-		expectedShape tensor.Shape
-		expectedErr   string
+		desc           string
+		input          *Node
+		vbs            int
+		expectedShape  tensor.Shape
+		expectedErr    string
+		expectedOutput []float64
 	}{
 		{
 			desc: "Example 1",
@@ -30,22 +30,10 @@ func TestGBN(t *testing.T) {
 					tensor.WithBacking([]float64{0.4, 1.4, 2.4, 3.4, 4.4, 5.4, 6.4, 7.4, 8.4, 9.4}),
 				),
 			)),
-			vbs:           5,
-			expectedShape: tensor.Shape{1, 10},
+			vbs:            5,
+			expectedShape:  tensor.Shape{1, 10},
+			expectedOutput: []float64{-1.4142100268524476, -0.7071050134262239, -3.140177066934696e-16, 0.7071050134262233, 1.4142100268524473, -1.4142100268524473, -0.7071050134262237, 0, 0.7071050134262237, 1.4142100268524473},
 		},
-		// {
-		// 	desc:          "BiggerVBS",
-		// 	input:         NewMatrix(g, tensor.Float64, WithShape(100, 50), WithName("input"), WithInit(GlorotN(1.0))),
-		// 	vbs:           128,
-		// 	expectedShape: tensor.Shape{100, 50},
-		// },
-		// {
-		// 	desc:          "FractionVBS",
-		// 	input:         NewMatrix(g, tensor.Float64, WithShape(100, 50), WithName("input"), WithInit(GlorotN(1.0))),
-		// 	vbs:           4,
-		// 	expectedShape: tensor.Shape{100, 50},
-		// 	expectedErr:   "shape size doesn't not match. Expected 4800, got 5000",
-		// },
 	}
 
 	tn := &Model{g: g}
@@ -76,7 +64,7 @@ func TestGBN(t *testing.T) {
 			)
 			c.NoError(vm.RunAll())
 
-			fmt.Printf("output: %v\n%v\n", y.Value(), y.Shape())
+			c.Equal(tcase.expectedOutput, y.Value().Data().([]float64))
 		})
 	}
 }
