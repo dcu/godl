@@ -1,8 +1,6 @@
 package tabnet
 
 import (
-	"log"
-
 	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
 )
@@ -46,8 +44,6 @@ func (nn *Model) BN(opts BNOpts) Layer {
 
 		scale := nn.addLearnable("scale", x.Shape(), opts.ScaleInit)
 		bias := nn.addBias(x.Shape(), opts.BiasInit)
-
-		log.Printf("BN(%v, momentum=%v, eps=%v)", x.Shape(), opts.Momentum, opts.Epsilon)
 
 		ret, _, _, bnop, err := gorgonia.BatchNorm(x, scale, bias, opts.Momentum, opts.Epsilon)
 		if err != nil {

@@ -2,7 +2,6 @@ package tabnet
 
 import (
 	"fmt"
-	"log"
 	"math"
 
 	"gorgonia.org/gorgonia"
@@ -44,14 +43,17 @@ func (o *GBNOpts) setDefaults() {
 // momentum defaults to 0.01 if 0 is passed
 // epsilon defaults to 1e-5 if 0 is passed
 func (nn *Model) GBN(opts GBNOpts) Layer {
+	opts.setDefaults()
+
 	return func(inputs ...*gorgonia.Node) (*gorgonia.Node, error) {
+		if err := nn.checkArity("GBN", inputs, 1); err != nil {
+			return nil, err
+		}
+
 		x := inputs[0]
-
-		opts.setDefaults()
-
-		if x.Dims() == 4 {
-			b, c, h, w := x.Shape()[0], x.Shape()[1], x.Shape()[2], x.Shape()[3]
-			x = gorgonia.Must(gorgonia.Reshape(x, tensor.Shape{b, c * h * w}))
+		if x.Dims() > 2 {
+			b, v := x.Shape()[0], tensor.Shape(x.Shape()[1:]).TotalSize()
+			x = gorgonia.Must(gorgonia.Reshape(x, tensor.Shape{b, v}))
 		}
 
 		xShape := x.Shape()
@@ -61,11 +63,12 @@ func (nn *Model) GBN(opts GBNOpts) Layer {
 			opts.VirtualBatchSize = inputSize
 		}
 
+		if inputSize%opts.VirtualBatchSize != 0 {
+			panic(fmt.Errorf("input size (%d) must be divisable by virtual batch size (%v)", inputSize, opts.VirtualBatchSize))
+		}
+
 		batches := int(math.Ceil(float64(inputSize) / float64(opts.VirtualBatchSize)))
 		nodes := make([]*gorgonia.Node, 0, batches)
-
-		log.Printf("batches: %d", batches)
-		log.Printf("momentum: %f eps: %f", opts.Momentum, opts.Epsilon)
 
 		for b := 0; b < batchSize; b++ {
 			// Split the Matrix

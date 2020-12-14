@@ -27,9 +27,11 @@ func (nn *Model) FC(opts FCOpts) Layer {
 		}
 
 		if x.Dims() > 2 {
-			b, v := xShape[0], tensor.Shape(xShape[1:]...).TotalSize()
+			b, v := xShape[0], tensor.Shape(xShape[1:]).TotalSize()
 			x = gorgonia.Must(gorgonia.Reshape(x, tensor.Shape{b, v}))
 		}
+
+		log.Printf("fc xshape: %v", x.Shape())
 
 		shape := tensor.Shape{x.Shape()[1], opts.OutputFeatures}
 		layerNumber := nn.LayersCount() + 1
