@@ -2,7 +2,6 @@ package tabnet
 
 import (
 	"fmt"
-	"log"
 
 	"gorgonia.org/gorgonia"
 )
@@ -13,11 +12,20 @@ type AttentiveTransformerOpts struct {
 	Epsilon                          float64
 	VirtualBatchSize                 int
 	Inferring                        bool
+	Activation                       ActivationFn
 	WeightsInit, ScaleInit, BiasInit gorgonia.InitWFn
+}
+
+func (o *AttentiveTransformerOpts) setDefaults() {
+	if o.Activation == nil {
+		o.Activation = sparsemax
+	}
 }
 
 // AttentiveTransformer implements an attetion transformer layer
 func (nn *Model) AttentiveTransformer(opts AttentiveTransformerOpts) Layer {
+	opts.setDefaults()
+
 	fcLayer := nn.FC(FCOpts{
 		OutputFeatures: opts.OutputFeatures,
 		WeightsInit:    opts.WeightsInit,
@@ -46,14 +54,10 @@ func (nn *Model) AttentiveTransformer(opts AttentiveTransformerOpts) Layer {
 			return nil, fmt.Errorf("fc(%v) failed failed: %w", x.Shape(), err)
 		}
 
-		log.Printf("fc(%v) -> %v", x.Shape(), fc.Shape())
-
 		bn, err := gbnLayer(fc)
 		if err != nil {
 			return nil, fmt.Errorf("gbn(%v) failed: %w", fc.Shape(), err)
 		}
-
-		log.Printf("bn(%v) -> %v", fc.Shape(), bn.Shape())
 
 		priorR, err := gorgonia.Reshape(prior, bn.Shape())
 		if err != nil {
@@ -65,8 +69,7 @@ func (nn *Model) AttentiveTransformer(opts AttentiveTransformerOpts) Layer {
 			return nil, fmt.Errorf("mul(%v, %v) failed: %w", bn.Shape(), priorR.Shape(), err)
 		}
 
-		log.Printf("spm(%v)", mul.Shape())
-		sm, err := gorgonia.Sparsemax(mul)
+		sm, err := opts.Activation(mul)
 		if err != nil {
 			return nil, fmt.Errorf("sparsemax(%v) failed: %w", mul.Shape(), err)
 		}

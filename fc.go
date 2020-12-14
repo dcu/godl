@@ -10,7 +10,7 @@ import (
 
 // FCOpts contains optional parameter for a layer
 type FCOpts struct {
-	ActivationFn   ActivationFn
+	Activation     ActivationFn
 	Dropout        float64
 	OutputFeatures int
 	WeightsInit    gorgonia.InitWFn
@@ -31,8 +31,6 @@ func (nn *Model) FC(opts FCOpts) Layer {
 			x = gorgonia.Must(gorgonia.Reshape(x, tensor.Shape{b, v}))
 		}
 
-		log.Printf("fc xshape: %v", x.Shape())
-
 		shape := tensor.Shape{x.Shape()[1], opts.OutputFeatures}
 		layerNumber := nn.LayersCount() + 1
 
@@ -44,8 +42,8 @@ func (nn *Model) FC(opts FCOpts) Layer {
 			return nil, fmt.Errorf("Layer %d: error applying mul %w", layerNumber, err)
 		}
 
-		if opts.ActivationFn != nil {
-			layer, err = opts.ActivationFn(layer)
+		if opts.Activation != nil {
+			layer, err = opts.Activation(layer)
 			if err != nil {
 				return nil, fmt.Errorf("Layer %d: error applying activation %w", layerNumber, err)
 			}
