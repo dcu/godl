@@ -13,6 +13,8 @@ type FeatureTransformerOpts struct {
 	VirtualBatchSize  int
 	IndependentBlocks int
 	OutputFeatures    int
+
+	WeightsInit gorgonia.InitWFn
 }
 
 // FeatureTransformer implements a feature transformer layer
@@ -23,6 +25,7 @@ func (nn *Model) FeatureTransformer(opts FeatureTransformerOpts) Layer {
 			VirtualBatchSize: opts.VirtualBatchSize,
 			FC:               fcLayer,
 			OutputFeatures:   opts.OutputFeatures,
+			WeightsInit:      opts.WeightsInit,
 		}))
 	}
 
@@ -31,6 +34,7 @@ func (nn *Model) FeatureTransformer(opts FeatureTransformerOpts) Layer {
 		independent = append(independent, nn.GLU(GLUOpts{
 			OutputFeatures:   opts.OutputFeatures,
 			VirtualBatchSize: opts.VirtualBatchSize,
+			WeightsInit:      opts.WeightsInit,
 		}))
 	}
 
