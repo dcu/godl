@@ -24,14 +24,14 @@ func TestGBN(t *testing.T) {
 	}{
 		{
 			desc: "Example 1",
-			input: NewTensor(g, tensor.Float64, 2, WithShape(1, 10), WithName("input"), WithValue(
+			input: NewTensor(g, tensor.Float64, 2, WithShape(10, 1), WithName("input"), WithValue(
 				tensor.New(
-					tensor.WithShape(1, 10),
+					tensor.WithShape(10, 1),
 					tensor.WithBacking([]float64{0.4, 1.4, 2.4, 3.4, 4.4, 5.4, 6.4, 7.4, 8.4, 9.4}),
 				),
 			)),
 			vbs:            5,
-			expectedShape:  tensor.Shape{1, 10},
+			expectedShape:  tensor.Shape{10, 1},
 			expectedOutput: []float64{-1.4142100268524476, -0.7071050134262239, -3.140177066934696e-16, 0.7071050134262233, 1.4142100268524473, -1.4142100268524473, -0.7071050134262237, 0, 0.7071050134262237, 1.4142100268524473},
 		},
 	}

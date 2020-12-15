@@ -2,6 +2,7 @@ package tabnet
 
 import (
 	"fmt"
+	"log"
 	"math"
 
 	"gorgonia.org/gorgonia"
@@ -51,13 +52,12 @@ func (nn *Model) GBN(opts GBNOpts) Layer {
 		}
 
 		x := inputs[0]
-		if x.Dims() > 2 {
-			b, v := x.Shape()[0], tensor.Shape(x.Shape()[1:]).TotalSize()
-			x = gorgonia.Must(gorgonia.Reshape(x, tensor.Shape{b, v}))
-		}
-
 		xShape := x.Shape()
-		batchSize, inputSize := xShape[0], xShape[1]
+		inputSize := xShape.TotalSize()
+
+		if x.Dims() > 1 {
+			x = gorgonia.Must(gorgonia.Reshape(x, tensor.Shape{inputSize}))
+		}
 
 		if opts.VirtualBatchSize > inputSize {
 			opts.VirtualBatchSize = inputSize
@@ -70,37 +70,34 @@ func (nn *Model) GBN(opts GBNOpts) Layer {
 		batches := int(math.Ceil(float64(inputSize) / float64(opts.VirtualBatchSize)))
 		nodes := make([]*gorgonia.Node, 0, batches)
 
-		for b := 0; b < batchSize; b++ {
-			// Split the Matrix
-			vector := gorgonia.Must(gorgonia.Slice(x, gorgonia.S(b)))
+		log.Printf("GBN %v", x.Shape())
 
-			// Split the vector in virtual batches
-			for vb := 0; vb < batches; vb++ {
-				start := vb * opts.VirtualBatchSize
-				if start > inputSize {
-					break
-				}
-
-				end := start + opts.VirtualBatchSize
-				if end > inputSize {
-					break // FIXME: support end = inputSize
-				}
-
-				virtualBatch := gorgonia.Must(gorgonia.Slice(vector, gorgonia.S(start, end)))
-
-				ret, err := nn.BN(BNOpts{
-					Momentum:  opts.Momentum,
-					Epsilon:   opts.Epsilon,
-					Inferring: opts.Inferring,
-					ScaleInit: opts.ScaleInit,
-					BiasInit:  opts.BiasInit,
-				})(virtualBatch)
-				if err != nil {
-					return nil, err
-				}
-
-				nodes = append(nodes, ret)
+		// Split the vector in virtual batches
+		for vb := 0; vb < batches; vb++ {
+			start := vb * opts.VirtualBatchSize
+			if start > inputSize {
+				break
 			}
+
+			end := start + opts.VirtualBatchSize
+			if end > inputSize {
+				panic("this should not happen")
+			}
+
+			virtualBatch := gorgonia.Must(gorgonia.Slice(x, gorgonia.S(start, end)))
+
+			ret, err := nn.BN(BNOpts{
+				Momentum:  opts.Momentum,
+				Epsilon:   opts.Epsilon,
+				Inferring: opts.Inferring,
+				ScaleInit: opts.ScaleInit,
+				BiasInit:  opts.BiasInit,
+			})(virtualBatch)
+			if err != nil {
+				return nil, err
+			}
+
+			nodes = append(nodes, ret)
 		}
 
 		ret, err := (gorgonia.Concat(0, nodes...))
