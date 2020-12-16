@@ -58,7 +58,7 @@ func (nn *Model) AttentiveTransformer(opts AttentiveTransformerOpts) Layer {
 			return nil, fmt.Errorf("gbn(%v) failed: %w", fc.Shape(), err)
 		}
 
-		mul, err := gorgonia.BroadcastHadamardProd(bn, prior, nil, []byte{1}) // FIXME: infer pattern
+		mul, err := hadamardProd(bn, prior)
 		if err != nil {
 			return nil, fmt.Errorf("mul(%v, %v) failed: %w", bn.Shape(), prior.Shape(), err)
 		}

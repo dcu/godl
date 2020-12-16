@@ -53,7 +53,7 @@ func (nn *Model) DecisionStep(opts DecisionStepOpts) Layer {
 			return nil, err
 		}
 
-		mul, err := gorgonia.BroadcastHadamardProd(x, mask, []byte{1}, nil) // FIXME: infer patterns
+		mul, err := hadamardProd(x, mask)
 		if err != nil {
 			return nil, err
 		}
