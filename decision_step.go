@@ -1,6 +1,8 @@
 package tabnet
 
-import "gorgonia.org/gorgonia"
+import (
+	"gorgonia.org/gorgonia"
+)
 
 type DecisionStepOpts struct {
 	Shared []Layer
@@ -10,11 +12,11 @@ type DecisionStepOpts struct {
 	PredictionLayerDim int
 	AttentionLayerDim  int
 
-	Momentum            float64
-	Epsilon             float64
-	VirtualBatchSize    int
-	Inferring           bool
-	ScaleInit, BiasInit gorgonia.InitWFn
+	Momentum                         float64
+	Epsilon                          float64
+	VirtualBatchSize                 int
+	Inferring                        bool
+	WeightsInit, ScaleInit, BiasInit gorgonia.InitWFn
 }
 
 func (nn *Model) DecisionStep(opts DecisionStepOpts) Layer {
@@ -23,29 +25,35 @@ func (nn *Model) DecisionStep(opts DecisionStepOpts) Layer {
 		VirtualBatchSize:  opts.VirtualBatchSize,
 		OutputFeatures:    opts.AttentionLayerDim + opts.PredictionLayerDim,
 		IndependentBlocks: opts.IndependentBlocks,
+		WeightsInit:       opts.WeightsInit,
+	})
+
+	attentiveTransformer := nn.AttentiveTransformer(AttentiveTransformerOpts{
+		OutputFeatures:   opts.AttentionLayerDim + opts.PredictionLayerDim,
+		Momentum:         opts.Momentum,
+		Epsilon:          opts.Epsilon,
+		VirtualBatchSize: opts.VirtualBatchSize,
+		Inferring:        opts.Inferring,
+		ScaleInit:        opts.ScaleInit,
+		BiasInit:         opts.BiasInit,
+		WeightsInit:      opts.WeightsInit,
 	})
 
 	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, error) {
+		if err := nn.checkArity("DecisionStep", nodes, 3); err != nil {
+			return nil, err
+		}
+
 		x := nodes[0]
 		xAttentiveLayer := nodes[1]
 		prior := nodes[2]
-
-		attentiveTransformer := nn.AttentiveTransformer(AttentiveTransformerOpts{
-			OutputFeatures:   x.Shape()[1],
-			Momentum:         opts.Momentum,
-			Epsilon:          opts.Epsilon,
-			VirtualBatchSize: opts.VirtualBatchSize,
-			Inferring:        opts.Inferring,
-			ScaleInit:        opts.ScaleInit,
-			BiasInit:         opts.BiasInit,
-		})
 
 		mask, err := attentiveTransformer(xAttentiveLayer, prior)
 		if err != nil {
 			return nil, err
 		}
 
-		mul, err := gorgonia.HadamardProd(x, mask)
+		mul, err := gorgonia.BroadcastHadamardProd(x, mask, []byte{1}, nil) // FIXME: infer patterns
 		if err != nil {
 			return nil, err
 		}

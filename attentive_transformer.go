@@ -46,7 +46,6 @@ func (nn *Model) AttentiveTransformer(opts AttentiveTransformerOpts) Layer {
 		}
 
 		x := nodes[0]
-		xShape := x.Shape()
 		prior := nodes[1]
 
 		fc, err := fcLayer(x)
@@ -59,14 +58,9 @@ func (nn *Model) AttentiveTransformer(opts AttentiveTransformerOpts) Layer {
 			return nil, fmt.Errorf("gbn(%v) failed: %w", fc.Shape(), err)
 		}
 
-		priorR, err := gorgonia.Reshape(prior, bn.Shape())
+		mul, err := gorgonia.BroadcastHadamardProd(bn, prior, nil, []byte{1}) // FIXME: infer pattern
 		if err != nil {
-			return nil, fmt.Errorf("reshape prior %v to %v failed: %w", prior.Shape(), bn.Shape(), err)
-		}
-
-		mul, err := gorgonia.HadamardProd(bn, priorR)
-		if err != nil {
-			return nil, fmt.Errorf("mul(%v, %v) failed: %w", bn.Shape(), priorR.Shape(), err)
+			return nil, fmt.Errorf("mul(%v, %v) failed: %w", bn.Shape(), prior.Shape(), err)
 		}
 
 		sm, err := opts.Activation(mul)
@@ -74,6 +68,6 @@ func (nn *Model) AttentiveTransformer(opts AttentiveTransformerOpts) Layer {
 			return nil, fmt.Errorf("sparsemax(%v) failed: %w", mul.Shape(), err)
 		}
 
-		return gorgonia.Reshape(sm, xShape)
+		return sm, nil
 	}
 }
