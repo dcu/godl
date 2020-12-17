@@ -19,7 +19,12 @@ type DecisionStepOpts struct {
 	WeightsInit, ScaleInit, BiasInit gorgonia.InitWFn
 }
 
-func (nn *Model) DecisionStep(opts DecisionStepOpts) Layer {
+type DecisionStep struct {
+	FeatureTransformer   Layer
+	AttentiveTransformer Layer
+}
+
+func (nn *Model) DecisionStep(opts DecisionStepOpts) *DecisionStep {
 	featureTransformer := nn.FeatureTransformer(FeatureTransformerOpts{
 		Shared:            opts.Shared,
 		VirtualBatchSize:  opts.VirtualBatchSize,
@@ -28,7 +33,9 @@ func (nn *Model) DecisionStep(opts DecisionStepOpts) Layer {
 		WeightsInit:       opts.WeightsInit,
 	})
 
-	attentiveTransformer := nn.AttentiveTransformer(AttentiveTransformerOpts{
+	ds := &DecisionStep{}
+
+	ds.AttentiveTransformer = nn.AttentiveTransformer(AttentiveTransformerOpts{
 		OutputFeatures:   opts.AttentionLayerDim + opts.PredictionLayerDim,
 		Momentum:         opts.Momentum,
 		Epsilon:          opts.Epsilon,
@@ -39,19 +46,13 @@ func (nn *Model) DecisionStep(opts DecisionStepOpts) Layer {
 		WeightsInit:      opts.WeightsInit,
 	})
 
-	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, error) {
-		if err := nn.checkArity("DecisionStep", nodes, 3); err != nil {
+	ds.FeatureTransformer = func(nodes ...*gorgonia.Node) (*gorgonia.Node, error) {
+		if err := nn.checkArity("DecisionStep-FeatureTransformer", nodes, 2); err != nil {
 			return nil, err
 		}
 
 		x := nodes[0]
-		xAttentiveLayer := nodes[1]
-		prior := nodes[2]
-
-		mask, err := attentiveTransformer(xAttentiveLayer, prior)
-		if err != nil {
-			return nil, err
-		}
+		mask := nodes[1]
 
 		mul, err := gorgonia.Auto(gorgonia.BroadcastHadamardProd, x, mask)
 		if err != nil {
@@ -65,4 +66,6 @@ func (nn *Model) DecisionStep(opts DecisionStepOpts) Layer {
 
 		return ft, nil
 	}
+
+	return ds
 }

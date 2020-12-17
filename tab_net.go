@@ -1,6 +1,8 @@
 package tabnet
 
 import (
+	"fmt"
+
 	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
 )
@@ -15,11 +17,13 @@ type TabNetOpts struct {
 	PredictionLayerDim int
 	AttentionLayerDim  int
 
-	Momentum            float64
-	Epsilon             float64
-	VirtualBatchSize    int
-	Inferring           bool
-	ScaleInit, BiasInit gorgonia.InitWFn
+	Gamma float64
+
+	Momentum                         float64
+	Epsilon                          float64
+	VirtualBatchSize                 int
+	Inferring                        bool
+	WeightsInit, ScaleInit, BiasInit gorgonia.InitWFn
 }
 
 // TabNet implements the tab net architecture
@@ -28,30 +32,47 @@ func (nn *Model) TabNet(opts TabNetOpts) Layer {
 
 	for i := 0; i < opts.SharedBlocks; i++ {
 		shared = append(shared, nn.FC(FCOpts{
-			OutputFeatures: 2 * (opts.PredictionLayerDim + opts.AttentionLayerDim),
+			OutputFeatures: 2 * (opts.PredictionLayerDim + opts.AttentionLayerDim), // double the size so we can take half and half
+			WeightsInit:    opts.WeightsInit,
 		}))
 	}
 
-	steps := make([]Layer, 0, opts.DecisionSteps)
+	steps := make([]*DecisionStep, 0, opts.DecisionSteps)
 	for i := 0; i < opts.DecisionSteps; i++ {
 		steps = append(steps, nn.DecisionStep(
 			DecisionStepOpts{
-				Shared:            shared,
-				IndependentBlocks: opts.IndependentBlocks,
-				VirtualBatchSize:  opts.VirtualBatchSize,
+				Shared:             shared,
+				IndependentBlocks:  opts.IndependentBlocks,
+				VirtualBatchSize:   opts.VirtualBatchSize,
+				PredictionLayerDim: opts.PredictionLayerDim,
+				AttentionLayerDim:  opts.AttentionLayerDim,
+				WeightsInit:        opts.WeightsInit,
+				ScaleInit:          opts.ScaleInit,
+				BiasInit:           opts.BiasInit,
 			},
 		))
 	}
 
 	fcLayer := nn.FC(FCOpts{
 		OutputFeatures: opts.OutputFeatures,
+		WeightsInit:    opts.WeightsInit,
 	})
+
+	if opts.Gamma == 0.0 {
+		opts.Gamma = 1.2
+	}
+
+	gamma := gorgonia.NewScalar(nn.g, tensor.Float64, gorgonia.WithValue(opts.Gamma))
 
 	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, error) {
 		x := nodes[0]
 		xShape := x.Shape()
 
-		bn, err := nn.BN(BNOpts{})(x) // TODO: make configurable
+		bn, err := nn.BN(BNOpts{ // TODO: make configurable
+			ScaleInit: opts.ScaleInit,
+			BiasInit:  opts.BiasInit,
+			Inferring: opts.Inferring,
+		})(x)
 		if err != nil {
 			return nil, err
 		}
@@ -61,6 +82,7 @@ func (nn *Model) TabNet(opts TabNetOpts) Layer {
 			VirtualBatchSize:  opts.VirtualBatchSize,
 			IndependentBlocks: opts.IndependentBlocks,
 			OutputFeatures:    opts.AttentionLayerDim + opts.PredictionLayerDim,
+			WeightsInit:       opts.WeightsInit,
 		})(bn)
 		if err != nil {
 			return nil, err
@@ -75,7 +97,17 @@ func (nn *Model) TabNet(opts TabNetOpts) Layer {
 		out := gorgonia.NewTensor(nn.g, tensor.Float64, 3, gorgonia.WithShape(xShape[0], xShape[1], opts.PredictionLayerDim), gorgonia.WithInit(gorgonia.Zeroes()))
 
 		for _, step := range steps {
-			ds, err := step(bn, xAttentiveLayer, prior)
+			mask, err := step.AttentiveTransformer(xAttentiveLayer, prior)
+
+			// Update prior
+			{
+				prior, err = gorgonia.Auto(gorgonia.BroadcastHadamardProd, prior, gorgonia.Must(gorgonia.Sub(gamma, mask)))
+				if err != nil {
+					return nil, fmt.Errorf("updating prior: %w", err)
+				}
+			}
+
+			ds, err := step.FeatureTransformer(bn, mask)
 			if err != nil {
 				return nil, err
 			}

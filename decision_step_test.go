@@ -45,14 +45,20 @@ func TestDecisionStep(t *testing.T) {
 
 			a := NewTensor(g, Float64, tcase.input.Dims(), WithShape(tcase.input.Shape()...), WithInit(Ones()))
 			priors := NewTensor(g, Float64, tcase.input.Dims(), WithShape(tcase.input.Shape()...), WithInit(Ones()))
-			x, err := tn.DecisionStep(DecisionStepOpts{
+			step := tn.DecisionStep(DecisionStepOpts{
 				VirtualBatchSize:   tcase.vbs,
 				Shared:             nil,
 				IndependentBlocks:  tcase.independentBlocks,
 				PredictionLayerDim: 10,
 				AttentionLayerDim:  1,
 				WeightsInit:        initDummyWeights,
-			})(tcase.input, a, priors)
+			})
+
+			mask, err := step.AttentiveTransformer(a, priors)
+			c.NoError(err)
+
+			ds, err := step.FeatureTransformer(tcase.input, mask)
+			c.NoError(err)
 
 			if tcase.expectedErr != "" {
 				c.Error(err)
@@ -67,8 +73,8 @@ func TestDecisionStep(t *testing.T) {
 			vm := NewTapeMachine(g)
 			c.NoError(vm.RunAll())
 
-			c.Equal(tcase.expectedShape, x.Shape())
-			c.Equal(tcase.expectedOutput, x.Value().Data().([]float64))
+			c.Equal(tcase.expectedShape, ds.Shape())
+			c.Equal(tcase.expectedOutput, ds.Value().Data().([]float64))
 		})
 	}
 }
