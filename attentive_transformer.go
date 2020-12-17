@@ -58,7 +58,7 @@ func (nn *Model) AttentiveTransformer(opts AttentiveTransformerOpts) Layer {
 			return nil, fmt.Errorf("gbn(%v) failed: %w", fc.Shape(), err)
 		}
 
-		mul, err := hadamardProd(bn, prior)
+		mul, err := gorgonia.Auto(gorgonia.BroadcastHadamardProd, bn, prior)
 		if err != nil {
 			return nil, fmt.Errorf("mul(%v, %v) failed: %w", bn.Shape(), prior.Shape(), err)
 		}

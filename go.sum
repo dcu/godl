@@ -7,6 +7,8 @@ github.com/apache/arrow/go/arrow v0.0.0-20200909005831-30143fc493df h1:iXnL0pMIR
 github.com/apache/arrow/go/arrow v0.0.0-20200909005831-30143fc493df/go.mod h1:QNYViu/X0HXDHw7m3KXzWSVXIbfUvJqBFe6Gj8/pYA0=
 github.com/apache/arrow/go/arrow v0.0.0-20201214143043-48fee6672bd8 h1:HqFpAV8NkXR+9pIh3I+/Ug3wjXUKltBSdkGojQgGN6U=
 github.com/apache/arrow/go/arrow v0.0.0-20201214143043-48fee6672bd8/go.mod h1:c9sxoIT3YgLxH4UhLOCKaBlEojuMhVYpk4Ntv3opUTQ=
+github.com/apache/arrow/go/arrow v0.0.0-20201216213016-d65ba4ec5dae h1:iR1IYBgLrAhRHmdJ2/3SaM0ECXLqihZ6HWSkXylvebs=
+github.com/apache/arrow/go/arrow v0.0.0-20201216213016-d65ba4ec5dae/go.mod h1:c9sxoIT3YgLxH4UhLOCKaBlEojuMhVYpk4Ntv3opUTQ=
 github.com/awalterschulze/gographviz v0.0.0-20190221210632-1e9ccb565bca h1:xwIXr1FpA2XBoohlpvgb11No/zbsh5Clm/98PWPcHVA=
 github.com/awalterschulze/gographviz v0.0.0-20190221210632-1e9ccb565bca/go.mod h1:GEV5wmg4YquNw7v1kkyoX9etIk8yVmXj+AkDHuuETHs=
 github.com/awalterschulze/gographviz v2.0.3+incompatible h1:9sVEXJBJLwGX7EQVhLm2elIKCm7P2YHFC8v6096G09E=
@@ -256,6 +258,8 @@ gorgonia.org/dawson v1.2.0/go.mod h1:Px1mcziba8YUBIDsbzGwbKJ11uIblv/zkln4jNrZ9Ws
 gorgonia.org/gorgonia v0.9.2/go.mod h1:ZtOb9f/wM2OMta1ISGspQ4roGDgz9d9dKOaPNvGR+ec=
 gorgonia.org/gorgonia v0.9.16-0.20201214031252-954da37ab992 h1:fomr/Z/5/vGKRy7PumlkrrrVF6u1gYIu18lnqAXjw/E=
 gorgonia.org/gorgonia v0.9.16-0.20201214031252-954da37ab992/go.mod h1:Mj4cIuIZHPk6sEKmh06phzEw1fda/HSRi390UZuqOec=
+gorgonia.org/gorgonia v0.9.16-0.20201217024154-d45319fc2082 h1:irNih6E+e1KnUcQINkiud3FfR73XT28Z0uW95oT4Vuc=
+gorgonia.org/gorgonia v0.9.16-0.20201217024154-d45319fc2082/go.mod h1:Mj4cIuIZHPk6sEKmh06phzEw1fda/HSRi390UZuqOec=
 gorgonia.org/tensor v0.9.0-beta/go.mod h1:05Y4laKuVlj4qFoZIZW1q/9n1jZkgDBOLmKXZdBLG1w=
 gorgonia.org/tensor v0.9.14 h1:EwM+jThO1lod2T+cswJoUbFAVAY8zMPdtqfflZbywEc=
 gorgonia.org/tensor v0.9.14/go.mod h1:fsbuoeL1vV3fe8N+HZxEXJ7WI4z1pPP3luMBCgn0HAA=

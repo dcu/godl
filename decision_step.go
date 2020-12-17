@@ -53,7 +53,7 @@ func (nn *Model) DecisionStep(opts DecisionStepOpts) Layer {
 			return nil, err
 		}
 
-		mul, err := hadamardProd(x, mask)
+		mul, err := gorgonia.Auto(gorgonia.BroadcastHadamardProd, x, mask)
 		if err != nil {
 			return nil, err
 		}
