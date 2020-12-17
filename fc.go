@@ -14,7 +14,7 @@ type FCOpts struct {
 	Dropout        float64
 	OutputFeatures int
 	WeightsInit    gorgonia.InitWFn
-	// TODO: support bias
+	WithBias       bool
 }
 
 func (nn *Model) FC(opts FCOpts) Layer {
@@ -40,6 +40,15 @@ func (nn *Model) FC(opts FCOpts) Layer {
 		layer, err := gorgonia.Mul(x, w)
 		if err != nil {
 			return nil, fmt.Errorf("Layer %d: error applying mul %w", layerNumber, err)
+		}
+
+		if opts.WithBias {
+			b := nn.addBias(shape, opts.WeightsInit)
+
+			layer, err = gorgonia.Add(layer, b)
+			if err != nil {
+				return nil, fmt.Errorf("Layer %d: error adding bias %w", layerNumber, err)
+			}
 		}
 
 		if opts.Activation != nil {
