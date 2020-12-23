@@ -14,6 +14,7 @@ type TabNetOpts struct {
 	IndependentBlocks int
 	DecisionSteps     int
 
+	InputDim           int // FIXME
 	PredictionLayerDim int
 	AttentionLayerDim  int
 
@@ -38,7 +39,7 @@ func (nn *Model) TabNet(opts TabNetOpts) Layer {
 	}
 
 	steps := make([]*DecisionStep, 0, opts.DecisionSteps)
-	for i := 0; i < opts.DecisionSteps; i++ {
+	for i := 0; i < opts.DecisionSteps-1; i++ {
 		steps = append(steps, nn.DecisionStep(
 			DecisionStepOpts{
 				Shared:             shared,
@@ -49,6 +50,8 @@ func (nn *Model) TabNet(opts TabNetOpts) Layer {
 				WeightsInit:        opts.WeightsInit,
 				ScaleInit:          opts.ScaleInit,
 				BiasInit:           opts.BiasInit,
+				Inferring:          opts.Inferring,
+				OutputFeatures:     opts.InputDim,
 			},
 		))
 	}
@@ -56,6 +59,22 @@ func (nn *Model) TabNet(opts TabNetOpts) Layer {
 	fcLayer := nn.FC(FCOpts{
 		OutputFeatures: opts.OutputFeatures,
 		WeightsInit:    opts.WeightsInit,
+	})
+
+	bnLayer := nn.BN(BNOpts{ // TODO: make configurable
+		ScaleInit: opts.ScaleInit,
+		BiasInit:  opts.BiasInit,
+		Inferring: opts.Inferring,
+		InputSize: opts.OutputFeatures,
+	})
+
+	// first step
+	ftLayer := nn.FeatureTransformer(FeatureTransformerOpts{
+		Shared:            shared,
+		VirtualBatchSize:  opts.VirtualBatchSize,
+		IndependentBlocks: opts.IndependentBlocks,
+		OutputFeatures:    opts.AttentionLayerDim + opts.PredictionLayerDim,
+		WeightsInit:       opts.WeightsInit,
 	})
 
 	if opts.Gamma == 0.0 {
@@ -68,22 +87,12 @@ func (nn *Model) TabNet(opts TabNetOpts) Layer {
 		x := nodes[0]
 		xShape := x.Shape()
 
-		bn, err := nn.BN(BNOpts{ // TODO: make configurable
-			ScaleInit: opts.ScaleInit,
-			BiasInit:  opts.BiasInit,
-			Inferring: opts.Inferring,
-		})(x)
+		bn, err := bnLayer(x)
 		if err != nil {
 			return nil, err
 		}
 
-		ft, err := nn.FeatureTransformer(FeatureTransformerOpts{
-			Shared:            shared,
-			VirtualBatchSize:  opts.VirtualBatchSize,
-			IndependentBlocks: opts.IndependentBlocks,
-			OutputFeatures:    opts.AttentionLayerDim + opts.PredictionLayerDim,
-			WeightsInit:       opts.WeightsInit,
-		})(bn)
+		ft, err := ftLayer(bn)
 		if err != nil {
 			return nil, err
 		}
@@ -93,15 +102,18 @@ func (nn *Model) TabNet(opts TabNetOpts) Layer {
 			return nil, err
 		}
 
-		prior := gorgonia.NewTensor(nn.g, tensor.Float64, bn.Shape().Dims(), gorgonia.WithShape(bn.Shape()...), gorgonia.WithInit(gorgonia.Ones()))
-		out := gorgonia.NewTensor(nn.g, tensor.Float64, 3, gorgonia.WithShape(xShape[0], xShape[1], opts.PredictionLayerDim), gorgonia.WithInit(gorgonia.Zeroes()))
+		prior := gorgonia.NewTensor(nn.g, tensor.Float64, bn.Shape().Dims(), gorgonia.WithShape(bn.Shape()...), gorgonia.WithInit(gorgonia.Ones()), gorgonia.WithName("Prior"))
+		out := gorgonia.NewTensor(nn.g, tensor.Float64, 2, gorgonia.WithShape(xShape[0], opts.PredictionLayerDim), gorgonia.WithInit(gorgonia.Zeroes()), gorgonia.WithName("Output"))
 
 		for _, step := range steps {
 			mask, err := step.AttentiveTransformer(xAttentiveLayer, prior)
+			if err != nil {
+				return nil, fmt.Errorf("attentive transformer: %w", err)
+			}
 
 			// Update prior
 			{
-				prior, err = gorgonia.Auto(gorgonia.BroadcastHadamardProd, prior, gorgonia.Must(gorgonia.Sub(gamma, mask)))
+				prior, err = gorgonia.HadamardProd(prior, gorgonia.Must(gorgonia.Sub(gamma, mask)))
 				if err != nil {
 					return nil, fmt.Errorf("updating prior: %w", err)
 				}
@@ -112,12 +124,12 @@ func (nn *Model) TabNet(opts TabNetOpts) Layer {
 				return nil, err
 			}
 
-			ds, err = gorgonia.Slice(ds, nil, nil, gorgonia.S(0, opts.IndependentBlocks))
+			firstPart, err := gorgonia.Slice(ds, nil, gorgonia.S(0, opts.PredictionLayerDim))
 			if err != nil {
 				return nil, err
 			}
 
-			relu, err := gorgonia.Rectify(ds)
+			relu, err := gorgonia.Rectify(firstPart)
 			if err != nil {
 				return nil, err
 			}
@@ -127,7 +139,7 @@ func (nn *Model) TabNet(opts TabNetOpts) Layer {
 				return nil, err
 			}
 
-			xAttentiveLayer, err = gorgonia.Slice(ds, nil, nil, gorgonia.S(opts.IndependentBlocks, ds.Shape()[2]))
+			xAttentiveLayer, err = gorgonia.Slice(ds, nil, gorgonia.S(opts.PredictionLayerDim, ds.Shape()[1]))
 			if err != nil {
 				return nil, err
 			}

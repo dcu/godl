@@ -11,6 +11,7 @@ type DecisionStepOpts struct {
 
 	PredictionLayerDim int
 	AttentionLayerDim  int
+	OutputFeatures     int
 
 	Momentum                         float64
 	Epsilon                          float64
@@ -25,18 +26,14 @@ type DecisionStep struct {
 }
 
 func (nn *Model) DecisionStep(opts DecisionStepOpts) *DecisionStep {
-	featureTransformer := nn.FeatureTransformer(FeatureTransformerOpts{
-		Shared:            opts.Shared,
-		VirtualBatchSize:  opts.VirtualBatchSize,
-		OutputFeatures:    opts.AttentionLayerDim + opts.PredictionLayerDim,
-		IndependentBlocks: opts.IndependentBlocks,
-		WeightsInit:       opts.WeightsInit,
-	})
+	if opts.OutputFeatures == 0 {
+		panic("OutputFeatures must be set")
+	}
 
 	ds := &DecisionStep{}
 
 	ds.AttentiveTransformer = nn.AttentiveTransformer(AttentiveTransformerOpts{
-		OutputFeatures:   opts.AttentionLayerDim + opts.PredictionLayerDim,
+		OutputFeatures:   opts.OutputFeatures,
 		Momentum:         opts.Momentum,
 		Epsilon:          opts.Epsilon,
 		VirtualBatchSize: opts.VirtualBatchSize,
@@ -44,6 +41,15 @@ func (nn *Model) DecisionStep(opts DecisionStepOpts) *DecisionStep {
 		ScaleInit:        opts.ScaleInit,
 		BiasInit:         opts.BiasInit,
 		WeightsInit:      opts.WeightsInit,
+	})
+
+	featureTransformer := nn.FeatureTransformer(FeatureTransformerOpts{
+		Shared:            opts.Shared,
+		VirtualBatchSize:  opts.VirtualBatchSize,
+		OutputFeatures:    opts.AttentionLayerDim + opts.PredictionLayerDim,
+		IndependentBlocks: opts.IndependentBlocks,
+		WeightsInit:       opts.WeightsInit,
+		Inferring:         opts.Inferring,
 	})
 
 	ds.FeatureTransformer = func(nodes ...*gorgonia.Node) (*gorgonia.Node, error) {
@@ -54,7 +60,7 @@ func (nn *Model) DecisionStep(opts DecisionStepOpts) *DecisionStep {
 		x := nodes[0]
 		mask := nodes[1]
 
-		mul, err := gorgonia.Auto(gorgonia.BroadcastHadamardProd, x, mask)
+		mul, err := gorgonia.HadamardProd(x, mask)
 		if err != nil {
 			return nil, err
 		}

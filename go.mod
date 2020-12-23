@@ -3,6 +3,7 @@ module github.com/dcu/tabnet
 go 1.15
 
 // replace gorgonia.org/gorgonia => ../../../gorgonia.org/gorgonia
+// replace gorgonia.org/tensor => ../../../gorgonia.org/tensor
 
 require (
 	github.com/apache/arrow/go/arrow v0.0.0-20201216213016-d65ba4ec5dae // indirect

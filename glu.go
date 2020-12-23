@@ -2,7 +2,6 @@ package tabnet
 
 import (
 	"fmt"
-	"log"
 
 	"gorgonia.org/gorgonia"
 )
@@ -14,6 +13,7 @@ type GLUOpts struct {
 	ActivationFn     ActivationFn
 	FC               Layer
 	WeightsInit      gorgonia.InitWFn
+	Inferring        bool
 }
 
 // GLU implements a Gated Linear Unit Block
@@ -22,10 +22,18 @@ func (nn *Model) GLU(opts GLUOpts) Layer {
 		opts.ActivationFn = gorgonia.Sigmoid
 	}
 
-	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, error) {
-		x := nodes[0]
+	gbnLayer := nn.GBN(GBNOpts{
+		VirtualBatchSize: opts.VirtualBatchSize,
+		WeightsInit:      opts.WeightsInit,
+		Inferring:        opts.Inferring,
+	})
 
-		log.Printf("%v", x.Shape())
+	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, error) {
+		if err := nn.checkArity("GLU", nodes, 1); err != nil {
+			return nil, err
+		}
+
+		x := nodes[0]
 
 		var (
 			fc  *gorgonia.Node
@@ -36,6 +44,7 @@ func (nn *Model) GLU(opts GLUOpts) Layer {
 			opts.FC = nn.FC(FCOpts{
 				OutputFeatures: opts.OutputFeatures * 2,
 				WeightsInit:    opts.WeightsInit,
+				WithBias:       false,
 			})
 		}
 
@@ -44,11 +53,7 @@ func (nn *Model) GLU(opts GLUOpts) Layer {
 			return nil, fmt.Errorf("[glu] applying FC(%v) failed: %w", x.Shape(), err)
 		}
 
-		log.Printf("fc shape: %v", fc.Shape())
-
-		gbn, err := nn.GBN(GBNOpts{
-			VirtualBatchSize: opts.VirtualBatchSize,
-		})(fc)
+		gbn, err := gbnLayer(fc)
 		if err != nil {
 			return nil, fmt.Errorf("[glu] applying GBN failed: %w", err)
 		}

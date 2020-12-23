@@ -2,19 +2,18 @@ package tabnet
 
 import (
 	"fmt"
-	"log"
 	"math"
 
 	"gorgonia.org/gorgonia"
-	"gorgonia.org/tensor"
 )
 
 // GBNOpts contains config options for the ghost batch normalization
 type GBNOpts struct {
-	Momentum                         float64
-	Epsilon                          float64
-	VirtualBatchSize                 int
-	Inferring                        bool
+	Momentum         float64
+	Epsilon          float64
+	VirtualBatchSize int
+	Inferring        bool
+
 	WeightsInit, ScaleInit, BiasInit gorgonia.InitWFn
 }
 
@@ -46,6 +45,15 @@ func (o *GBNOpts) setDefaults() {
 func (nn *Model) GBN(opts GBNOpts) Layer {
 	opts.setDefaults()
 
+	bn := nn.BN(BNOpts{
+		Momentum:  opts.Momentum,
+		Epsilon:   opts.Epsilon,
+		Inferring: opts.Inferring,
+		ScaleInit: opts.ScaleInit,
+		BiasInit:  opts.BiasInit,
+		InputSize: opts.VirtualBatchSize,
+	})
+
 	return func(inputs ...*gorgonia.Node) (*gorgonia.Node, error) {
 		if err := nn.checkArity("GBN", inputs, 1); err != nil {
 			return nil, err
@@ -53,11 +61,7 @@ func (nn *Model) GBN(opts GBNOpts) Layer {
 
 		x := inputs[0]
 		xShape := x.Shape()
-		inputSize := xShape.TotalSize()
-
-		if x.Dims() > 1 {
-			x = gorgonia.Must(gorgonia.Reshape(x, tensor.Shape{inputSize}))
-		}
+		inputSize := xShape[0]
 
 		if opts.VirtualBatchSize > inputSize {
 			opts.VirtualBatchSize = inputSize
@@ -69,8 +73,6 @@ func (nn *Model) GBN(opts GBNOpts) Layer {
 
 		batches := int(math.Ceil(float64(inputSize) / float64(opts.VirtualBatchSize)))
 		nodes := make([]*gorgonia.Node, 0, batches)
-
-		log.Printf("GBN %v", x.Shape())
 
 		// Split the vector in virtual batches
 		for vb := 0; vb < batches; vb++ {
@@ -86,13 +88,7 @@ func (nn *Model) GBN(opts GBNOpts) Layer {
 
 			virtualBatch := gorgonia.Must(gorgonia.Slice(x, gorgonia.S(start, end)))
 
-			ret, err := nn.BN(BNOpts{
-				Momentum:  opts.Momentum,
-				Epsilon:   opts.Epsilon,
-				Inferring: opts.Inferring,
-				ScaleInit: opts.ScaleInit,
-				BiasInit:  opts.BiasInit,
-			})(virtualBatch)
+			ret, err := bn(virtualBatch)
 			if err != nil {
 				return nil, err
 			}
@@ -100,7 +96,7 @@ func (nn *Model) GBN(opts GBNOpts) Layer {
 			nodes = append(nodes, ret)
 		}
 
-		ret, err := (gorgonia.Concat(0, nodes...))
+		ret, err := gorgonia.Concat(0, nodes...)
 		if err != nil {
 			return nil, fmt.Errorf("error concatenating %d nodes: %w", len(nodes), err)
 		}

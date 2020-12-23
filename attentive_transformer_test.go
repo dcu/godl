@@ -22,16 +22,16 @@ func TestAttentiveTransformer(t *testing.T) {
 	}{
 		{
 			desc: "Example 1",
-			input: NewTensor(g, tensor.Float64, 2, WithShape(5, 2), WithName("input"), WithValue(
+			input: NewTensor(g, tensor.Float64, 2, WithShape(6, 2), WithName("input"), WithValue(
 				tensor.New(
-					tensor.WithShape(5, 2),
-					tensor.WithBacking([]float64{0.4, 1.4, 2.4, 3.4, 4.4, 5.4, 6.4, 7.4, 8.4, 9.4}),
+					tensor.WithShape(6, 2),
+					tensor.WithBacking([]float64{0.4, 1.4, 2.4, 3.4, 4.4, 5.4, 6.4, 7.4, 8.4, 9.4, 10.4, 11.4}),
 				),
 			)),
 			vbs:            2,
 			output:         2,
-			expectedShape:  tensor.Shape{5, 2},
-			expectedOutput: []float64{0.3999845913169984, 0, 0.3999990275527686, 0, 0.39999996894071055, 0, 0.40000021751596193, 0, 0.4000003178664261, 0},
+			expectedShape:  tensor.Shape{6, 2},
+			expectedOutput: []float64{0, 0, 1.0019790079330222, 0, 0, 0, 0.6785344728987531, 0, 0.05826778712715075, 0, 0.549269569083758, 0},
 		},
 	}
 

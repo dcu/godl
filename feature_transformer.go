@@ -13,6 +13,7 @@ type FeatureTransformerOpts struct {
 	VirtualBatchSize  int
 	IndependentBlocks int
 	OutputFeatures    int
+	Inferring         bool
 
 	WeightsInit gorgonia.InitWFn
 }
@@ -26,11 +27,13 @@ func (nn *Model) FeatureTransformer(opts FeatureTransformerOpts) Layer {
 			FC:               fcLayer,
 			OutputFeatures:   opts.OutputFeatures,
 			WeightsInit:      opts.WeightsInit,
+			Inferring:        opts.Inferring,
 		}))
 	}
 
 	independent := make([]Layer, 0, len(opts.Shared))
 	for i := 0; i < opts.IndependentBlocks; i++ {
+
 		independent = append(independent, nn.GLU(GLUOpts{
 			OutputFeatures:   opts.OutputFeatures,
 			VirtualBatchSize: opts.VirtualBatchSize,
@@ -41,22 +44,30 @@ func (nn *Model) FeatureTransformer(opts FeatureTransformerOpts) Layer {
 	scale := gorgonia.NewScalar(nn.g, tensor.Float64, gorgonia.WithValue(math.Sqrt(0.5))) // TODO: make configurable
 
 	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, error) {
+		var err error
 		x := nodes[0]
 
-		for _, layer := range shared {
-			output, err := layer(x)
+		if len(shared) > 0 {
+			x, err = shared[0](x)
 			if err != nil {
 				return nil, err
 			}
 
-			x, err = gorgonia.Add(x, output)
-			if err != nil {
-				return nil, err
-			}
+			for _, layer := range shared[1:] {
+				output, err := layer(x)
+				if err != nil {
+					return nil, err
+				}
 
-			x, err = gorgonia.Mul(x, scale)
-			if err != nil {
-				return nil, err
+				x, err = gorgonia.Add(x, output)
+				if err != nil {
+					return nil, err
+				}
+
+				x, err = gorgonia.Mul(x, scale)
+				if err != nil {
+					return nil, err
+				}
 			}
 		}
 

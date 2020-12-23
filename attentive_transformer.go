@@ -30,6 +30,7 @@ func (nn *Model) AttentiveTransformer(opts AttentiveTransformerOpts) Layer {
 		OutputFeatures: opts.OutputFeatures,
 		WeightsInit:    opts.WeightsInit,
 	})
+
 	gbnLayer := nn.GBN(GBNOpts{
 		Momentum:         opts.Momentum,
 		Epsilon:          opts.Epsilon,
@@ -50,22 +51,22 @@ func (nn *Model) AttentiveTransformer(opts AttentiveTransformerOpts) Layer {
 
 		fc, err := fcLayer(x)
 		if err != nil {
-			return nil, fmt.Errorf("fc(%v) failed failed: %w", x.Shape(), err)
+			return nil, fmt.Errorf("AttentiveTransformer: fc(%v) failed failed: %w", x.Shape(), err)
 		}
 
 		bn, err := gbnLayer(fc)
 		if err != nil {
-			return nil, fmt.Errorf("gbn(%v) failed: %w", fc.Shape(), err)
+			return nil, fmt.Errorf("AttentiveTransformer: gbn(%v) failed: %w", fc.Shape(), err)
 		}
 
-		mul, err := gorgonia.Auto(gorgonia.BroadcastHadamardProd, bn, prior)
+		mul, err := gorgonia.HadamardProd(bn, prior)
 		if err != nil {
-			return nil, fmt.Errorf("mul(%v, %v) failed: %w", bn.Shape(), prior.Shape(), err)
+			return nil, fmt.Errorf("AttentiveTransformer: mul(%v, %v) failed: %w", bn.Shape(), prior.Shape(), err)
 		}
 
 		sm, err := opts.Activation(mul)
 		if err != nil {
-			return nil, fmt.Errorf("sparsemax(%v) failed: %w", mul.Shape(), err)
+			return nil, fmt.Errorf("AttentiveTransformer: sparsemax(%v) failed: %w", mul.Shape(), err)
 		}
 
 		return sm, nil

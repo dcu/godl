@@ -11,6 +11,8 @@ type BNOpts struct {
 	Epsilon             float64
 	Inferring           bool
 	ScaleInit, BiasInit gorgonia.InitWFn
+
+	InputSize int
 }
 
 func (o *BNOpts) setDefaults() {
@@ -38,9 +40,7 @@ func (nn *Model) BN(opts BNOpts) Layer {
 	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, error) {
 		x := nodes[0]
 		xShape := x.Shape()
-		if xShape.Dims() == 1 {
-			x = gorgonia.Must(gorgonia.Reshape(x, tensor.Shape{1, 1, 1, xShape[0]}))
-		}
+		x = gorgonia.Must(gorgonia.Reshape(x, tensor.Shape{xShape[0], 1, 1, xShape[1]}))
 
 		scale := nn.addLearnable("scale", x.Shape(), opts.ScaleInit)
 		bias := nn.addBias(x.Shape(), opts.BiasInit)

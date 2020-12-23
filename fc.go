@@ -2,7 +2,6 @@ package tabnet
 
 import (
 	"fmt"
-	"log"
 
 	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
@@ -32,9 +31,7 @@ func (nn *Model) FC(opts FCOpts) Layer {
 		}
 
 		shape := tensor.Shape{x.Shape()[1], opts.OutputFeatures}
-		layerNumber := nn.LayersCount() + 1
-
-		log.Printf("Layer %d: FC(%v,%v)", layerNumber, x.Shape(), shape)
+		layerNumber := nn.LearnablesCount() + 1
 
 		w := nn.addWeights(shape, opts.WeightsInit)
 		layer, err := gorgonia.Mul(x, w)

@@ -2,14 +2,13 @@ package tabnet
 
 import (
 	"fmt"
-	"log"
 
 	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
 )
 
-// LayersCount return the number of layers
-func (t *Model) LayersCount() int {
+// LearnablesCount return the number of learnables
+func (t *Model) LearnablesCount() int {
 	return len(t.learnables)
 }
 
@@ -32,9 +31,9 @@ func (t *Model) addLearnable(name string, shape tensor.Shape, initFN gorgonia.In
 	if val, ok := t.model[name]; ok {
 		init = gorgonia.WithValue(val)
 
-		log.Printf("Assigned %d with shape %v pre-trained values to %v", val.Size(), val.Shape(), name)
+		// log.Printf("Assigned %d with shape %v pre-trained values to %v", val.Size(), val.Shape(), name)
 	} else {
-		log.Printf("Assigned new values to %v", name)
+		// log.Printf("Assigned new values to %v", name)
 	}
 
 	var w *gorgonia.Node
