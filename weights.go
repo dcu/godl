@@ -2,14 +2,17 @@ package tabnet
 
 import (
 	"fmt"
+	"sync/atomic"
 
 	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
 )
 
+var learnablesCount int64
+
 // LearnablesCount return the number of learnables
-func (t *Model) LearnablesCount() int {
-	return len(t.learnables)
+func (t *Model) LearnablesCount() int64 {
+	return learnablesCount
 }
 
 func (t *Model) addWeights(shape tensor.Shape, initFN gorgonia.InitWFn) *gorgonia.Node {
@@ -21,7 +24,9 @@ func (t *Model) addBias(shape tensor.Shape, initFN gorgonia.InitWFn) *gorgonia.N
 }
 
 func (t *Model) addLearnable(name string, shape tensor.Shape, initFN gorgonia.InitWFn) *gorgonia.Node {
-	name = fmt.Sprintf("%s_%d_%d", name, len(t.learnables), shape.TotalSize())
+	atomic.AddInt64(&learnablesCount, 1)
+
+	name = fmt.Sprintf("%d.%s.%d.%d", learnablesCount, name, len(t.learnables), shape.TotalSize())
 
 	if initFN == nil {
 		initFN = gorgonia.GlorotN(1.0)
