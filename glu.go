@@ -9,7 +9,7 @@ import (
 // GLUOpts are the supported options for GLU
 type GLUOpts struct {
 	VirtualBatchSize int
-	OutputDimension   int
+	OutputDimension  int
 	ActivationFn     ActivationFn
 	FC               Layer
 	WeightsInit      gorgonia.InitWFn
@@ -28,6 +28,14 @@ func (nn *Model) GLU(opts GLUOpts) Layer {
 		Inferring:        opts.Inferring,
 	})
 
+	if opts.FC == nil {
+		opts.FC = nn.FC(FCOpts{
+			OutputDimension: opts.OutputDimension * 2,
+			WeightsInit:     opts.WeightsInit,
+			WithBias:        false,
+		})
+	}
+
 	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, error) {
 		if err := nn.checkArity("GLU", nodes, 1); err != nil {
 			return nil, err
@@ -39,14 +47,6 @@ func (nn *Model) GLU(opts GLUOpts) Layer {
 			fc  *gorgonia.Node
 			err error
 		)
-
-		if opts.FC == nil {
-			opts.FC = nn.FC(FCOpts{
-				OutputDimension: opts.OutputDimension * 2,
-				WeightsInit:    opts.WeightsInit,
-				WithBias:       false,
-			})
-		}
 
 		fc, err = opts.FC(x)
 		if err != nil {
