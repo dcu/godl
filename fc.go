@@ -9,11 +9,11 @@ import (
 
 // FCOpts contains optional parameter for a layer
 type FCOpts struct {
-	Activation     ActivationFn
-	Dropout        float64
-	OutputFeatures int
-	WeightsInit    gorgonia.InitWFn
-	WithBias       bool
+	Activation      ActivationFn
+	Dropout         float64
+	OutputDimension int
+	WeightsInit     gorgonia.InitWFn
+	WithBias        bool
 }
 
 func (nn *Model) FC(opts FCOpts) Layer {
@@ -21,8 +21,8 @@ func (nn *Model) FC(opts FCOpts) Layer {
 		x := nodes[0]
 		xShape := x.Shape()
 
-		if opts.OutputFeatures <= 0 {
-			return nil, fmt.Errorf("wrong output features count %d for FC layer", opts.OutputFeatures)
+		if opts.OutputDimension <= 0 {
+			return nil, fmt.Errorf("wrong output features count %d for FC layer", opts.OutputDimension)
 		}
 
 		if x.Dims() > 2 {
@@ -30,7 +30,7 @@ func (nn *Model) FC(opts FCOpts) Layer {
 			x = gorgonia.Must(gorgonia.Reshape(x, tensor.Shape{b, v}))
 		}
 
-		shape := tensor.Shape{x.Shape()[1], opts.OutputFeatures}
+		shape := tensor.Shape{x.Shape()[1], opts.OutputDimension}
 		layerNumber := nn.LearnablesCount() + 1
 
 		w := nn.addWeights(shape, opts.WeightsInit)

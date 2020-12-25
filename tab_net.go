@@ -9,7 +9,7 @@ import (
 
 // TabNetOpts contains parameters to configure the tab net algorithm
 type TabNetOpts struct {
-	OutputFeatures    int
+	OutputDimension   int
 	SharedBlocks      int
 	IndependentBlocks int
 	DecisionSteps     int
@@ -33,8 +33,8 @@ func (nn *Model) TabNet(opts TabNetOpts) Layer {
 
 	for i := 0; i < opts.SharedBlocks; i++ {
 		shared = append(shared, nn.FC(FCOpts{
-			OutputFeatures: 2 * (opts.PredictionLayerDim + opts.AttentionLayerDim), // double the size so we can take half and half
-			WeightsInit:    opts.WeightsInit,
+			OutputDimension: 2 * (opts.PredictionLayerDim + opts.AttentionLayerDim), // double the size so we can take half and half
+			WeightsInit:     opts.WeightsInit,
 		}))
 	}
 
@@ -51,21 +51,21 @@ func (nn *Model) TabNet(opts TabNetOpts) Layer {
 				ScaleInit:          opts.ScaleInit,
 				BiasInit:           opts.BiasInit,
 				Inferring:          opts.Inferring,
-				OutputFeatures:     opts.InputDim,
+				OutputDimension:    opts.InputDim,
 			},
 		))
 	}
 
 	fcLayer := nn.FC(FCOpts{
-		OutputFeatures: opts.OutputFeatures,
-		WeightsInit:    opts.WeightsInit,
+		OutputDimension: opts.OutputDimension,
+		WeightsInit:     opts.WeightsInit,
 	})
 
 	bnLayer := nn.BN(BNOpts{ // TODO: make configurable
 		ScaleInit: opts.ScaleInit,
 		BiasInit:  opts.BiasInit,
 		Inferring: opts.Inferring,
-		InputSize: opts.OutputFeatures,
+		InputSize: opts.OutputDimension,
 	})
 
 	// first step
@@ -73,7 +73,7 @@ func (nn *Model) TabNet(opts TabNetOpts) Layer {
 		Shared:            shared,
 		VirtualBatchSize:  opts.VirtualBatchSize,
 		IndependentBlocks: opts.IndependentBlocks,
-		OutputFeatures:    opts.AttentionLayerDim + opts.PredictionLayerDim,
+		OutputDimension:   opts.AttentionLayerDim + opts.PredictionLayerDim,
 		WeightsInit:       opts.WeightsInit,
 	})
 

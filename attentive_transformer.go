@@ -7,7 +7,7 @@ import (
 )
 
 type AttentiveTransformerOpts struct {
-	OutputFeatures                   int
+	OutputDimension                  int
 	Momentum                         float64
 	Epsilon                          float64
 	VirtualBatchSize                 int
@@ -27,7 +27,7 @@ func (nn *Model) AttentiveTransformer(opts AttentiveTransformerOpts) Layer {
 	opts.setDefaults()
 
 	fcLayer := nn.FC(FCOpts{
-		OutputFeatures: opts.OutputFeatures,
+		OutputDimension: opts.OutputDimension,
 		WeightsInit:    opts.WeightsInit,
 	})
 

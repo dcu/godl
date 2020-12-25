@@ -54,7 +54,7 @@ func TestGLU(t *testing.T) {
 			c := require.New(t)
 			x, err := tn.GLU(GLUOpts{
 				VirtualBatchSize: tcase.vbs,
-				OutputFeatures:   tcase.output,
+				OutputDimension:   tcase.output,
 				WeightsInit:      initDummyWeights,
 			})(tcase.input)
 

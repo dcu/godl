@@ -46,7 +46,7 @@ func TestFeatureTransformer(t *testing.T) {
 			priors := NewTensor(g, Float64, tcase.input.Dims(), WithShape(tcase.input.Shape()...), WithInit(Ones()))
 			x, err := tn.FeatureTransformer(FeatureTransformerOpts{
 				VirtualBatchSize:  tcase.vbs,
-				OutputFeatures:    tcase.output,
+				OutputDimension:    tcase.output,
 				Shared:            nil,
 				IndependentBlocks: tcase.independentBlocks,
 				WeightsInit:       initDummyWeights,

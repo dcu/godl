@@ -44,7 +44,7 @@ func TestAttentiveTransformer(t *testing.T) {
 			priors := NewTensor(g, Float64, tcase.input.Dims(), WithShape(tcase.input.Shape()...), WithInit(Ones()))
 			x, err := tn.AttentiveTransformer(AttentiveTransformerOpts{
 				VirtualBatchSize: tcase.vbs,
-				OutputFeatures:   tcase.output,
+				OutputDimension:   tcase.output,
 				WeightsInit:      initDummyWeights,
 			})(tcase.input, priors)
 

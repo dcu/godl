@@ -1,6 +1,7 @@
 package tabnet
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -10,11 +11,9 @@ import (
 )
 
 func TestTabNet(t *testing.T) {
-	g := NewGraph()
-
 	testCases := []struct {
 		desc              string
-		input             *Node
+		input             tensor.Tensor
 		vbs               int
 		independentBlocks int
 		output            int
@@ -24,25 +23,26 @@ func TestTabNet(t *testing.T) {
 	}{
 		{
 			desc: "Example 1",
-			input: NewTensor(g, tensor.Float64, 2, WithShape(12, 1), WithName("Input"), WithValue(
-				tensor.New(
-					tensor.WithShape(12, 1),
-					tensor.WithBacking([]float64{0.4, 1.4, 2.4, 3.4, 4.4, 5.4, 6.4, 7.4, 8.4, 9.4, 10.4, 11.4}),
-				),
-			)),
+			input: tensor.New(
+				tensor.WithShape(4, 4),
+				tensor.WithBacking([]float64{0.4, 1.4, 2.4, 3.4, 4.4, 5.4, 6.4, 7.4, 8.4, 9.4, 10.4, 11.4, 12.4, 13.4, 14.4, 15.4}),
+			),
 			vbs:               2,
 			output:            2,
 			independentBlocks: 2,
-			expectedShape:     tensor.Shape{12, 12},
+			expectedShape:     tensor.Shape{4, 12},
 			expectedOutput:    []float64{},
 		},
 	}
 
-	tn := &Model{g: g}
-
 	for _, tcase := range testCases {
 		t.Run(tcase.desc, func(t *testing.T) {
 			c := require.New(t)
+
+			g := NewGraph()
+			tn := &Model{g: g}
+
+			x := NewTensor(g, tensor.Float64, 2, WithShape(tcase.input.Shape()...), WithName("Input"), WithValue(tcase.input))
 
 			a := NewTensor(g, Float64, tcase.input.Dims(), WithShape(tcase.input.Shape()...), WithInit(Ones()), WithName("AttentiveX"))
 			priors := NewTensor(g, Float64, tcase.input.Dims(), WithShape(tcase.input.Shape()...), WithInit(Ones()), WithName("Priors"))
@@ -53,13 +53,13 @@ func TestTabNet(t *testing.T) {
 				PredictionLayerDim: 64,
 				AttentionLayerDim:  64,
 				WeightsInit:        initDummyWeights,
-				OutputFeatures:     12,
+				OutputDimension:    12,
 				SharedBlocks:       2,
 				DecisionSteps:      5,
 				Gamma:              1.2,
-				InputDim:           1,
+				InputDim:           4,
 				Inferring:          false,
-			})(tcase.input, a, priors)
+			})(x, a, priors)
 
 			if tcase.expectedErr != "" {
 				c.Error(err)
@@ -78,6 +78,8 @@ func TestTabNet(t *testing.T) {
 				gorgonia.WithWatchlist(),
 			)
 			c.NoError(vm.RunAll())
+
+			fmt.Printf("%v\n", g.String())
 
 			c.Equal(tcase.expectedShape, x.Shape())
 			c.Equal(tcase.expectedOutput, x.Value().Data().([]float64))

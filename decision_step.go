@@ -11,7 +11,7 @@ type DecisionStepOpts struct {
 
 	PredictionLayerDim int
 	AttentionLayerDim  int
-	OutputFeatures     int
+	OutputDimension    int
 
 	Momentum                         float64
 	Epsilon                          float64
@@ -26,14 +26,14 @@ type DecisionStep struct {
 }
 
 func (nn *Model) DecisionStep(opts DecisionStepOpts) *DecisionStep {
-	if opts.OutputFeatures == 0 {
-		panic("OutputFeatures must be set")
+	if opts.OutputDimension == 0 {
+		panic("OutputDimension must be set")
 	}
 
 	ds := &DecisionStep{}
 
 	ds.AttentiveTransformer = nn.AttentiveTransformer(AttentiveTransformerOpts{
-		OutputFeatures:   opts.OutputFeatures,
+		OutputDimension:  opts.OutputDimension,
 		Momentum:         opts.Momentum,
 		Epsilon:          opts.Epsilon,
 		VirtualBatchSize: opts.VirtualBatchSize,
@@ -46,7 +46,7 @@ func (nn *Model) DecisionStep(opts DecisionStepOpts) *DecisionStep {
 	featureTransformer := nn.FeatureTransformer(FeatureTransformerOpts{
 		Shared:            opts.Shared,
 		VirtualBatchSize:  opts.VirtualBatchSize,
-		OutputFeatures:    opts.AttentionLayerDim + opts.PredictionLayerDim,
+		OutputDimension:    opts.AttentionLayerDim + opts.PredictionLayerDim,
 		IndependentBlocks: opts.IndependentBlocks,
 		WeightsInit:       opts.WeightsInit,
 		Inferring:         opts.Inferring,

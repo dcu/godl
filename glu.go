@@ -9,7 +9,7 @@ import (
 // GLUOpts are the supported options for GLU
 type GLUOpts struct {
 	VirtualBatchSize int
-	OutputFeatures   int
+	OutputDimension   int
 	ActivationFn     ActivationFn
 	FC               Layer
 	WeightsInit      gorgonia.InitWFn
@@ -42,7 +42,7 @@ func (nn *Model) GLU(opts GLUOpts) Layer {
 
 		if opts.FC == nil {
 			opts.FC = nn.FC(FCOpts{
-				OutputFeatures: opts.OutputFeatures * 2,
+				OutputDimension: opts.OutputDimension * 2,
 				WeightsInit:    opts.WeightsInit,
 				WithBias:       false,
 			})
@@ -59,8 +59,8 @@ func (nn *Model) GLU(opts GLUOpts) Layer {
 		}
 
 		// GLU
-		firstHalf := gorgonia.Must(gorgonia.Slice(gbn, nil, gorgonia.S(0, opts.OutputFeatures)))
-		secondHalf := gorgonia.Must(gorgonia.Slice(gbn, nil, gorgonia.S(opts.OutputFeatures, gbn.Shape()[1])))
+		firstHalf := gorgonia.Must(gorgonia.Slice(gbn, nil, gorgonia.S(0, opts.OutputDimension)))
+		secondHalf := gorgonia.Must(gorgonia.Slice(gbn, nil, gorgonia.S(opts.OutputDimension, gbn.Shape()[1])))
 
 		act, err := opts.ActivationFn(secondHalf)
 		if err != nil {

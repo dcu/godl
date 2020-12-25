@@ -55,7 +55,7 @@ func TestDecisionStep(t *testing.T) {
 				PredictionLayerDim: 0,
 				AttentionLayerDim:  8,
 				WeightsInit:        initDummyWeights,
-				OutputFeatures:     tcase.output,
+				OutputDimension:     tcase.output,
 			})
 
 			mask, err := step.AttentiveTransformer(a, priors)
