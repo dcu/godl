@@ -40,10 +40,10 @@ func (nn *Model) BN(opts BNOpts) Layer {
 	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, error) {
 		x := nodes[0]
 		xShape := x.Shape()
-		x = gorgonia.Must(gorgonia.Reshape(x, tensor.Shape{xShape[0], 1, 1, xShape[1]}))
+		x = gorgonia.Must(gorgonia.Reshape(x, tensor.Shape{xShape[0], xShape[1], 1, 1}))
 
-		scale := nn.addLearnable("scale", x.Shape(), opts.ScaleInit)
 		bias := nn.addBias(x.Shape(), opts.BiasInit)
+		scale := nn.addLearnable("scale", x.Shape(), opts.ScaleInit)
 
 		ret, _, _, bnop, err := gorgonia.BatchNorm(x, scale, bias, opts.Momentum, opts.Epsilon)
 		if err != nil {

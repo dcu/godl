@@ -1,8 +1,6 @@
 package tabnet
 
 import (
-	"log"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -12,11 +10,9 @@ import (
 )
 
 func TestGBN(t *testing.T) {
-	g := NewGraph()
-
 	testCases := []struct {
 		desc           string
-		input          *Node
+		input          tensor.Tensor
 		vbs            int
 		expectedShape  tensor.Shape
 		expectedErr    string
@@ -24,26 +20,37 @@ func TestGBN(t *testing.T) {
 	}{
 		{
 			desc: "Example 1",
-			input: NewTensor(g, tensor.Float64, 2, WithShape(10, 1), WithName("input"), WithValue(
-				tensor.New(
-					tensor.WithShape(10, 1),
-					tensor.WithBacking([]float64{0.4, 1.4, 2.4, 3.4, 4.4, 5.4, 6.4, 7.4, 8.4, 9.4}),
-				),
-			)),
+			input: tensor.New(
+				tensor.WithShape(10, 1),
+				tensor.WithBacking([]float64{0.4, 1.4, 2.4, 3.4, 4.4, 5.4, 6.4, 7.4, 8.4, 9.4}),
+			),
 			vbs:            5,
 			expectedShape:  tensor.Shape{10, 1},
 			expectedOutput: []float64{-1.4142100268524476, -0.7071050134262239, -3.140177066934696e-16, 0.7071050134262233, 1.4142100268524473, -1.4142100268524478, -0.7071050134262242, -6.280354133869392e-16, 0.707105013426223, 1.4142100268524467},
 		},
+		{
+			desc: "Example 2",
+			input: tensor.New(
+				tensor.WithShape(5, 2),
+				tensor.WithBacking([]float64{0.4, -1.4, 2.4, -3.4, 4.4, -5.4, 6.4, -7.4, 8.4, -9.4}),
+			),
+			vbs:            5,
+			expectedShape:  tensor.Shape{5, 2},
+			expectedOutput: []float64{-1.4142126784904472, 1.4142126784904472, -0.7071063392452237, 0.7071063392452237, 0, 0, 0.7071063392452236, -0.7071063392452236, 1.4142126784904472, -1.4142126784904472},
+		},
 	}
-
-	tn := &Model{g: g}
 
 	for _, tcase := range testCases {
 		t.Run(tcase.desc, func(t *testing.T) {
 			c := require.New(t)
+
+			g := NewGraph()
+			tn := &Model{g: g}
+			input := NewTensor(g, tensor.Float64, 2, WithShape(tcase.input.Shape()...), WithName("GBNInput"), WithValue(tcase.input))
+
 			y, err := tn.GBN(GBNOpts{
 				VirtualBatchSize: tcase.vbs,
-			})(tcase.input)
+			})(input)
 
 			if tcase.expectedErr != "" {
 				c.Error(err)
@@ -57,10 +64,10 @@ func TestGBN(t *testing.T) {
 			c.Equal(tcase.expectedShape, y.Shape())
 
 			vm := NewTapeMachine(tn.g,
-				gorgonia.WithLogger(log.New(os.Stderr, "[gorgonia]", log.LstdFlags)),
+				gorgonia.WithLogger(testLogger),
 				gorgonia.BindDualValues(tn.learnables...),
-				// gorgonia.WithValueFmt("%+v"),
-				// gorgonia.WithWatchlist(),
+				gorgonia.WithValueFmt("%+v"),
+				gorgonia.WithWatchlist(),
 			)
 			c.NoError(vm.RunAll())
 
