@@ -16,7 +16,12 @@ func TestTabNet(t *testing.T) {
 		input             tensor.Tensor
 		vbs               int
 		independentBlocks int
+		sharedBlocks      int
 		output            int
+		steps             int
+		gamma             float64
+		prediction        int
+		attentive         int
 		expectedShape     tensor.Shape
 		expectedErr       string
 		expectedOutput    []float64
@@ -28,10 +33,15 @@ func TestTabNet(t *testing.T) {
 				tensor.WithBacking([]float64{0.4, 1.4, 2.4, 3.4, 4.4, 5.4, 6.4, 7.4, 8.4, 9.4, 10.4, 11.4, 12.4, 13.4, 14.4, 15.4}),
 			),
 			vbs:               2,
-			output:            2,
+			output:            12,
 			independentBlocks: 2,
+			sharedBlocks:      2,
+			steps:             5,
+			gamma:             1.2,
+			prediction:        64,
+			attentive:         64,
 			expectedShape:     tensor.Shape{4, 12},
-			expectedOutput:    []float64{},
+			expectedOutput:    []float64{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 358.2448757644514, 358.2448757644514, 358.2448757644514, 358.2448757644514, 358.2448757644514, 358.2448757644514, 358.2448757644514, 358.2448757644514, 358.2448757644514, 358.2448757644514, 358.2448757644514, 358.2448757644514, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 358.2448757644514, 358.2448757644514, 358.2448757644514, 358.2448757644514, 358.2448757644514, 358.2448757644514, 358.2448757644514, 358.2448757644514, 358.2448757644514, 358.2448757644514, 358.2448757644514, 358.2448757644514},
 		},
 	}
 
@@ -50,14 +60,14 @@ func TestTabNet(t *testing.T) {
 			x, err := tn.TabNet(TabNetOpts{
 				VirtualBatchSize:   tcase.vbs,
 				IndependentBlocks:  tcase.independentBlocks,
-				PredictionLayerDim: 64,
-				AttentionLayerDim:  64,
+				PredictionLayerDim: tcase.prediction,
+				AttentionLayerDim:  tcase.attentive,
 				WeightsInit:        initDummyWeights,
-				OutputDimension:    12,
-				SharedBlocks:       2,
-				DecisionSteps:      5,
-				Gamma:              1.2,
-				InputDim:           4,
+				OutputDimension:    tcase.output,
+				SharedBlocks:       tcase.sharedBlocks,
+				DecisionSteps:      tcase.steps,
+				Gamma:              tcase.gamma,
+				InputDim:           a.Shape()[0],
 				Inferring:          false,
 			})(x, a, priors)
 
