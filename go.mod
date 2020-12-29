@@ -2,11 +2,12 @@ module github.com/dcu/tabnet
 
 go 1.15
 
-// replace gorgonia.org/gorgonia => ../../../gorgonia.org/gorgonia
-// replace gorgonia.org/tensor => ../../../gorgonia.org/tensor
+replace gorgonia.org/gorgonia => ../../../gorgonia.org/gorgonia
+
+replace gorgonia.org/tensor => ../../../gorgonia.org/tensor
 
 require (
-	github.com/apache/arrow/go/arrow v0.0.0-20201216213016-d65ba4ec5dae // indirect
+	github.com/apache/arrow/go/arrow v0.0.0-20201228201322-ff6327680e29 // indirect
 	github.com/awalterschulze/gographviz v2.0.3+incompatible // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/gogo/protobuf v1.3.1 // indirect
@@ -28,5 +29,5 @@ require (
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
 	gorgonia.org/gorgonia v0.9.16-0.20201217024154-d45319fc2082
-	gorgonia.org/tensor v0.9.14
+	gorgonia.org/tensor v0.9.15
 )

@@ -28,7 +28,7 @@ func (nn *Model) AttentiveTransformer(opts AttentiveTransformerOpts) Layer {
 
 	fcLayer := nn.FC(FCOpts{
 		OutputDimension: opts.OutputDimension,
-		WeightsInit:    opts.WeightsInit,
+		WeightsInit:     opts.WeightsInit,
 	})
 
 	gbnLayer := nn.GBN(GBNOpts{

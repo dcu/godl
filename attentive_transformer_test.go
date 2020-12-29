@@ -9,11 +9,9 @@ import (
 )
 
 func TestAttentiveTransformer(t *testing.T) {
-	g := NewGraph()
-
 	testCases := []struct {
 		desc           string
-		input          *Node
+		input          tensor.Tensor
 		vbs            int
 		output         int
 		expectedShape  tensor.Shape
@@ -22,31 +20,31 @@ func TestAttentiveTransformer(t *testing.T) {
 	}{
 		{
 			desc: "Example 1",
-			input: NewTensor(g, tensor.Float64, 2, WithShape(6, 2), WithName("input"), WithValue(
-				tensor.New(
-					tensor.WithShape(6, 2),
-					tensor.WithBacking([]float64{0.4, 1.4, 2.4, 3.4, 4.4, 5.4, 6.4, 7.4, 8.4, 9.4, 10.4, 11.4}),
-				),
-			)),
+			input: tensor.New(
+				tensor.WithShape(6, 2),
+				tensor.WithBacking([]float64{0.1, -0.5, 0.3, 0.9, 0.04, -0.3, 0.01, 0.09, -0.1, 0.9, 0.7, 0.04}),
+			),
 			vbs:            2,
 			output:         2,
 			expectedShape:  tensor.Shape{6, 2},
-			expectedOutput: []float64{0, 0, 1.0019790079330222, 0, 0, 0, 0.6785344728987531, 0, 0.05826778712715075, 0, 0.549269569083758, 0},
+			expectedOutput: []float64{0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5},
 		},
 	}
-
-	tn := &Model{g: g}
 
 	for _, tcase := range testCases {
 		t.Run(tcase.desc, func(t *testing.T) {
 			c := require.New(t)
 
+			g := NewGraph()
+			tn := &Model{g: g}
+
+			input := NewTensor(g, tensor.Float64, tcase.input.Dims(), WithShape(tcase.input.Shape()...), WithName("input"), WithValue(tcase.input))
 			priors := NewTensor(g, Float64, tcase.input.Dims(), WithShape(tcase.input.Shape()...), WithInit(Ones()))
 			x, err := tn.AttentiveTransformer(AttentiveTransformerOpts{
 				VirtualBatchSize: tcase.vbs,
-				OutputDimension:   tcase.output,
+				OutputDimension:  tcase.output,
 				WeightsInit:      initDummyWeights,
-			})(tcase.input, priors)
+			})(input, priors)
 
 			if tcase.expectedErr != "" {
 				c.Error(err)
