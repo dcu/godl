@@ -12,7 +12,7 @@ type FeatureTransformerOpts struct {
 	Shared            []Layer
 	VirtualBatchSize  int
 	IndependentBlocks int
-	OutputDimension    int
+	OutputDimension   int
 	Inferring         bool
 
 	WeightsInit gorgonia.InitWFn
@@ -25,17 +25,18 @@ func (nn *Model) FeatureTransformer(opts FeatureTransformerOpts) Layer {
 		shared = append(shared, nn.GLU(GLUOpts{
 			VirtualBatchSize: opts.VirtualBatchSize,
 			FC:               fcLayer,
-			OutputDimension:   opts.OutputDimension,
+			OutputDimension:  opts.OutputDimension,
 			WeightsInit:      opts.WeightsInit,
 			Inferring:        opts.Inferring,
 		}))
 	}
 
-	independent := make([]Layer, 0, len(opts.Shared))
-	for i := 0; i < opts.IndependentBlocks; i++ {
+	independentBlocks := opts.IndependentBlocks
 
+	independent := make([]Layer, 0, len(opts.Shared))
+	for i := 0; i < independentBlocks; i++ {
 		independent = append(independent, nn.GLU(GLUOpts{
-			OutputDimension:   opts.OutputDimension,
+			OutputDimension:  opts.OutputDimension,
 			VirtualBatchSize: opts.VirtualBatchSize,
 			WeightsInit:      opts.WeightsInit,
 		}))
@@ -53,8 +54,8 @@ func (nn *Model) FeatureTransformer(opts FeatureTransformerOpts) Layer {
 				return nil, err
 			}
 
-			for _, layer := range shared[1:] {
-				output, err := layer(x)
+			for _, glu := range shared[1:] {
+				output, err := glu(x)
 				if err != nil {
 					return nil, err
 				}
