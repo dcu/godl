@@ -11,7 +11,11 @@ type DecisionStepOpts struct {
 
 	PredictionLayerDim int
 	AttentionLayerDim  int
-	OutputDimension    int
+
+	InputDimension  int
+	OutputDimension int
+
+	MaskFunction ActivationFn
 
 	Momentum                         float64
 	Epsilon                          float64
@@ -33,6 +37,7 @@ func (nn *Model) DecisionStep(opts DecisionStepOpts) *DecisionStep {
 	ds := &DecisionStep{}
 
 	ds.AttentiveTransformer = nn.AttentiveTransformer(AttentiveTransformerOpts{
+		InputDimension:   opts.InputDimension,
 		OutputDimension:  opts.OutputDimension,
 		Momentum:         opts.Momentum,
 		Epsilon:          opts.Epsilon,
@@ -41,12 +46,13 @@ func (nn *Model) DecisionStep(opts DecisionStepOpts) *DecisionStep {
 		ScaleInit:        opts.ScaleInit,
 		BiasInit:         opts.BiasInit,
 		WeightsInit:      opts.WeightsInit,
+		Activation:       opts.MaskFunction,
 	})
 
 	featureTransformer := nn.FeatureTransformer(FeatureTransformerOpts{
 		Shared:            opts.Shared,
 		VirtualBatchSize:  opts.VirtualBatchSize,
-		OutputDimension:    opts.AttentionLayerDim + opts.PredictionLayerDim,
+		OutputDimension:   opts.AttentionLayerDim + opts.PredictionLayerDim,
 		IndependentBlocks: opts.IndependentBlocks,
 		WeightsInit:       opts.WeightsInit,
 		Inferring:         opts.Inferring,

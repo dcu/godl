@@ -32,7 +32,7 @@ func (nn *Model) GLU(opts GLUOpts) Layer {
 		opts.FC = nn.FC(FCOpts{
 			OutputDimension: opts.OutputDimension * 2,
 			WeightsInit:     opts.WeightsInit,
-			WithBias:        false,
+			WithBias:        true,
 		})
 	}
 

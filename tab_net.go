@@ -14,9 +14,13 @@ type TabNetOpts struct {
 	IndependentBlocks int
 	DecisionSteps     int
 
-	InputDim           int // FIXME
+	InputDim  int // FIXME
+	BatchSize int
+
 	PredictionLayerDim int
 	AttentionLayerDim  int
+
+	MaskFunction ActivationFn
 
 	Gamma float64
 
@@ -27,14 +31,44 @@ type TabNetOpts struct {
 	WeightsInit, ScaleInit, BiasInit gorgonia.InitWFn
 }
 
+func (o *TabNetOpts) setDefaults() {
+	if o.SharedBlocks == 0 {
+		o.SharedBlocks = 2
+	}
+
+	if o.IndependentBlocks == 0 {
+		o.SharedBlocks = 2
+	}
+
+	if o.DecisionSteps == 0 {
+		o.DecisionSteps = 3
+	}
+
+	if o.PredictionLayerDim == 0 {
+		o.PredictionLayerDim = 8
+	}
+
+	if o.AttentionLayerDim == 0 {
+		o.PredictionLayerDim = 8
+	}
+
+	if o.Gamma == 0.0 {
+		o.Gamma = 1.3
+	}
+}
+
 // TabNet implements the tab net architecture
 func (nn *Model) TabNet(opts TabNetOpts) Layer {
+	opts.setDefaults()
+
 	shared := make([]Layer, 0, opts.SharedBlocks)
 
 	for i := 0; i < opts.SharedBlocks; i++ {
 		shared = append(shared, nn.FC(FCOpts{
+			InputDimension:  opts.BatchSize,
 			OutputDimension: 2 * (opts.PredictionLayerDim + opts.AttentionLayerDim), // double the size so we can take half and half
 			WeightsInit:     opts.WeightsInit,
+			WithBias:        true,
 		}))
 	}
 
@@ -51,14 +85,18 @@ func (nn *Model) TabNet(opts TabNetOpts) Layer {
 				ScaleInit:          opts.ScaleInit,
 				BiasInit:           opts.BiasInit,
 				Inferring:          opts.Inferring,
+				InputDimension:     opts.BatchSize,
 				OutputDimension:    opts.InputDim,
+				MaskFunction:       opts.MaskFunction,
 			},
 		))
 	}
 
 	fcLayer := nn.FC(FCOpts{
+		InputDimension:  opts.BatchSize,
 		OutputDimension: opts.OutputDimension,
 		WeightsInit:     opts.WeightsInit,
+		WithBias:        true,
 	})
 
 	bnLayer := nn.BN(BNOpts{ // TODO: make configurable
@@ -76,10 +114,6 @@ func (nn *Model) TabNet(opts TabNetOpts) Layer {
 		OutputDimension:   opts.AttentionLayerDim + opts.PredictionLayerDim,
 		WeightsInit:       opts.WeightsInit,
 	})
-
-	if opts.Gamma == 0.0 {
-		opts.Gamma = 1.2
-	}
 
 	gamma := gorgonia.NewScalar(nn.g, tensor.Float64, gorgonia.WithValue(opts.Gamma))
 

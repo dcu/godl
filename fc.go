@@ -12,11 +12,21 @@ type FCOpts struct {
 	Activation      ActivationFn
 	Dropout         float64
 	OutputDimension int
-	WeightsInit     gorgonia.InitWFn
-	WithBias        bool
+	InputDimension  int
+
+	WeightsInit gorgonia.InitWFn
+	WithBias    bool
 }
 
 func (nn *Model) FC(opts FCOpts) Layer {
+	if opts.InputDimension == 0 {
+		panic("input dimension must be set")
+	}
+
+	if opts.OutputDimension == 0 {
+		panic("output dimension must be set")
+	}
+
 	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, error) {
 		x := nodes[0]
 		xShape := x.Shape()
@@ -40,7 +50,7 @@ func (nn *Model) FC(opts FCOpts) Layer {
 		}
 
 		if opts.WithBias {
-			b := nn.addBias(shape, opts.WeightsInit)
+			b := nn.addBias(tensor.Shape{opts.InputDimension, opts.OutputDimension}, opts.WeightsInit)
 
 			layer, err = gorgonia.Add(layer, b)
 			if err != nil {

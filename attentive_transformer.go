@@ -7,6 +7,7 @@ import (
 )
 
 type AttentiveTransformerOpts struct {
+	InputDimension                   int
 	OutputDimension                  int
 	Momentum                         float64
 	Epsilon                          float64
@@ -27,8 +28,10 @@ func (nn *Model) AttentiveTransformer(opts AttentiveTransformerOpts) Layer {
 	opts.setDefaults()
 
 	fcLayer := nn.FC(FCOpts{
+		InputDimension:  opts.InputDimension,
 		OutputDimension: opts.OutputDimension,
 		WeightsInit:     opts.WeightsInit,
+		WithBias:        true,
 	})
 
 	gbnLayer := nn.GBN(GBNOpts{
