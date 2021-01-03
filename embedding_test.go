@@ -33,14 +33,14 @@ func TestEmbedding(t *testing.T) {
 			dim:            2,
 			expectedOutput: []float64{2, 3, 4, 5, 4, 5, 0, 1},
 		},
-		{
-			desc:           "Example 3",
-			input:          []float64{2},
-			inputShape:     tensor.Shape{1, 1, 1},
-			classes:        4,
-			dim:            2,
-			expectedOutput: []float64{4, 5},
-		},
+		// {
+		// 	desc:           "Example 3",
+		// 	input:          []float64{2},
+		// 	inputShape:     tensor.Shape{1, 1, 1},
+		// 	classes:        4,
+		// 	dim:            2,
+		// 	expectedOutput: []float64{4, 5},
+		// },
 		{
 			desc:           "Example 4",
 			input:          []float64{0, 3, 2, 1},
@@ -50,6 +50,7 @@ func TestEmbedding(t *testing.T) {
 			expectedOutput: []float64{0, 1, 6, 7, 4, 5, 2, 3},
 		},
 	}
+
 	for _, tcase := range testCases {
 		t.Run(tcase.desc, func(t *testing.T) {
 			c := require.New(t)
