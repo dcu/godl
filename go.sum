@@ -9,6 +9,8 @@ github.com/apache/arrow/go/arrow v0.0.0-20201027203332-c3091dd3f8ca h1:OYqlohQ0r
 github.com/apache/arrow/go/arrow v0.0.0-20201027203332-c3091dd3f8ca/go.mod h1:c9sxoIT3YgLxH4UhLOCKaBlEojuMhVYpk4Ntv3opUTQ=
 github.com/apache/arrow/go/arrow v0.0.0-20201229220542-30ce2eb5d4dc h1:zvQ6w7KwtQWgMQiewOF9tFtundRMVZFSAksNV6ogzuY=
 github.com/apache/arrow/go/arrow v0.0.0-20201229220542-30ce2eb5d4dc/go.mod h1:c9sxoIT3YgLxH4UhLOCKaBlEojuMhVYpk4Ntv3opUTQ=
+github.com/apache/arrow/go/arrow v0.0.0-20210104124905-fdb0e3bdce41 h1:yh7ShKD5CNBH2QYCBadeF0V3Km1pHfPEFvFEvlyLzvw=
+github.com/apache/arrow/go/arrow v0.0.0-20210104124905-fdb0e3bdce41/go.mod h1:c9sxoIT3YgLxH4UhLOCKaBlEojuMhVYpk4Ntv3opUTQ=
 github.com/awalterschulze/gographviz v0.0.0-20190221210632-1e9ccb565bca h1:xwIXr1FpA2XBoohlpvgb11No/zbsh5Clm/98PWPcHVA=
 github.com/awalterschulze/gographviz v0.0.0-20190221210632-1e9ccb565bca/go.mod h1:GEV5wmg4YquNw7v1kkyoX9etIk8yVmXj+AkDHuuETHs=
 github.com/awalterschulze/gographviz v2.0.3+incompatible h1:9sVEXJBJLwGX7EQVhLm2elIKCm7P2YHFC8v6096G09E=
