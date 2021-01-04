@@ -1,0 +1,74 @@
+package tabnet
+
+import (
+	"testing"
+
+	"github.com/stretchr/testify/require"
+	"gorgonia.org/gorgonia"
+	"gorgonia.org/tensor"
+)
+
+func TestEmbeddingGenerator(t *testing.T) {
+	testCases := []struct {
+		desc      string
+		classes   int
+		catDims   []int
+		catIdxs   []int
+		catEmbDim []int
+
+		input               []float64
+		inputShape          tensor.Shape
+		expectedOutputShape tensor.Shape
+		expectedOutput      []float64
+	}{
+		{
+			// 0 1 2 3 4 5
+			// cat idxs: 1 4
+			desc:                "Example 1",
+			classes:             5,
+			catIdxs:             []int{1, 4},
+			catDims:             []int{4, 4},
+			catEmbDim:           []int{2, 2},
+			input:               []float64{0, 1, 2, 1, 3},
+			inputShape:          tensor.Shape{1, 5},
+			expectedOutputShape: tensor.Shape{1, 7},
+			expectedOutput:      []float64{0, 2, 3, 2, 1, 6, 7},
+		},
+		{
+			desc:                "Example 2",
+			classes:             5,
+			catIdxs:             []int{1, 4},
+			catDims:             []int{4, 4},
+			catEmbDim:           []int{2, 2},
+			input:               []float64{0, 1, 2, 1, 3, 0, 1, 2, 1, 3},
+			inputShape:          tensor.Shape{2, 5},
+			expectedOutputShape: tensor.Shape{2, 7},
+			expectedOutput:      []float64{0, 2, 3, 2, 1, 6, 7, 0, 2, 3, 2, 1, 6, 7},
+		},
+	}
+	for _, tcase := range testCases {
+		t.Run(tcase.desc, func(t *testing.T) {
+			c := require.New(t)
+
+			tn := NewModel()
+			embedder := tn.EmbeddingGenerator(tcase.classes, tcase.catDims, tcase.catIdxs, tcase.catEmbDim, EmbeddingOpts{
+				WeightsInit: gorgonia.RangedFrom(0),
+			})
+
+			ts := tensor.New(
+				tensor.WithShape(tcase.inputShape...),
+				tensor.WithBacking(tcase.input),
+			)
+
+			input := gorgonia.NewTensor(tn.g, tensor.Float64, tcase.inputShape.Dims(), gorgonia.WithShape(tcase.inputShape...), gorgonia.WithValue(ts), gorgonia.WithName("input"))
+			output, err := embedder(input)
+			c.NoError(err)
+
+			vm := gorgonia.NewTapeMachine(tn.g)
+			c.NoError(vm.RunAll())
+
+			c.Equal(tcase.expectedOutputShape, output.Shape())
+			c.Equal(tcase.expectedOutput, output.Value().Data())
+		})
+	}
+}
