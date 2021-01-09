@@ -7,7 +7,6 @@ replace gorgonia.org/gorgonia => ../../../gorgonia.org/gorgonia
 replace gorgonia.org/tensor => ../../../gorgonia.org/tensor
 
 require (
-	github.com/apache/arrow/go/arrow v0.0.0-20210104124905-fdb0e3bdce41 // indirect
 	github.com/awalterschulze/gographviz v2.0.3+incompatible // indirect
 	github.com/cheggaaa/pb v1.0.29
 	github.com/chewxy/hm v1.0.0

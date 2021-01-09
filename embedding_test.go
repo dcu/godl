@@ -13,13 +13,13 @@ func TestEmbedding(t *testing.T) {
 		desc           string
 		classes        int
 		dim            int
-		input          []float64
+		input          []int
 		inputShape     tensor.Shape
 		expectedOutput []float64
 	}{
 		{
 			desc:           "Example 1",
-			input:          []float64{1, 2},
+			input:          []int{1, 2},
 			inputShape:     tensor.Shape{2},
 			classes:        4,
 			dim:            2,
@@ -27,7 +27,7 @@ func TestEmbedding(t *testing.T) {
 		},
 		{
 			desc:           "Example 2",
-			input:          []float64{1, 2, 2, 0},
+			input:          []int{1, 2, 2, 0},
 			inputShape:     tensor.Shape{4},
 			classes:        4,
 			dim:            2,
@@ -35,7 +35,7 @@ func TestEmbedding(t *testing.T) {
 		},
 		{
 			desc:           "Example 3",
-			input:          []float64{2},
+			input:          []int{2},
 			inputShape:     tensor.Shape{1, 1, 1},
 			classes:        4,
 			dim:            2,
@@ -43,7 +43,7 @@ func TestEmbedding(t *testing.T) {
 		},
 		{
 			desc:           "Example 4",
-			input:          []float64{0, 3, 2, 1},
+			input:          []int{0, 3, 2, 1},
 			inputShape:     tensor.Shape{2, 1, 2},
 			classes:        4,
 			dim:            2,
@@ -62,7 +62,7 @@ func TestEmbedding(t *testing.T) {
 
 			ts := tensor.New(tensor.WithShape(tcase.inputShape...), tensor.WithBacking(tcase.input))
 
-			selector := gorgonia.NewTensor(tn.g, tensor.Float64, tcase.inputShape.Dims(), gorgonia.WithShape(ts.Shape()...), gorgonia.WithValue(ts), gorgonia.WithName("selector"))
+			selector := gorgonia.NewTensor(tn.g, tensor.Int, tcase.inputShape.Dims(), gorgonia.WithShape(ts.Shape()...), gorgonia.WithValue(ts), gorgonia.WithName("selector"))
 			output, err := emb(selector)
 			c.NoError(err)
 
