@@ -1,6 +1,7 @@
 package tabnet
 
 import (
+	"fmt"
 	"sort"
 
 	"gorgonia.org/gorgonia"
@@ -18,7 +19,7 @@ func (m *Model) EmbeddingGenerator(inputDims int, catDims []int, catIdxs []int, 
 	})
 
 	embeddings := make([]Layer, len(catIdxs))
-	continuousIdxs := make([]bool, inputDims) // FIXME: name
+	categoricalColumnIndexes := make([]bool, inputDims)
 
 	for i, v := range catIdxs {
 		embeddings[i] =
@@ -28,7 +29,7 @@ func (m *Model) EmbeddingGenerator(inputDims int, catDims []int, catIdxs []int, 
 				opts,
 			)
 
-		continuousIdxs[v] = true
+		categoricalColumnIndexes[v] = true
 	}
 
 	return func(inputs ...*gorgonia.Node) (*gorgonia.Node, error) {
@@ -42,18 +43,22 @@ func (m *Model) EmbeddingGenerator(inputDims int, catDims []int, catIdxs []int, 
 			return x, nil
 		}
 
-		cols := make([]*gorgonia.Node, len(continuousIdxs))
+		if x.Dtype() != tensor.Int {
+			return nil, fmt.Errorf("input must be a tensor of integers")
+		}
+
+		cols := make([]*gorgonia.Node, len(categoricalColumnIndexes))
 		catFeatCounter := 0
 
-		for featInitIdx, isContinuous := range continuousIdxs {
+		for featInitIdx, isCategorical := range categoricalColumnIndexes {
 			s := gorgonia.Must(gorgonia.Slice(x, nil, gorgonia.S(featInitIdx)))
 
-			if !isContinuous {
-				cols[featInitIdx] = gorgonia.Must(gorgonia.Reshape(s, tensor.Shape{s.Shape().TotalSize(), 1}))
-			} else {
+			if isCategorical {
 				cols[featInitIdx] = gorgonia.Must(embeddings[catFeatCounter](s))
 
 				catFeatCounter++
+			} else {
+				cols[featInitIdx] = gorgonia.Must(gorgonia.Reshape(s, tensor.Shape{s.Shape().TotalSize(), 1}))
 			}
 		}
 

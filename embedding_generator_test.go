@@ -60,7 +60,7 @@ func TestEmbeddingGenerator(t *testing.T) {
 				tensor.WithBacking(tcase.input),
 			)
 
-			input := gorgonia.NewTensor(tn.g, tensor.Float64, tcase.inputShape.Dims(), gorgonia.WithShape(tcase.inputShape...), gorgonia.WithValue(ts), gorgonia.WithName("input"))
+			input := gorgonia.NewTensor(tn.g, tensor.Int, tcase.inputShape.Dims(), gorgonia.WithShape(tcase.inputShape...), gorgonia.WithValue(ts), gorgonia.WithName("input"))
 			output, err := embedder(input)
 			c.NoError(err)
 
