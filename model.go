@@ -65,7 +65,7 @@ func (m *Model) Train(layer Layer, trainX tensor.Tensor, trainY tensor.Tensor, o
 	)
 
 	{
-		output, err = softmax(output)
+		output, err = softmax(output) // TODO: configure
 		if err != nil {
 			return err
 		}
@@ -84,7 +84,10 @@ func (m *Model) Train(layer Layer, trainX tensor.Tensor, trainY tensor.Tensor, o
 
 	vm := gorgonia.NewTapeMachine(m.g,
 		gorgonia.BindDualValues(m.learnables...),
+		gorgonia.TraceExec(),
+		// gorgonia.WithLogger(log.New(os.Stdout, "[g]", log.LstdFlags)),
 		gorgonia.WithNaNWatch(),
+		gorgonia.WithInfWatch(),
 	)
 	solver := gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(opts.BatchSize)))
 
@@ -126,8 +129,15 @@ func (m *Model) Train(layer Layer, trainX tensor.Tensor, trainY tensor.Tensor, o
 				return err
 			}
 
-			_ = gorgonia.Let(x, xVal)
-			_ = gorgonia.Let(y, yVal)
+			err = gorgonia.Let(x, xVal)
+			if err != nil {
+				log.Fatalf("error assigning x: %v", err)
+			}
+
+			err = gorgonia.Let(y, yVal)
+			if err != nil {
+				log.Fatalf("error assigning y: %v", err)
+			}
 
 			if err = vm.RunAll(); err != nil {
 				log.Fatalf("Failed at epoch  %d, batch %d. Error: %v", i, b, err)
