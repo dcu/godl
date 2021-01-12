@@ -1,7 +1,6 @@
 package tabnet
 
 import (
-	"fmt"
 	"sort"
 
 	"gorgonia.org/gorgonia"
@@ -22,12 +21,11 @@ func (m *Model) EmbeddingGenerator(inputDims int, catDims []int, catIdxs []int, 
 	categoricalColumnIndexes := make([]bool, inputDims)
 
 	for i, v := range catIdxs {
-		embeddings[i] =
-			m.Embedding(
-				catDims[i],
-				catEmbDim[i],
-				opts,
-			)
+		embeddings[i] = m.Embedding(
+			catDims[i],
+			catEmbDim[i],
+			opts,
+		)
 
 		categoricalColumnIndexes[v] = true
 	}
@@ -43,10 +41,6 @@ func (m *Model) EmbeddingGenerator(inputDims int, catDims []int, catIdxs []int, 
 			return x, nil
 		}
 
-		if x.Dtype() != tensor.Int {
-			return nil, fmt.Errorf("input must be a tensor of integers")
-		}
-
 		cols := make([]*gorgonia.Node, len(categoricalColumnIndexes))
 		catFeatCounter := 0
 
@@ -54,6 +48,7 @@ func (m *Model) EmbeddingGenerator(inputDims int, catDims []int, catIdxs []int, 
 			s := gorgonia.Must(gorgonia.Slice(x, nil, gorgonia.S(featInitIdx)))
 
 			if isCategorical {
+				s = gorgonia.Must(gorgonia.ConvType(s, tensor.Float64, tensor.Int))
 				cols[featInitIdx] = gorgonia.Must(embeddings[catFeatCounter](s))
 
 				catFeatCounter++
