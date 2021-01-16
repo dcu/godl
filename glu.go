@@ -36,9 +36,9 @@ func (nn *Model) GLU(opts GLUOpts) Layer {
 		})
 	}
 
-	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, error) {
+	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, *gorgonia.Node, error) {
 		if err := nn.checkArity("GLU", nodes, 1); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		x := nodes[0]
@@ -48,14 +48,14 @@ func (nn *Model) GLU(opts GLUOpts) Layer {
 			err error
 		)
 
-		fc, err = opts.FC(x)
+		fc, _, err = opts.FC(x)
 		if err != nil {
-			return nil, fmt.Errorf("[glu] applying FC(%v) failed: %w", x.Shape(), err)
+			return nil, nil, fmt.Errorf("[glu] applying FC(%v) failed: %w", x.Shape(), err)
 		}
 
-		gbn, err := gbnLayer(fc)
+		gbn, _, err := gbnLayer(fc)
 		if err != nil {
-			return nil, fmt.Errorf("[glu] applying GBN failed: %w", err)
+			return nil, nil, fmt.Errorf("[glu] applying GBN failed: %w", err)
 		}
 
 		// GLU
@@ -64,14 +64,14 @@ func (nn *Model) GLU(opts GLUOpts) Layer {
 
 		act, err := opts.ActivationFn(secondHalf)
 		if err != nil {
-			return nil, fmt.Errorf("[glu] applying activation function failed: %w", err)
+			return nil, nil, fmt.Errorf("[glu] applying activation function failed: %w", err)
 		}
 
 		mul, err := gorgonia.HadamardProd(firstHalf, act)
 		if err != nil {
-			return nil, fmt.Errorf("[glu] HadamardProd %d x %d: %w", firstHalf.Shape(), act.Shape(), err)
+			return nil, nil, fmt.Errorf("[glu] HadamardProd %d x %d: %w", firstHalf.Shape(), act.Shape(), err)
 		}
 
-		return mul, nil
+		return mul, nil, nil
 	}
 }

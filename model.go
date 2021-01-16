@@ -3,9 +3,7 @@ package tabnet
 import (
 	"fmt"
 	"log"
-	"time"
 
-	"github.com/cheggaaa/pb"
 	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
 )
@@ -16,6 +14,8 @@ const bufferSizeModel = 16
 type TrainOpts struct {
 	Epochs    int
 	BatchSize int
+
+	CostFn func(output *gorgonia.Node, loss *gorgonia.Node, y *gorgonia.Node) *gorgonia.Node
 }
 
 func (o *TrainOpts) setDefaults() {
@@ -45,6 +45,10 @@ func NewModel() *Model {
 	}
 }
 
+func (m *Model) ExprGraph() *gorgonia.ExprGraph {
+	return m.g
+}
+
 func (m *Model) Train(layer Layer, trainX tensor.Tensor, trainY tensor.Tensor, opts TrainOpts) error {
 	opts.setDefaults()
 
@@ -54,9 +58,13 @@ func (m *Model) Train(layer Layer, trainX tensor.Tensor, trainY tensor.Tensor, o
 	x := gorgonia.NewTensor(m.g, tensor.Float64, trainX.Shape().Dims(), gorgonia.WithShape(opts.BatchSize, features), gorgonia.WithName("x"))
 	y := gorgonia.NewMatrix(m.g, tensor.Float64, gorgonia.WithShape(opts.BatchSize, trainY.Shape()[1]), gorgonia.WithName("y"))
 
-	output, err := layer(x)
+	output, loss, err := layer(x)
 	if err != nil {
 		return fmt.Errorf("error running layer: %w", err)
+	}
+
+	if loss == nil {
+		return fmt.Errorf("loss must be returned in training mode")
 	}
 
 	var (
@@ -65,14 +73,7 @@ func (m *Model) Train(layer Layer, trainX tensor.Tensor, trainY tensor.Tensor, o
 	)
 
 	{
-		output, err = softmax(output) // TODO: configure
-		if err != nil {
-			return err
-		}
-
-		// TODO: make cost function configurable
-		cost := gorgonia.Must(gorgonia.Mean(gorgonia.Must((gorgonia.Sub(output, y))))) // MSE
-		// cost := gorgonia.Must(gorgonia.Mean(gorgonia.Must(gorgonia.Square(gorgonia.Must(gorgonia.Sub(output, y)))))) // RMS
+		cost := opts.CostFn(output, loss, y)
 
 		gorgonia.Read(cost, &costVal)
 		gorgonia.Read(output, &predVal)
@@ -82,10 +83,14 @@ func (m *Model) Train(layer Layer, trainX tensor.Tensor, trainY tensor.Tensor, o
 		}
 	}
 
+	// logFile, _ := os.Create("log")
+	// defer logFile.Close()
+
 	vm := gorgonia.NewTapeMachine(m.g,
 		gorgonia.BindDualValues(m.learnables...),
 		gorgonia.TraceExec(),
-		// gorgonia.WithLogger(log.New(os.Stdout, "[g]", log.LstdFlags)),
+		// gorgonia.WithLogger(log.New(logFile, "[g]", log.LstdFlags)),
+		// gorgonia.WithWatchlist(),
 		gorgonia.WithNaNWatch(),
 		gorgonia.WithInfWatch(),
 	)
@@ -93,14 +98,14 @@ func (m *Model) Train(layer Layer, trainX tensor.Tensor, trainY tensor.Tensor, o
 
 	defer vm.Close()
 
-	bar := pb.New(batches)
-	bar.SetRefreshRate(time.Second)
-	bar.SetMaxWidth(80)
+	// bar := pb.New(batches)
+	// bar.SetRefreshRate(time.Second)
+	// bar.SetMaxWidth(80)
 
 	for i := 0; i < opts.Epochs; i++ {
-		bar.Prefix(fmt.Sprintf("Epoch %d", i))
-		bar.Set(0)
-		bar.Start()
+		// bar.Prefix(fmt.Sprintf("Epoch %d", i))
+		// bar.Set(0)
+		// bar.Start()
 
 		for b := 0; b < batches; b++ {
 			start := b * opts.BatchSize
@@ -147,11 +152,13 @@ func (m *Model) Train(layer Layer, trainX tensor.Tensor, trainY tensor.Tensor, o
 				log.Fatalf("Failed to update nodes with gradients at epoch %d, batch %d. Error %v", i, b, err)
 			}
 
+			fmt.Printf(" Epoch %d %d | cost %v\n", i, b, costVal)
+
 			vm.Reset()
-			bar.Increment()
+			// bar.Increment()
 		}
 
-		fmt.Printf(" Epoch %d | cost %v", i, costVal)
+		// fmt.Printf(" Epoch %d | cost %v", i, costVal)
 	}
 
 	fmt.Println("")

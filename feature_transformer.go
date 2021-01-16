@@ -44,51 +44,51 @@ func (nn *Model) FeatureTransformer(opts FeatureTransformerOpts) Layer {
 
 	scale := gorgonia.NewScalar(nn.g, tensor.Float64, gorgonia.WithValue(math.Sqrt(0.5))) // TODO: make configurable
 
-	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, error) {
+	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, *gorgonia.Node, error) {
 		var err error
 		x := nodes[0]
 
 		if len(shared) > 0 {
-			x, err = shared[0](x)
+			x, _, err = shared[0](x)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 
 			for _, glu := range shared[1:] {
-				output, err := glu(x)
+				output, _, err := glu(x)
 				if err != nil {
-					return nil, err
+					return nil, nil, err
 				}
 
 				x, err = gorgonia.Add(x, output)
 				if err != nil {
-					return nil, err
+					return nil, nil, err
 				}
 
 				x, err = gorgonia.Mul(x, scale)
 				if err != nil {
-					return nil, err
+					return nil, nil, err
 				}
 			}
 		}
 
 		for _, layer := range independent {
-			output, err := layer(x)
+			output, _, err := layer(x)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 
 			x, err = gorgonia.Add(x, output)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 
 			x, err = gorgonia.Mul(x, scale)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 		}
 
-		return x, nil
+		return x, nil, nil
 	}
 }

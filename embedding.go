@@ -15,10 +15,10 @@ type EmbeddingOpts struct {
 func (m *Model) Embedding(embeddingSize int, embeddingDim int, opts EmbeddingOpts) Layer {
 	w := m.addWeights(tensor.Shape{embeddingSize, embeddingDim}, opts.WeightsInit)
 
-	return func(inputs ...*gorgonia.Node) (*gorgonia.Node, error) {
+	return func(inputs ...*gorgonia.Node) (*gorgonia.Node, *gorgonia.Node, error) {
 		err := m.checkArity("Embedding", inputs, 1)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		indices := inputs[0]
@@ -29,11 +29,11 @@ func (m *Model) Embedding(embeddingSize int, embeddingDim int, opts EmbeddingOpt
 
 		embedding, err := gorgonia.ByIndices(w, indices, 0)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		embedding = gorgonia.Must(gorgonia.Reshape(embedding, append(indicesShape, embeddingDim)))
 
-		return embedding, nil
+		return embedding, nil, nil
 	}
 }

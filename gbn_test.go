@@ -48,7 +48,7 @@ func TestGBN(t *testing.T) {
 			tn := &Model{g: g}
 			input := NewTensor(g, tensor.Float64, 2, WithShape(tcase.input.Shape()...), WithName("GBNInput"), WithValue(tcase.input))
 
-			y, err := tn.GBN(GBNOpts{
+			y, _, err := tn.GBN(GBNOpts{
 				VirtualBatchSize: tcase.vbs,
 			})(input)
 

@@ -4,21 +4,33 @@ import "gorgonia.org/gorgonia"
 
 // Sequential runs the given layers one after the other
 func (m *Model) Sequential(layers ...Layer) Layer {
-	return func(inputs ...*gorgonia.Node) (*gorgonia.Node, error) {
+	return func(inputs ...*gorgonia.Node) (*gorgonia.Node, *gorgonia.Node, error) {
 		err := m.checkArity("Sequential", inputs, 1)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
+		var loss *gorgonia.Node
 		x := inputs[0]
+		losses := make([]*gorgonia.Node, 0, len(layers))
 
 		for _, layer := range layers {
-			x, err = layer(x)
+			x, loss, err = layer(x)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
+			}
+
+			if loss != nil {
+				losses = append(losses, loss)
 			}
 		}
 
-		return x, nil
+		if len(losses) == 0 {
+			return x, nil, nil
+		}
+
+		totalLoss := gorgonia.Must(gorgonia.ReduceAdd(losses))
+
+		return x, totalLoss, nil
 	}
 }

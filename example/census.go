@@ -202,7 +202,7 @@ func process(filePath string) *Processor {
 }
 
 func main() {
-	p := process("adult.data")
+	p := process("adult.data100")
 
 	fmt.Printf(">> Uniq values per column\n")
 	for col, uniqVals := range p.categoricalColumnsUniq {
@@ -239,9 +239,19 @@ func main() {
 
 	layer := model.Sequential(embedder, tn)
 
+	// lambdaSparse := gorgonia.NewScalar(model.ExprGraph(), tensor.Float64, gorgonia.WithValue(1e-3))
+
 	err := model.Train(layer, trainX, trainY, tabnet.TrainOpts{
 		BatchSize: batchSize,
-		Epochs:    3,
+		Epochs:    300,
+		CostFn: func(output *gorgonia.Node, loss *gorgonia.Node, y *gorgonia.Node) *gorgonia.Node {
+			// output = gorgonia.Must(gorgonia.SoftMax(output))
+			// cost := gorgonia.Must(gorgonia.Mean(gorgonia.Must((gorgonia.Sub(output, y))))) // MSE
+			cost := tabnet.MSELoss(output, y, tabnet.MSELossOpts{})
+			// cost = gorgonia.Must(gorgonia.Sub(cost, gorgonia.Must(gorgonia.Mul(lambdaSparse, loss))))
+
+			return cost
+		},
 	})
 	handleErr(err)
 }

@@ -58,9 +58,9 @@ func (nn *Model) DecisionStep(opts DecisionStepOpts) *DecisionStep {
 		Inferring:         opts.Inferring,
 	})
 
-	ds.FeatureTransformer = func(nodes ...*gorgonia.Node) (*gorgonia.Node, error) {
+	ds.FeatureTransformer = func(nodes ...*gorgonia.Node) (*gorgonia.Node, *gorgonia.Node, error) {
 		if err := nn.checkArity("DecisionStep-FeatureTransformer", nodes, 2); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		x := nodes[0]
@@ -68,15 +68,15 @@ func (nn *Model) DecisionStep(opts DecisionStepOpts) *DecisionStep {
 
 		mul, err := gorgonia.HadamardProd(x, mask)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
-		ft, err := featureTransformer(mul)
+		ft, _, err := featureTransformer(mul)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
-		return ft, nil
+		return ft, nil, nil
 	}
 
 	return ds

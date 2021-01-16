@@ -27,12 +27,12 @@ func (nn *Model) FC(opts FCOpts) Layer {
 		panic("output dimension must be set")
 	}
 
-	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, error) {
+	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, *gorgonia.Node, error) {
 		x := nodes[0]
 		xShape := x.Shape()
 
 		if opts.OutputDimension <= 0 {
-			return nil, fmt.Errorf("wrong output features count %d for FC layer", opts.OutputDimension)
+			return nil, nil, fmt.Errorf("wrong output features count %d for FC layer", opts.OutputDimension)
 		}
 
 		if x.Dims() > 2 {
@@ -46,7 +46,7 @@ func (nn *Model) FC(opts FCOpts) Layer {
 		w := nn.addWeights(shape, opts.WeightsInit)
 		layer, err := gorgonia.Mul(x, w)
 		if err != nil {
-			return nil, fmt.Errorf("Layer %d: error applying mul %w", layerNumber, err)
+			return nil, nil, fmt.Errorf("Layer %d: error applying mul %w", layerNumber, err)
 		}
 
 		if opts.WithBias {
@@ -54,24 +54,24 @@ func (nn *Model) FC(opts FCOpts) Layer {
 
 			layer, err = gorgonia.Add(layer, b)
 			if err != nil {
-				return nil, fmt.Errorf("Layer %d: error adding bias %w", layerNumber, err)
+				return nil, nil, fmt.Errorf("Layer %d: error adding bias %w", layerNumber, err)
 			}
 		}
 
 		if opts.Activation != nil {
 			layer, err = opts.Activation(layer)
 			if err != nil {
-				return nil, fmt.Errorf("Layer %d: error applying activation %w", layerNumber, err)
+				return nil, nil, fmt.Errorf("Layer %d: error applying activation %w", layerNumber, err)
 			}
 		}
 
 		if opts.Dropout > 0.0 {
 			layer, err = gorgonia.Dropout(layer, opts.Dropout)
 			if err != nil {
-				return nil, fmt.Errorf("Layer %d: error applying dropout %w", layerNumber, err)
+				return nil, nil, fmt.Errorf("Layer %d: error applying dropout %w", layerNumber, err)
 			}
 		}
 
-		return layer, nil
+		return layer, nil, nil
 	}
 }

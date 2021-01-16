@@ -66,7 +66,7 @@ func TestFeatureTransformer(t *testing.T) {
 				})
 			}
 
-			x, err := tn.FeatureTransformer(FeatureTransformerOpts{
+			x, _, err := tn.FeatureTransformer(FeatureTransformerOpts{
 				VirtualBatchSize:  tcase.vbs,
 				OutputDimension:   tcase.output,
 				Shared:            shared,

@@ -44,34 +44,34 @@ func (nn *Model) AttentiveTransformer(opts AttentiveTransformerOpts) Layer {
 		WeightsInit:      opts.WeightsInit,
 	})
 
-	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, error) {
+	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, *gorgonia.Node, error) {
 		if err := nn.checkArity("AttentiveTransformer", nodes, 2); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		x := nodes[0]
 		prior := nodes[1]
 
-		fc, err := fcLayer(x)
+		fc, _, err := fcLayer(x)
 		if err != nil {
-			return nil, fmt.Errorf("AttentiveTransformer: fc(%v) failed failed: %w", x.Shape(), err)
+			return nil, nil, fmt.Errorf("AttentiveTransformer: fc(%v) failed failed: %w", x.Shape(), err)
 		}
 
-		bn, err := gbnLayer(fc)
+		bn, _, err := gbnLayer(fc)
 		if err != nil {
-			return nil, fmt.Errorf("AttentiveTransformer: gbn(%v) failed: %w", fc.Shape(), err)
+			return nil, nil, fmt.Errorf("AttentiveTransformer: gbn(%v) failed: %w", fc.Shape(), err)
 		}
 
 		mul, err := gorgonia.HadamardProd(bn, prior)
 		if err != nil {
-			return nil, fmt.Errorf("AttentiveTransformer: mul(%v, %v) failed: %w", bn.Shape(), prior.Shape(), err)
+			return nil, nil, fmt.Errorf("AttentiveTransformer: mul(%v, %v) failed: %w", bn.Shape(), prior.Shape(), err)
 		}
 
 		sm, err := opts.Activation(mul)
 		if err != nil {
-			return nil, fmt.Errorf("AttentiveTransformer: sparsemax(%v) failed: %w", mul.Shape(), err)
+			return nil, nil, fmt.Errorf("AttentiveTransformer: sparsemax(%v) failed: %w", mul.Shape(), err)
 		}
 
-		return sm, nil
+		return sm, nil, nil
 	}
 }

@@ -37,7 +37,7 @@ func (o *BNOpts) setDefaults() {
 func (nn *Model) BN(opts BNOpts) Layer {
 	opts.setDefaults()
 
-	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, error) {
+	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, *gorgonia.Node, error) {
 		x := nodes[0]
 		xShape := x.Shape()
 		x = gorgonia.Must(gorgonia.Reshape(x, tensor.Shape{xShape[0], xShape[1], 1, 1}))
@@ -47,7 +47,7 @@ func (nn *Model) BN(opts BNOpts) Layer {
 
 		ret, _, _, bnop, err := gorgonia.BatchNorm(x, scale, bias, opts.Momentum, opts.Epsilon)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		if opts.Inferring {
@@ -56,6 +56,6 @@ func (nn *Model) BN(opts BNOpts) Layer {
 			bnop.SetTraining()
 		}
 
-		return gorgonia.Reshape(ret, xShape)
+		return gorgonia.Must(gorgonia.Reshape(ret, xShape)), nil, nil
 	}
 }

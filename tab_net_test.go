@@ -57,7 +57,7 @@ func TestTabNet(t *testing.T) {
 			a := NewTensor(g, Float64, tcase.input.Dims(), WithShape(tcase.input.Shape()...), WithInit(Ones()), WithName("AttentiveX"))
 			priors := NewTensor(g, Float64, tcase.input.Dims(), WithShape(tcase.input.Shape()...), WithInit(Ones()), WithName("Priors"))
 
-			x, err := tn.TabNet(TabNetOpts{
+			x, _, err := tn.TabNet(TabNetOpts{
 				VirtualBatchSize:   tcase.vbs,
 				IndependentBlocks:  tcase.independentBlocks,
 				PredictionLayerDim: tcase.prediction,

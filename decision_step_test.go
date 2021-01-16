@@ -55,10 +55,10 @@ func TestDecisionStep(t *testing.T) {
 				PredictionLayerDim: 0,
 				AttentionLayerDim:  8,
 				WeightsInit:        initDummyWeights,
-				OutputDimension:     tcase.output,
+				OutputDimension:    tcase.output,
 			})
 
-			mask, err := step.AttentiveTransformer(a, priors)
+			mask, _, err := step.AttentiveTransformer(a, priors)
 			c.NoError(err)
 
 			// Update prior
@@ -68,7 +68,7 @@ func TestDecisionStep(t *testing.T) {
 				c.NoError(err)
 			}
 
-			ds, err := step.FeatureTransformer(tcase.input, mask)
+			ds, _, err := step.FeatureTransformer(tcase.input, mask)
 			c.NoError(err)
 
 			if tcase.expectedErr != "" {
