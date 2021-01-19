@@ -45,8 +45,7 @@ func (nn *Model) GLU(opts GLUOpts) Layer {
 
 	gbnLayer := nn.GBN(GBNOpts{
 		VirtualBatchSize: opts.VirtualBatchSize,
-		OutputDimension:        opts.OutputDimension * 2,
-		WeightsInit:      opts.WeightsInit,
+		OutputDimension:  opts.OutputDimension * 2,
 		Inferring:        opts.Inferring,
 	})
 

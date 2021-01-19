@@ -16,7 +16,7 @@ type GBNOpts struct {
 
 	Inferring bool
 
-	WeightsInit, ScaleInit, BiasInit gorgonia.InitWFn
+	ScaleInit, BiasInit gorgonia.InitWFn
 }
 
 func (o *GBNOpts) setDefaults() {

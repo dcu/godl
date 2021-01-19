@@ -3,6 +3,7 @@ package tabnet
 import (
 	"fmt"
 
+	"github.com/fatih/color"
 	"gorgonia.org/gorgonia"
 )
 
@@ -16,4 +17,12 @@ func (m *Model) Watch(name string, node *gorgonia.Node) {
 	gorgonia.Read(node, pointer)
 
 	m.watchables[name] = pointer
+}
+
+func (m Model) PrintWatchables() {
+	for name, w := range m.watchables {
+		if w != nil {
+			fmt.Printf("[w] %s: %v\n%v\n\n", color.GreenString(name), (*w).Shape(), *w)
+		}
+	}
 }

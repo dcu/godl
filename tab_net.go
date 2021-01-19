@@ -2,6 +2,7 @@ package tabnet
 
 import (
 	"fmt"
+	"math"
 
 	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
@@ -85,12 +86,18 @@ func (nn *Model) TabNet(opts TabNetOpts) Layer {
 	{
 		fcInput := opts.InputDimension
 		fcOutput := outputDim
+		sharedWeightsInit := opts.WeightsInit
+
+		if sharedWeightsInit == nil {
+			gain := math.Sqrt(float64(fcInput+fcOutput) / math.Sqrt(float64(fcInput)))
+			sharedWeightsInit = gorgonia.GlorotN(gain)
+		}
 
 		for i := 0; i < opts.SharedBlocks; i++ {
 			shared = append(shared, nn.FC(FCOpts{
 				InputDimension:  fcInput,
 				OutputDimension: fcOutput,
-				WeightsInit:     opts.WeightsInit,
+				WeightsInit:     sharedWeightsInit,
 				WithBias:        opts.WithBias,
 			}))
 
@@ -130,10 +137,16 @@ func (nn *Model) TabNet(opts TabNetOpts) Layer {
 		))
 	}
 
-	fcLayer := nn.FC(FCOpts{
+	weightsInit := opts.WeightsInit
+	if weightsInit == nil {
+		gain := math.Sqrt(float64(opts.PredictionLayerDim+opts.OutputDimension) / math.Sqrt(float64(4*opts.PredictionLayerDim)))
+		weightsInit = gorgonia.GlorotN(gain)
+	}
+
+	finalMapping := nn.FC(FCOpts{
 		InputDimension:  opts.PredictionLayerDim,
 		OutputDimension: opts.OutputDimension,
-		WeightsInit:     opts.WeightsInit,
+		WeightsInit:     weightsInit,
 		WithBias:        opts.WithBias,
 	})
 
@@ -220,7 +233,7 @@ func (nn *Model) TabNet(opts TabNetOpts) Layer {
 			}
 		}
 
-		output, _, err := fcLayer(out)
+		output, _, err := finalMapping(out)
 		if err != nil {
 			return nil, nil, fmt.Errorf("TabNet: applying final FC layer to %v: %w", out.Shape(), err)
 		}

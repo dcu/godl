@@ -6,8 +6,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"time"
 
-	"github.com/fatih/color"
 	"gonum.org/v1/plot/vg"
 	"gorgonia.org/gorgonia"
 	"gorgonia.org/gorgonia/encoding/dot"
@@ -28,7 +28,8 @@ type TrainOpts struct {
 	DevMode               bool
 	WithLearnablesHeatmap bool
 
-	solver gorgonia.Solver
+	// Solver defines the solver to use. It uses gorgonia.AdamSolver by default if none is passed
+	Solver gorgonia.Solver
 
 	CostFn func(output *gorgonia.Node, loss *gorgonia.Node, y *gorgonia.Node) *gorgonia.Node
 }
@@ -149,8 +150,8 @@ func (m *Model) Train(layer Layer, trainX tensor.Tensor, trainY tensor.Tensor, o
 
 	vm := gorgonia.NewTapeMachine(m.g, vmOpts...)
 
-	if opts.solver == nil {
-		opts.solver = gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(opts.BatchSize)))
+	if opts.Solver == nil {
+		opts.Solver = gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(opts.BatchSize)))
 	}
 
 	defer vm.Close()
@@ -158,6 +159,8 @@ func (m *Model) Train(layer Layer, trainX tensor.Tensor, trainY tensor.Tensor, o
 	// bar := pb.New(batches)
 	// bar.SetRefreshRate(time.Second)
 	// bar.SetMaxWidth(80)
+
+	startTime := time.Now()
 
 	for i := 0; i < opts.Epochs; i++ {
 		// bar.Prefix(fmt.Sprintf("Epoch %d", i))
@@ -205,27 +208,23 @@ func (m *Model) Train(layer Layer, trainX tensor.Tensor, trainY tensor.Tensor, o
 				fatal("Failed at epoch  %d, batch %d. Error: %v", i, b, err)
 			}
 
-			if err = opts.solver.Step(gorgonia.NodesToValueGrads(m.learnables)); err != nil {
+			if err = opts.Solver.Step(gorgonia.NodesToValueGrads(m.learnables)); err != nil {
 				fatal("Failed to update nodes with gradients at epoch %d, batch %d. Error %v", i, b, err)
 			}
 
-			// log.Printf("output: %v", predVal)
+			// color.Yellow(" Epoch %d %d | cost %v\n", i, b, costVal)
 
-			color.Yellow(" Epoch %d %d | cost %v\n", i, b, costVal)
+			m.PrintWatchables()
 
-			for name, w := range m.watchables {
-				if w != nil {
-					fmt.Printf("[w] %s: %v\n%v\n\n", color.GreenString(name), (*w).Shape(), *w)
-				}
+			if opts.WithLearnablesHeatmap {
+				m.saveHeatmaps(i, b, opts.BatchSize, features)
 			}
-
-			m.saveHeatmaps(i, b, opts.BatchSize, features)
 
 			vm.Reset()
 			// bar.Increment()
 		}
 
-		fmt.Printf(" Epoch %d | cost %v\n", i, costVal)
+		fmt.Printf(" Epoch %d | cost %v (%v)\n", i, costVal, time.Since(startTime))
 	}
 
 	fmt.Println("")

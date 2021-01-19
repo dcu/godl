@@ -2,6 +2,7 @@ package tabnet
 
 import (
 	"fmt"
+	"math"
 
 	"gorgonia.org/gorgonia"
 )
@@ -22,6 +23,11 @@ func (o *AttentiveTransformerOpts) setDefaults() {
 	if o.Activation == nil {
 		o.Activation = sparsemax
 	}
+
+	if o.WeightsInit == nil {
+		gain := math.Sqrt(float64(o.InputDimension+o.OutputDimension) / math.Sqrt(float64(4*o.InputDimension)))
+		o.WeightsInit = gorgonia.GlorotN(gain)
+	}
 }
 
 // AttentiveTransformer implements an attetion transformer layer
@@ -39,11 +45,10 @@ func (nn *Model) AttentiveTransformer(opts AttentiveTransformerOpts) Layer {
 		Momentum:         opts.Momentum,
 		Epsilon:          opts.Epsilon,
 		VirtualBatchSize: opts.VirtualBatchSize,
-		OutputDimension:        opts.OutputDimension,
+		OutputDimension:  opts.OutputDimension,
 		Inferring:        opts.Inferring,
 		ScaleInit:        opts.ScaleInit,
 		BiasInit:         opts.BiasInit,
-		WeightsInit:      opts.WeightsInit,
 	})
 
 	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, *gorgonia.Node, error) {
