@@ -12,10 +12,19 @@ type BNOpts struct {
 	Inferring           bool
 	ScaleInit, BiasInit gorgonia.InitWFn
 
-	InputSize int
+	InputDim  int
+	OutputDim int
 }
 
 func (o *BNOpts) setDefaults() {
+	if o.InputDim == 0 {
+		panic("input size for BN can't be 0")
+	}
+
+	if o.OutputDim == 0 {
+		panic("output size for BN can't be 0")
+	}
+
 	if o.Momentum == 0.0 {
 		o.Momentum = 0.01
 	}
@@ -37,18 +46,29 @@ func (o *BNOpts) setDefaults() {
 func (nn *Model) BN(opts BNOpts) Layer {
 	opts.setDefaults()
 
+	layerType := "BN"
+
+	// FIXME: this layer should be learnable
+	// bias := nn.addBias(layerType, tensor.Shape{opts.InputDim, opts.OutputDim}, opts.BiasInit)
+	// scale := nn.addLearnable(layerType, "scale", tensor.Shape{opts.InputDim, opts.OutputDim}, opts.ScaleInit)
+
+	bias := gorgonia.NewTensor(nn.g, tensor.Float64, 2, gorgonia.WithShape(opts.InputDim, opts.OutputDim), gorgonia.WithInit(opts.BiasInit), gorgonia.WithName("bias"))
+	scale := gorgonia.NewTensor(nn.g, tensor.Float64, 2, gorgonia.WithShape(opts.InputDim, opts.OutputDim), gorgonia.WithInit(opts.ScaleInit), gorgonia.WithName("scale"))
+
 	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, *gorgonia.Node, error) {
+		if err := nn.checkArity(layerType, nodes, 1); err != nil {
+			return nil, nil, err
+		}
+
 		x := nodes[0]
-		xShape := x.Shape()
-		x = gorgonia.Must(gorgonia.Reshape(x, tensor.Shape{xShape[0], xShape[1], 1, 1}))
 
-		bias := nn.addBias(x.Shape(), opts.BiasInit)
-		scale := nn.addLearnable("scale", x.Shape(), opts.ScaleInit)
-
-		ret, _, _, bnop, err := gorgonia.BatchNorm(x, scale, bias, opts.Momentum, opts.Epsilon)
+		ret, _, _, bnop, err := gorgonia.BatchNorm1d(x, scale, bias, opts.Momentum, opts.Epsilon)
 		if err != nil {
 			return nil, nil, err
 		}
+
+		// nn.Watch("scale", scale)
+		// nn.Watch("bias", bias)
 
 		if opts.Inferring {
 			bnop.SetTesting()
@@ -56,6 +76,6 @@ func (nn *Model) BN(opts BNOpts) Layer {
 			bnop.SetTraining()
 		}
 
-		return gorgonia.Must(gorgonia.Reshape(ret, xShape)), nil, nil
+		return ret, nil, nil
 	}
 }

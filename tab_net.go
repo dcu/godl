@@ -14,8 +14,8 @@ type TabNetOpts struct {
 	IndependentBlocks int
 	DecisionSteps     int
 
-	InputDim  int // FIXME
-	BatchSize int
+	InputDimension int // FIXME
+	BatchSize      int
 
 	PredictionLayerDim int
 	AttentionLayerDim  int
@@ -23,6 +23,8 @@ type TabNetOpts struct {
 	MaskFunction ActivationFn
 
 	Gamma float64
+
+	WithBias bool
 
 	Momentum                         float64
 	Epsilon                          float64
@@ -49,11 +51,19 @@ func (o *TabNetOpts) setDefaults() {
 	}
 
 	if o.AttentionLayerDim == 0 {
-		o.PredictionLayerDim = 8
+		o.AttentionLayerDim = 8
+	}
+
+	if o.Epsilon == 0.0 {
+		o.Epsilon = 1e-5
 	}
 
 	if o.Gamma == 0.0 {
 		o.Gamma = 1.3
+	}
+
+	if o.VirtualBatchSize == 0 {
+		o.VirtualBatchSize = 128
 	}
 }
 
@@ -61,16 +71,43 @@ func (o *TabNetOpts) setDefaults() {
 func (nn *Model) TabNet(opts TabNetOpts) Layer {
 	opts.setDefaults()
 
-	shared := make([]Layer, 0, opts.SharedBlocks)
+	bnLayer := nn.BN(BNOpts{ // TODO: make configurable
+		ScaleInit: opts.ScaleInit,
+		BiasInit:  opts.BiasInit,
+		Inferring: opts.Inferring,
+		InputDim:  opts.BatchSize,
+		OutputDim: opts.InputDimension,
+	})
 
-	for i := 0; i < opts.SharedBlocks; i++ {
-		shared = append(shared, nn.FC(FCOpts{
-			InputDimension:  opts.BatchSize,
-			OutputDimension: 2 * (opts.PredictionLayerDim + opts.AttentionLayerDim), // double the size so we can take half and half
-			WeightsInit:     opts.WeightsInit,
-			WithBias:        true,
-		}))
+	shared := make([]Layer, 0, opts.SharedBlocks)
+	outputDim := 2 * (opts.PredictionLayerDim + opts.AttentionLayerDim) // double the size so we can take half and half
+
+	{
+		fcInput := opts.InputDimension
+		fcOutput := outputDim
+
+		for i := 0; i < opts.SharedBlocks; i++ {
+			shared = append(shared, nn.FC(FCOpts{
+				InputDimension:  fcInput,
+				OutputDimension: fcOutput,
+				WeightsInit:     opts.WeightsInit,
+				WithBias:        opts.WithBias,
+			}))
+
+			fcInput = opts.PredictionLayerDim + opts.AttentionLayerDim
+		}
 	}
+
+	// first step
+	initialSplitter := nn.FeatureTransformer(FeatureTransformerOpts{
+		Shared:            shared,
+		VirtualBatchSize:  opts.VirtualBatchSize,
+		IndependentBlocks: opts.IndependentBlocks,
+		InputDimension:    opts.InputDimension,
+		OutputDimension:   opts.AttentionLayerDim + opts.PredictionLayerDim,
+		WeightsInit:       opts.WeightsInit,
+		WithBias:          opts.WithBias,
+	})
 
 	steps := make([]*DecisionStep, 0, opts.DecisionSteps)
 	for i := 0; i < opts.DecisionSteps-1; i++ {
@@ -86,62 +123,46 @@ func (nn *Model) TabNet(opts TabNetOpts) Layer {
 				BiasInit:           opts.BiasInit,
 				Inferring:          opts.Inferring,
 				InputDimension:     opts.BatchSize,
-				OutputDimension:    opts.InputDim,
+				OutputDimension:    opts.InputDimension,
 				MaskFunction:       opts.MaskFunction,
+				WithBias:           opts.WithBias,
 			},
 		))
 	}
 
 	fcLayer := nn.FC(FCOpts{
-		InputDimension:  opts.BatchSize,
+		InputDimension:  opts.PredictionLayerDim,
 		OutputDimension: opts.OutputDimension,
 		WeightsInit:     opts.WeightsInit,
-		WithBias:        true,
+		WithBias:        opts.WithBias,
 	})
 
-	bnLayer := nn.BN(BNOpts{ // TODO: make configurable
-		ScaleInit: opts.ScaleInit,
-		BiasInit:  opts.BiasInit,
-		Inferring: opts.Inferring,
-		InputSize: opts.OutputDimension,
-	})
+	gamma := gorgonia.NewConstant(opts.Gamma)
+	epsilon := gorgonia.NewConstant(opts.Epsilon)
 
-	// first step
-	ftLayer := nn.FeatureTransformer(FeatureTransformerOpts{
-		Shared:            shared,
-		VirtualBatchSize:  opts.VirtualBatchSize,
-		IndependentBlocks: opts.IndependentBlocks,
-		OutputDimension:   opts.AttentionLayerDim + opts.PredictionLayerDim,
-		WeightsInit:       opts.WeightsInit,
-	})
+	tabNetLoss := gorgonia.NewScalar(nn.g, tensor.Float64, gorgonia.WithValue(0.0), gorgonia.WithName("TabNetLoss"))
+	stepsCount := gorgonia.NewScalar(nn.g, tensor.Float64, gorgonia.WithValue(float64(len(steps))), gorgonia.WithName("Steps"))
 
-	gamma := gorgonia.NewScalar(nn.g, tensor.Float64, gorgonia.WithValue(opts.Gamma))
-	epsilon := gorgonia.NewScalar(nn.g, tensor.Float64, gorgonia.WithValue(opts.Epsilon))
-
-	tabNetLoss := gorgonia.NewScalar(nn.g, tensor.Float64, gorgonia.WithValue(0.0))
-	stepsCount := gorgonia.NewScalar(nn.g, tensor.Float64, gorgonia.WithValue(float64(len(steps))))
+	prior := gorgonia.NewTensor(nn.g, tensor.Float64, 2, gorgonia.WithShape(opts.BatchSize, opts.InputDimension), gorgonia.WithInit(gorgonia.Ones()), gorgonia.WithName("Prior"))
+	out := gorgonia.NewTensor(nn.g, tensor.Float64, 2, gorgonia.WithShape(opts.BatchSize, opts.PredictionLayerDim), gorgonia.WithInit(gorgonia.Zeroes()), gorgonia.WithName("Output"))
 
 	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, *gorgonia.Node, error) {
 		x := nodes[0]
-		xShape := x.Shape()
 
 		bn, _, err := bnLayer(x)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, fmt.Errorf("applying initial batch norm %v: %w", x.Shape(), err)
 		}
 
-		ft, _, err := ftLayer(bn)
+		ft, _, err := initialSplitter(bn)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, fmt.Errorf("applying initial splitter %v: %w", bn.Shape(), err)
 		}
 
 		xAttentiveLayer, err := gorgonia.Slice(ft, nil, gorgonia.S(opts.PredictionLayerDim, ft.Shape()[1]))
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, fmt.Errorf("slicing %v: %w", ft.Shape(), err)
 		}
-
-		prior := gorgonia.NewTensor(nn.g, tensor.Float64, bn.Shape().Dims(), gorgonia.WithShape(bn.Shape()...), gorgonia.WithInit(gorgonia.Ones()), gorgonia.WithName("Prior"))
-		out := gorgonia.NewTensor(nn.g, tensor.Float64, 2, gorgonia.WithShape(xShape[0], opts.PredictionLayerDim), gorgonia.WithInit(gorgonia.Zeroes()), gorgonia.WithName("Output"))
 
 		for _, step := range steps {
 			mask, _, err := step.AttentiveTransformer(xAttentiveLayer, prior)
@@ -167,6 +188,7 @@ func (nn *Model) TabNet(opts TabNetOpts) Layer {
 						mask,
 						lg,
 					)),
+					1,
 				)),
 			))
 
@@ -200,7 +222,7 @@ func (nn *Model) TabNet(opts TabNetOpts) Layer {
 
 		output, _, err := fcLayer(out)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, fmt.Errorf("TabNet: applying final FC layer to %v: %w", out.Shape(), err)
 		}
 
 		tabNetLoss = gorgonia.Must(gorgonia.Div(tabNetLoss, stepsCount))

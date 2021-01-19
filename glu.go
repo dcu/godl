@@ -2,18 +2,23 @@ package tabnet
 
 import (
 	"fmt"
+	"sync/atomic"
 
 	"gorgonia.org/gorgonia"
 )
 
+var gluCount uint64 = 0
+
 // GLUOpts are the supported options for GLU
 type GLUOpts struct {
-	VirtualBatchSize int
+	InputDimension   int
 	OutputDimension  int
+	VirtualBatchSize int
 	ActivationFn     ActivationFn
 	FC               Layer
 	WeightsInit      gorgonia.InitWFn
 	Inferring        bool
+	WithBias         bool
 }
 
 // GLU implements a Gated Linear Unit Block
@@ -22,8 +27,25 @@ func (nn *Model) GLU(opts GLUOpts) Layer {
 		opts.ActivationFn = gorgonia.Sigmoid
 	}
 
+	if opts.InputDimension == 0 {
+		panic("input dimension must be set")
+	}
+
+	if opts.OutputDimension == 0 {
+		panic("output dimension must be set")
+	}
+
+	if opts.VirtualBatchSize == 0 {
+		panic("virtual batch size must be set")
+	}
+
+	atomic.AddUint64(&gluCount, 1)
+
+	layerType := fmt.Sprintf("GLU_%d", gluCount)
+
 	gbnLayer := nn.GBN(GBNOpts{
 		VirtualBatchSize: opts.VirtualBatchSize,
+		OutputDimension:        opts.OutputDimension * 2,
 		WeightsInit:      opts.WeightsInit,
 		Inferring:        opts.Inferring,
 	})
@@ -31,13 +53,14 @@ func (nn *Model) GLU(opts GLUOpts) Layer {
 	if opts.FC == nil {
 		opts.FC = nn.FC(FCOpts{
 			OutputDimension: opts.OutputDimension * 2,
+			InputDimension:  opts.InputDimension,
 			WeightsInit:     opts.WeightsInit,
-			WithBias:        true,
+			WithBias:        opts.WithBias,
 		})
 	}
 
 	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, *gorgonia.Node, error) {
-		if err := nn.checkArity("GLU", nodes, 1); err != nil {
+		if err := nn.checkArity(layerType, nodes, 1); err != nil {
 			return nil, nil, err
 		}
 
@@ -50,12 +73,12 @@ func (nn *Model) GLU(opts GLUOpts) Layer {
 
 		fc, _, err = opts.FC(x)
 		if err != nil {
-			return nil, nil, fmt.Errorf("[glu] applying FC(%v) failed: %w", x.Shape(), err)
+			return nil, nil, fmt.Errorf("%s: applying FC(%v) failed: %w", layerType, x.Shape(), err)
 		}
 
 		gbn, _, err := gbnLayer(fc)
 		if err != nil {
-			return nil, nil, fmt.Errorf("[glu] applying GBN failed: %w", err)
+			return nil, nil, fmt.Errorf("%s: applying GBN failed: %w", layerType, err)
 		}
 
 		// GLU
@@ -64,12 +87,12 @@ func (nn *Model) GLU(opts GLUOpts) Layer {
 
 		act, err := opts.ActivationFn(secondHalf)
 		if err != nil {
-			return nil, nil, fmt.Errorf("[glu] applying activation function failed: %w", err)
+			return nil, nil, fmt.Errorf("%s: applying activation function failed: %w", layerType, err)
 		}
 
 		mul, err := gorgonia.HadamardProd(firstHalf, act)
 		if err != nil {
-			return nil, nil, fmt.Errorf("[glu] HadamardProd %d x %d: %w", firstHalf.Shape(), act.Shape(), err)
+			return nil, nil, fmt.Errorf("%s: HadamardProd %d x %d: %w", layerType, firstHalf.Shape(), act.Shape(), err)
 		}
 
 		return mul, nil, nil

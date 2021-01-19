@@ -1,14 +1,19 @@
 package tabnet
 
-import "gorgonia.org/gorgonia"
+import (
+	"fmt"
 
-var (
-	watchables = make([]interface{}, 0)
+	"gorgonia.org/gorgonia"
 )
 
 // Watch watches the given node
-func Watch(nodes ...*gorgonia.Node) {
-	for _, node := range nodes {
-		watchables = append(watchables, node)
-	}
+func (m *Model) Watch(name string, node *gorgonia.Node) {
+	var v gorgonia.Value
+
+	name = fmt.Sprintf("%s <%s>", name, node.Name())
+	pointer := &v
+
+	gorgonia.Read(node, pointer)
+
+	m.watchables[name] = pointer
 }

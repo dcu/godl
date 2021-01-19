@@ -13,5 +13,7 @@ func MSELoss(output *gorgonia.Node, target *gorgonia.Node, opts MSELossOpts) *go
 		reduction = gorgonia.Sum
 	}
 
-	return gorgonia.Must(reduction(gorgonia.Must(gorgonia.Square(gorgonia.Must(gorgonia.Sub(output, target))))))
+	sub := gorgonia.Must(gorgonia.Sub(output, target))
+
+	return gorgonia.Must(reduction(gorgonia.Must(gorgonia.Square(sub))))
 }

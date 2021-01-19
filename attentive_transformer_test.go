@@ -48,7 +48,6 @@ func TestAttentiveTransformer(t *testing.T) {
 
 			if tcase.expectedErr != "" {
 				c.Error(err)
-
 				c.Equal(tcase.expectedErr, err.Error())
 
 				return

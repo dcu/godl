@@ -2,10 +2,13 @@ package tabnet
 
 import (
 	"fmt"
+	"sync/atomic"
 
 	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
 )
+
+var fcCount uint64 = 0
 
 // FCOpts contains optional parameter for a layer
 type FCOpts struct {
@@ -27,12 +30,25 @@ func (nn *Model) FC(opts FCOpts) Layer {
 		panic("output dimension must be set")
 	}
 
+	atomic.AddUint64(&fcCount, 1)
+
+	layerType := fmt.Sprintf("FC_%d", fcCount)
+
+	var (
+		bias *gorgonia.Node
+		w    = nn.addWeights(layerType, tensor.Shape{opts.InputDimension, opts.OutputDimension}, opts.WeightsInit)
+	)
+
+	if opts.WithBias {
+		bias = nn.addBias(layerType, tensor.Shape{1, opts.OutputDimension}, opts.WeightsInit)
+	}
+
 	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, *gorgonia.Node, error) {
 		x := nodes[0]
 		xShape := x.Shape()
 
 		if opts.OutputDimension <= 0 {
-			return nil, nil, fmt.Errorf("wrong output features count %d for FC layer", opts.OutputDimension)
+			return nil, nil, fmt.Errorf("%s: wrong output features count %d for FC layer", layerType, opts.OutputDimension)
 		}
 
 		if x.Dims() > 2 {
@@ -40,35 +56,29 @@ func (nn *Model) FC(opts FCOpts) Layer {
 			x = gorgonia.Must(gorgonia.Reshape(x, tensor.Shape{b, v}))
 		}
 
-		shape := tensor.Shape{x.Shape()[1], opts.OutputDimension}
-		layerNumber := nn.LearnablesCount() + 1
-
-		w := nn.addWeights(shape, opts.WeightsInit)
 		layer, err := gorgonia.Mul(x, w)
 		if err != nil {
-			return nil, nil, fmt.Errorf("Layer %d: error applying mul %w", layerNumber, err)
+			return nil, nil, fmt.Errorf("%s: error applying mul %v x %v: %w ", layerType, x.Shape(), w.Shape(), err)
 		}
 
 		if opts.WithBias {
-			b := nn.addBias(tensor.Shape{opts.InputDimension, opts.OutputDimension}, opts.WeightsInit)
-
-			layer, err = gorgonia.Add(layer, b)
+			layer, err = gorgonia.BroadcastAdd(layer, bias, nil, []byte{0})
 			if err != nil {
-				return nil, nil, fmt.Errorf("Layer %d: error adding bias %w", layerNumber, err)
+				return nil, nil, fmt.Errorf("%s: error adding bias %w", layerType, err)
 			}
 		}
 
 		if opts.Activation != nil {
 			layer, err = opts.Activation(layer)
 			if err != nil {
-				return nil, nil, fmt.Errorf("Layer %d: error applying activation %w", layerNumber, err)
+				return nil, nil, fmt.Errorf("%s: error applying activation %w", layerType, err)
 			}
 		}
 
 		if opts.Dropout > 0.0 {
 			layer, err = gorgonia.Dropout(layer, opts.Dropout)
 			if err != nil {
-				return nil, nil, fmt.Errorf("Layer %d: error applying dropout %w", layerNumber, err)
+				return nil, nil, fmt.Errorf("%s: error applying dropout %w", layerType, err)
 			}
 		}
 

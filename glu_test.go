@@ -62,7 +62,7 @@ func TestGLU(t *testing.T) {
 			input := NewTensor(g, tensor.Float64, tcase.input.Shape().Dims(), WithShape(tcase.input.Shape()...), WithName("input"), WithValue(tcase.input))
 
 			x, _, err := tn.GLU(GLUOpts{
-				VirtualBatchSize: tcase.vbs,
+				InputDimension: tcase.vbs,
 				OutputDimension:  tcase.output,
 				WeightsInit:      initDummyWeights,
 			})(input)

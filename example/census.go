@@ -113,18 +113,18 @@ func (p *Processor) processRow(record []string, targetCol int, targetVal string)
 	colPos := 0
 
 	for i, r := range record {
+		r = strings.TrimSpace(r)
+
+		if r == "" {
+			panic(fmt.Errorf("empty column in record: %v", record))
+		}
+
 		if i == targetCol {
 			if r == targetVal {
 				y = 1.0
 			}
 
 			continue
-		}
-
-		r = strings.TrimSpace(r)
-
-		if r == "" {
-			panic(fmt.Errorf("empty column in record: %v", record))
 		}
 
 		value, ok := parseNumber(r)
@@ -202,7 +202,7 @@ func process(filePath string) *Processor {
 }
 
 func main() {
-	p := process("adult.data100")
+	p := process("adult.data")
 
 	fmt.Printf(">> Uniq values per column\n")
 	for col, uniqVals := range p.categoricalColumnsUniq {
@@ -216,6 +216,7 @@ func main() {
 	log.Printf("train x: %v train y: %v", trainX.Shape(), trainY.Shape())
 
 	batchSize := 1024
+	virtualBatchSize := 128
 
 	model := tabnet.NewModel()
 
@@ -229,29 +230,33 @@ func main() {
 
 	embedder := model.EmbeddingGenerator(14, catDims, catIdxs, catEmbDim, tabnet.EmbeddingOpts{})
 	tn := model.TabNet(tabnet.TabNetOpts{
-		OutputDimension:    1,
-		PredictionLayerDim: 64,
-		AttentionLayerDim:  64,
-		BatchSize:          batchSize,
-		InputDim:           39,
-		MaskFunction:       gorgonia.Sigmoid,
+		OutputDimension:  1,
+		BatchSize:        batchSize,
+		VirtualBatchSize: virtualBatchSize,
+		InputDimension:   39,
+		MaskFunction:     gorgonia.Sigmoid,
+		WithBias:         false,
 	})
 
 	layer := model.Sequential(embedder, tn)
 
-	// lambdaSparse := gorgonia.NewScalar(model.ExprGraph(), tensor.Float64, gorgonia.WithValue(1e-3))
+	lambdaSparse := gorgonia.NewConstant(1e-3)
 
 	err := model.Train(layer, trainX, trainY, tabnet.TrainOpts{
 		BatchSize: batchSize,
-		Epochs:    300,
+		Epochs:    100,
+		DevMode:   false,
 		CostFn: func(output *gorgonia.Node, loss *gorgonia.Node, y *gorgonia.Node) *gorgonia.Node {
-			// output = gorgonia.Must(gorgonia.SoftMax(output))
-			// cost := gorgonia.Must(gorgonia.Mean(gorgonia.Must((gorgonia.Sub(output, y))))) // MSE
+			// TODO: move this to a TabNetRegressor layer
+
 			cost := tabnet.MSELoss(output, y, tabnet.MSELossOpts{})
-			// cost = gorgonia.Must(gorgonia.Sub(cost, gorgonia.Must(gorgonia.Mul(lambdaSparse, loss))))
+			cost = gorgonia.Must(gorgonia.Sub(cost, gorgonia.Must(gorgonia.Mul(lambdaSparse, loss))))
 
 			return cost
 		},
 	})
+
+	// model.ToSVG("graph.svg")
+
 	handleErr(err)
 }

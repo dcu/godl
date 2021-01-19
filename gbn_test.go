@@ -50,6 +50,7 @@ func TestGBN(t *testing.T) {
 
 			y, _, err := tn.GBN(GBNOpts{
 				VirtualBatchSize: tcase.vbs,
+				OutputDimension:        tcase.input.Shape()[1],
 			})(input)
 
 			if tcase.expectedErr != "" {

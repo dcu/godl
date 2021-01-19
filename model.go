@@ -2,18 +2,33 @@ package tabnet
 
 import (
 	"fmt"
-	"log"
+	"io/ioutil"
+	"os"
+	"os/exec"
+	"path/filepath"
 
+	"github.com/fatih/color"
+	"gonum.org/v1/plot/vg"
 	"gorgonia.org/gorgonia"
+	"gorgonia.org/gorgonia/encoding/dot"
+	"gorgonia.org/qol/plot"
 	"gorgonia.org/tensor"
 )
 
-const bufferSizeModel = 16
+const (
+	heatmapPath     = "heatmap"
+	bufferSizeModel = 16
+)
 
 // TrainOpts are the options to train the model
 type TrainOpts struct {
 	Epochs    int
 	BatchSize int
+
+	DevMode               bool
+	WithLearnablesHeatmap bool
+
+	solver gorgonia.Solver
 
 	CostFn func(output *gorgonia.Node, loss *gorgonia.Node, y *gorgonia.Node) *gorgonia.Node
 }
@@ -32,6 +47,7 @@ func (o *TrainOpts) setDefaults() {
 type Model struct {
 	g          *gorgonia.ExprGraph
 	learnables gorgonia.Nodes
+	watchables map[string]*gorgonia.Value
 
 	model map[string]gorgonia.Value
 }
@@ -41,8 +57,30 @@ func NewModel() *Model {
 	return &Model{
 		g:          gorgonia.NewGraph(),
 		learnables: make([]*gorgonia.Node, 0, bufferSizeModel),
+		watchables: make(map[string]*gorgonia.Value),
 		model:      make(map[string]gorgonia.Value, bufferSizeModel),
 	}
+}
+
+// ToSVG creates a SVG representation of the node
+func (m *Model) ToSVG(path string) error {
+	b, err := dot.Marshal(m.g)
+	if err != nil {
+		return err
+	}
+
+	fileName := "graph.dot"
+
+	err = ioutil.WriteFile(fileName, b, 0644)
+	if err != nil {
+		return err
+	}
+
+	defer func() { _ = os.Remove(fileName) }()
+
+	cmd := exec.Command("dot", "-T", "svg", fileName, "-o", path)
+
+	return cmd.Run()
 }
 
 func (m *Model) ExprGraph() *gorgonia.ExprGraph {
@@ -51,6 +89,19 @@ func (m *Model) ExprGraph() *gorgonia.ExprGraph {
 
 func (m *Model) Train(layer Layer, trainX tensor.Tensor, trainY tensor.Tensor, opts TrainOpts) error {
 	opts.setDefaults()
+
+	if opts.DevMode {
+		warn("Start training in dev mode")
+	}
+
+	if opts.WithLearnablesHeatmap {
+		if opts.BatchSize > 128 {
+			panic("to enable Heatmap BatchSize must be <= 128")
+		}
+
+		warn("Heatmaps will be stored in: %s", heatmapPath)
+		_ = os.RemoveAll(heatmapPath)
+	}
 
 	numExamples, features := trainX.Shape()[0], trainX.Shape()[1]
 	batches := numExamples / opts.BatchSize
@@ -83,18 +134,24 @@ func (m *Model) Train(layer Layer, trainX tensor.Tensor, trainY tensor.Tensor, o
 		}
 	}
 
-	// logFile, _ := os.Create("log")
-	// defer logFile.Close()
-
-	vm := gorgonia.NewTapeMachine(m.g,
+	vmOpts := []gorgonia.VMOpt{
 		gorgonia.BindDualValues(m.learnables...),
-		gorgonia.TraceExec(),
-		// gorgonia.WithLogger(log.New(logFile, "[g]", log.LstdFlags)),
-		// gorgonia.WithWatchlist(),
-		gorgonia.WithNaNWatch(),
-		gorgonia.WithInfWatch(),
-	)
-	solver := gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(opts.BatchSize)))
+	}
+
+	if opts.DevMode {
+		vmOpts = append(
+			vmOpts,
+			gorgonia.TraceExec(),
+			gorgonia.WithNaNWatch(),
+			gorgonia.WithInfWatch(),
+		)
+	}
+
+	vm := gorgonia.NewTapeMachine(m.g, vmOpts...)
+
+	if opts.solver == nil {
+		opts.solver = gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(opts.BatchSize)))
+	}
 
 	defer vm.Close()
 
@@ -136,34 +193,76 @@ func (m *Model) Train(layer Layer, trainX tensor.Tensor, trainY tensor.Tensor, o
 
 			err = gorgonia.Let(x, xVal)
 			if err != nil {
-				log.Fatalf("error assigning x: %v", err)
+				fatal("error assigning x: %v", err)
 			}
 
 			err = gorgonia.Let(y, yVal)
 			if err != nil {
-				log.Fatalf("error assigning y: %v", err)
+				fatal("error assigning y: %v", err)
 			}
 
 			if err = vm.RunAll(); err != nil {
-				log.Fatalf("Failed at epoch  %d, batch %d. Error: %v", i, b, err)
+				fatal("Failed at epoch  %d, batch %d. Error: %v", i, b, err)
 			}
 
-			if err = solver.Step(gorgonia.NodesToValueGrads(m.learnables)); err != nil {
-				log.Fatalf("Failed to update nodes with gradients at epoch %d, batch %d. Error %v", i, b, err)
+			if err = opts.solver.Step(gorgonia.NodesToValueGrads(m.learnables)); err != nil {
+				fatal("Failed to update nodes with gradients at epoch %d, batch %d. Error %v", i, b, err)
 			}
 
-			fmt.Printf(" Epoch %d %d | cost %v\n", i, b, costVal)
+			// log.Printf("output: %v", predVal)
+
+			color.Yellow(" Epoch %d %d | cost %v\n", i, b, costVal)
+
+			for name, w := range m.watchables {
+				if w != nil {
+					fmt.Printf("[w] %s: %v\n%v\n\n", color.GreenString(name), (*w).Shape(), *w)
+				}
+			}
+
+			m.saveHeatmaps(i, b, opts.BatchSize, features)
 
 			vm.Reset()
 			// bar.Increment()
 		}
 
-		// fmt.Printf(" Epoch %d | cost %v", i, costVal)
+		fmt.Printf(" Epoch %d | cost %v\n", i, costVal)
 	}
 
 	fmt.Println("")
 
 	return nil
+}
+
+func (m Model) saveHeatmaps(epoch int, batch int, batchSize, features int) {
+	for _, v := range m.learnables {
+		wt := v.Value().(tensor.Tensor)
+		wtShape := wt.Shape().Clone()
+		newShape := tensor.Shape{wtShape[0], tensor.Shape(wtShape[1:]).TotalSize()}
+
+		pathName := filepath.Join(heatmapPath, v.Name())
+		fileName := fmt.Sprintf("%s/%d_%d_%v.png", pathName, epoch, batch, wtShape)
+
+		err := wt.Reshape(newShape...)
+		if err != nil {
+			panic(err)
+		}
+
+		p, err := plot.Heatmap(wt, nil)
+		if err != nil {
+			panic(fmt.Errorf("failed to process %s: %w", fileName, err))
+		}
+
+		err = wt.Reshape(wtShape...)
+		if err != nil {
+			panic(err)
+		}
+
+		width := vg.Length(features) * vg.Centimeter
+		height := vg.Length(batchSize) * vg.Centimeter
+
+		_ = os.MkdirAll(pathName, 0755)
+		_ = p.Save(width, height, fileName)
+	}
 }
 
 func (m Model) checkArity(contextName string, nodes []*gorgonia.Node, arity int) error {

@@ -12,12 +12,18 @@ type GBNOpts struct {
 	Momentum         float64
 	Epsilon          float64
 	VirtualBatchSize int
-	Inferring        bool
+	OutputDimension  int
+
+	Inferring bool
 
 	WeightsInit, ScaleInit, BiasInit gorgonia.InitWFn
 }
 
 func (o *GBNOpts) setDefaults() {
+	if o.OutputDimension == 0 {
+		panic("output size can't be 0")
+	}
+
 	if o.VirtualBatchSize == 0 {
 		o.VirtualBatchSize = 128
 	}
@@ -28,14 +34,6 @@ func (o *GBNOpts) setDefaults() {
 
 	if o.Epsilon == 0.0 {
 		o.Epsilon = 1e-5
-	}
-
-	if o.ScaleInit == nil {
-		o.ScaleInit = gorgonia.Ones()
-	}
-
-	if o.BiasInit == nil {
-		o.BiasInit = gorgonia.Zeroes()
 	}
 }
 
@@ -51,7 +49,8 @@ func (nn *Model) GBN(opts GBNOpts) Layer {
 		Inferring: opts.Inferring,
 		ScaleInit: opts.ScaleInit,
 		BiasInit:  opts.BiasInit,
-		InputSize: opts.VirtualBatchSize,
+		InputDim:  opts.VirtualBatchSize,
+		OutputDim: opts.OutputDimension,
 	})
 
 	return func(inputs ...*gorgonia.Node) (*gorgonia.Node, *gorgonia.Node, error) {
@@ -68,7 +67,7 @@ func (nn *Model) GBN(opts GBNOpts) Layer {
 		}
 
 		if inputSize%opts.VirtualBatchSize != 0 {
-			panic(fmt.Errorf("input size (%d) must be divisable by virtual batch size (%v)", inputSize, opts.VirtualBatchSize))
+			panic(fmt.Errorf("input size (%d) must be divisible by virtual batch size (%v)", inputSize, opts.VirtualBatchSize))
 		}
 
 		batches := int(math.Ceil(float64(inputSize) / float64(opts.VirtualBatchSize)))

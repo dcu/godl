@@ -82,7 +82,6 @@ func TestDecisionStep(t *testing.T) {
 			}
 
 			vm := NewTapeMachine(g,
-				gorgonia.WithWatchlist(watchables...),
 				gorgonia.WithLogger(testLogger),
 				gorgonia.WithValueFmt("%v"),
 				gorgonia.TraceExec(),

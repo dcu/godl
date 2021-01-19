@@ -14,6 +14,7 @@ type AttentiveTransformerOpts struct {
 	VirtualBatchSize                 int
 	Inferring                        bool
 	Activation                       ActivationFn
+	WithBias                         bool
 	WeightsInit, ScaleInit, BiasInit gorgonia.InitWFn
 }
 
@@ -31,13 +32,14 @@ func (nn *Model) AttentiveTransformer(opts AttentiveTransformerOpts) Layer {
 		InputDimension:  opts.InputDimension,
 		OutputDimension: opts.OutputDimension,
 		WeightsInit:     opts.WeightsInit,
-		WithBias:        true,
+		WithBias:        opts.WithBias,
 	})
 
 	gbnLayer := nn.GBN(GBNOpts{
 		Momentum:         opts.Momentum,
 		Epsilon:          opts.Epsilon,
 		VirtualBatchSize: opts.VirtualBatchSize,
+		OutputDimension:        opts.OutputDimension,
 		Inferring:        opts.Inferring,
 		ScaleInit:        opts.ScaleInit,
 		BiasInit:         opts.BiasInit,
@@ -54,12 +56,12 @@ func (nn *Model) AttentiveTransformer(opts AttentiveTransformerOpts) Layer {
 
 		fc, _, err := fcLayer(x)
 		if err != nil {
-			return nil, nil, fmt.Errorf("AttentiveTransformer: fc(%v) failed failed: %w", x.Shape(), err)
+			return nil, nil, fmt.Errorf("AttentiveTransformer: fc%v failed failed: %w", x.Shape(), err)
 		}
 
 		bn, _, err := gbnLayer(fc)
 		if err != nil {
-			return nil, nil, fmt.Errorf("AttentiveTransformer: gbn(%v) failed: %w", fc.Shape(), err)
+			return nil, nil, fmt.Errorf("AttentiveTransformer: gbn%v failed: %w", fc.Shape(), err)
 		}
 
 		mul, err := gorgonia.HadamardProd(bn, prior)

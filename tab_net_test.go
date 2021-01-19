@@ -67,7 +67,7 @@ func TestTabNet(t *testing.T) {
 				SharedBlocks:       tcase.sharedBlocks,
 				DecisionSteps:      tcase.steps,
 				Gamma:              tcase.gamma,
-				InputDim:           a.Shape()[0],
+				InputDimension:           a.Shape()[0],
 				Inferring:          false,
 			})(x, a, priors)
 
