@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/fatih/color"
 	"gonum.org/v1/plot/vg"
 	"gorgonia.org/gorgonia"
 	"gorgonia.org/gorgonia/encoding/dot"
@@ -119,6 +120,17 @@ func (m *Model) Train(layer Layer, trainX tensor.Tensor, trainY tensor.Tensor, o
 		return fmt.Errorf("loss must be returned in training mode")
 	}
 
+	// bnLearnables := gorgonia.Nodes{}
+	// otherLearnables := gorgonia.Nodes{}
+
+	// for _, l := range m.learnables {
+	// 	if strings.HasPrefix(l.Name(), "BN") {
+	// 		bnLearnables = append(bnLearnables, l)
+	// 	} else {
+	// 		otherLearnables = append(otherLearnables, l)
+	// 	}
+	// }
+
 	var (
 		costVal gorgonia.Value
 		predVal gorgonia.Value
@@ -212,7 +224,7 @@ func (m *Model) Train(layer Layer, trainX tensor.Tensor, trainY tensor.Tensor, o
 				fatal("Failed to update nodes with gradients at epoch %d, batch %d. Error %v", i, b, err)
 			}
 
-			// color.Yellow(" Epoch %d %d | cost %v\n", i, b, costVal)
+			color.Yellow(" Epoch %d %d | cost %v\n", i, b, costVal)
 
 			m.PrintWatchables()
 

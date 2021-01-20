@@ -215,8 +215,8 @@ func main() {
 
 	log.Printf("train x: %v train y: %v", trainX.Shape(), trainY.Shape())
 
-	batchSize := 1024
-	virtualBatchSize := 128
+	batchSize := 128
+	virtualBatchSize := 64
 
 	model := tabnet.NewModel()
 
@@ -243,9 +243,10 @@ func main() {
 	lambdaSparse := gorgonia.NewConstant(1e-3)
 
 	err := model.Train(layer, trainX, trainY, tabnet.TrainOpts{
-		BatchSize: batchSize,
-		Epochs:    100,
-		DevMode:   false,
+		BatchSize:             batchSize,
+		Epochs:                100,
+		DevMode:               true,
+		WithLearnablesHeatmap: true,
 		CostFn: func(output *gorgonia.Node, loss *gorgonia.Node, y *gorgonia.Node) *gorgonia.Node {
 			// TODO: move this to a TabNetRegressor layer
 
