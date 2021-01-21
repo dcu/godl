@@ -1,6 +1,8 @@
 package tabnet
 
 import (
+	"math"
+
 	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
 )
@@ -34,7 +36,8 @@ func (o *BNOpts) setDefaults() {
 	}
 
 	if o.ScaleInit == nil {
-		o.ScaleInit = gorgonia.Ones()
+		gain := math.Sqrt(float64(o.InputDim+o.OutputDim) / math.Sqrt(float64(4*o.InputDim)))
+		o.ScaleInit = gorgonia.GlorotN(gain)
 	}
 
 	if o.BiasInit == nil {
@@ -48,12 +51,8 @@ func (nn *Model) BN(opts BNOpts) Layer {
 
 	layerType := "BN"
 
-	// FIXME: this layer should be learnable
-	// bias := nn.addBias(layerType, tensor.Shape{opts.InputDim, opts.OutputDim}, opts.BiasInit)
-	// scale := nn.addLearnable(layerType, "scale", tensor.Shape{opts.InputDim, opts.OutputDim}, opts.ScaleInit)
-
-	bias := gorgonia.NewTensor(nn.g, tensor.Float64, 2, gorgonia.WithShape(opts.InputDim, opts.OutputDim), gorgonia.WithInit(opts.BiasInit), gorgonia.WithName("bias"))
-	scale := gorgonia.NewTensor(nn.g, tensor.Float64, 2, gorgonia.WithShape(opts.InputDim, opts.OutputDim), gorgonia.WithInit(opts.ScaleInit), gorgonia.WithName("scale"))
+	bias := nn.addBias(layerType, tensor.Shape{opts.InputDim, opts.OutputDim}, opts.BiasInit)
+	scale := nn.addLearnable(layerType, "scale", tensor.Shape{opts.InputDim, opts.OutputDim}, opts.ScaleInit)
 
 	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, *gorgonia.Node, error) {
 		if err := nn.checkArity(layerType, nodes, 1); err != nil {
@@ -66,9 +65,6 @@ func (nn *Model) BN(opts BNOpts) Layer {
 		if err != nil {
 			return nil, nil, err
 		}
-
-		// nn.Watch("scale", scale)
-		// nn.Watch("bias", bias)
 
 		if opts.Inferring {
 			bnop.SetTesting()

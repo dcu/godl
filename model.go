@@ -152,7 +152,7 @@ func (m *Model) Train(layer Layer, trainX tensor.Tensor, trainY tensor.Tensor, o
 
 	if opts.Solver == nil {
 		// opts.Solver = gorgonia.NewRMSPropSolver(gorgonia.WithBatchSize(float64(opts.BatchSize)))
-		opts.Solver = gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(opts.BatchSize)), gorgonia.WithLearnRate(0.02))
+		opts.Solver = gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(opts.BatchSize)), gorgonia.WithLearnRate(0.02), gorgonia.WithClip(0.0001))
 	}
 
 	defer vm.Close()
@@ -217,12 +217,12 @@ func (m *Model) Train(layer Layer, trainX tensor.Tensor, trainY tensor.Tensor, o
 
 			m.PrintWatchables()
 
-			if opts.WithLearnablesHeatmap {
-				m.saveHeatmaps(i, b, opts.BatchSize, features)
-			}
-
 			vm.Reset()
 			// bar.Increment()
+		}
+
+		if opts.WithLearnablesHeatmap {
+			m.saveHeatmaps(i, opts.BatchSize, features)
 		}
 
 		fmt.Printf(" Epoch %d | cost %v (%v)\n", i, costVal, time.Since(startTime))
@@ -233,14 +233,14 @@ func (m *Model) Train(layer Layer, trainX tensor.Tensor, trainY tensor.Tensor, o
 	return nil
 }
 
-func (m Model) saveHeatmaps(epoch int, batch int, batchSize, features int) {
+func (m Model) saveHeatmaps(epoch int, batchSize, features int) {
 	for _, v := range m.learnables {
 		wt := v.Value().(tensor.Tensor)
 		wtShape := wt.Shape().Clone()
 		newShape := tensor.Shape{wtShape[0], tensor.Shape(wtShape[1:]).TotalSize()}
 
 		pathName := filepath.Join(heatmapPath, v.Name())
-		fileName := fmt.Sprintf("%s/%d_%d_%v.png", pathName, epoch, batch, wtShape)
+		fileName := fmt.Sprintf("%s/%d_%v.png", pathName, epoch, wtShape)
 
 		err := wt.Reshape(newShape...)
 		if err != nil {
