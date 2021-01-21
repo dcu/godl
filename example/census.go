@@ -217,9 +217,6 @@ func main() {
 
 	batchSize := 1024
 	virtualBatchSize := 128
-
-	model := tabnet.NewModel()
-
 	catDims := p.catDims()
 	catEmbDim := []int{5, 4, 3, 6, 2, 2, 1, 10}
 	catIdxs := p.catIdxs()
@@ -228,36 +225,21 @@ func main() {
 	log.Printf("cat emb dims: %v", catEmbDim)
 	log.Printf("cat idxs: %v", catIdxs)
 
-	embedder := model.EmbeddingGenerator(14, catDims, catIdxs, catEmbDim, tabnet.EmbeddingOpts{})
-	tn := model.TabNet(tabnet.TabNetOpts{
-		OutputDimension:  1,
-		BatchSize:        batchSize,
-		VirtualBatchSize: virtualBatchSize,
-		InputDimension:   39,
-		MaskFunction:     gorgonia.Sigmoid,
-		WithBias:         false,
-	})
+	regressor := tabnet.NewTabNetRegressor(
+		trainX.Shape()[1], catDims, catIdxs, catEmbDim, tabnet.TabNetRegressorOpts{
+			BatchSize:        batchSize,
+			VirtualBatchSize: virtualBatchSize,
+			MaskFunction:     gorgonia.Sigmoid,
+			WithBias:         false,
+		},
+	)
 
-	layer := model.Sequential(embedder, tn)
-
-	lambdaSparse := gorgonia.NewConstant(1e-3)
-
-	err := model.Train(layer, trainX, trainY, tabnet.TrainOpts{
+	err := regressor.Train(trainX, trainY, tabnet.TrainOpts{
 		BatchSize:             batchSize,
 		Epochs:                100,
-		DevMode:               true,
+		DevMode:               false,
 		WithLearnablesHeatmap: false,
-		CostFn: func(output *gorgonia.Node, loss *gorgonia.Node, y *gorgonia.Node) *gorgonia.Node {
-			// TODO: move this to a TabNetRegressor layer
-
-			cost := tabnet.MSELoss(output, y, tabnet.MSELossOpts{})
-			cost = gorgonia.Must(gorgonia.Sub(cost, gorgonia.Must(gorgonia.Mul(lambdaSparse, loss))))
-
-			return cost
-		},
 	})
-
-	// model.ToSVG("graph.svg")
 
 	handleErr(err)
 }
