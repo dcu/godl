@@ -59,6 +59,8 @@ func (nn *Model) DecisionStep(opts DecisionStepOpts) *DecisionStep {
 		IndependentBlocks: opts.IndependentBlocks,
 		WeightsInit:       opts.WeightsInit,
 		Inferring:         opts.Inferring,
+		WithBias:          opts.WithBias,
+		Momentum:          opts.Momentum,
 	})
 
 	ds.FeatureTransformer = func(nodes ...*gorgonia.Node) (*gorgonia.Node, *gorgonia.Node, error) {

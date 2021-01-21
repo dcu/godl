@@ -19,6 +19,7 @@ type GLUOpts struct {
 	WeightsInit      gorgonia.InitWFn
 	Inferring        bool
 	WithBias         bool
+	Momentum         float64
 }
 
 // GLU implements a Gated Linear Unit Block
@@ -47,6 +48,7 @@ func (nn *Model) GLU(opts GLUOpts) Layer {
 		VirtualBatchSize: opts.VirtualBatchSize,
 		OutputDimension:  opts.OutputDimension * 2,
 		Inferring:        opts.Inferring,
+		Momentum:         opts.Momentum,
 	})
 
 	if opts.FC == nil {

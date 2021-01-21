@@ -40,7 +40,7 @@ func (o *TabNetOpts) setDefaults() {
 	}
 
 	if o.IndependentBlocks == 0 {
-		o.SharedBlocks = 2
+		o.IndependentBlocks = 2
 	}
 
 	if o.DecisionSteps == 0 {
@@ -56,11 +56,15 @@ func (o *TabNetOpts) setDefaults() {
 	}
 
 	if o.Epsilon == 0.0 {
-		o.Epsilon = 1e-5
+		o.Epsilon = 1e-15
 	}
 
 	if o.Gamma == 0.0 {
 		o.Gamma = 1.3
+	}
+
+	if o.Momentum == 0 {
+		o.Momentum = 0.02
 	}
 
 	if o.VirtualBatchSize == 0 {
@@ -78,6 +82,7 @@ func (nn *Model) TabNet(opts TabNetOpts) Layer {
 		Inferring: opts.Inferring,
 		InputDim:  opts.BatchSize,
 		OutputDim: opts.InputDimension,
+		Momentum:  0.01,
 	})
 
 	shared := make([]Layer, 0, opts.SharedBlocks)
@@ -114,6 +119,7 @@ func (nn *Model) TabNet(opts TabNetOpts) Layer {
 		OutputDimension:   opts.AttentionLayerDim + opts.PredictionLayerDim,
 		WeightsInit:       opts.WeightsInit,
 		WithBias:          opts.WithBias,
+		Momentum:          opts.Momentum,
 	})
 
 	steps := make([]*DecisionStep, 0, opts.DecisionSteps)
@@ -133,6 +139,7 @@ func (nn *Model) TabNet(opts TabNetOpts) Layer {
 				OutputDimension:    opts.InputDimension,
 				MaskFunction:       opts.MaskFunction,
 				WithBias:           opts.WithBias,
+				Momentum:           opts.Momentum,
 			},
 		))
 	}

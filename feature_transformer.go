@@ -16,6 +16,7 @@ type FeatureTransformerOpts struct {
 	OutputDimension   int
 	Inferring         bool
 	WithBias          bool
+	Momentum          float64
 
 	WeightsInit gorgonia.InitWFn
 }
@@ -44,6 +45,7 @@ func (nn *Model) FeatureTransformer(opts FeatureTransformerOpts) Layer {
 			WeightsInit:      opts.WeightsInit,
 			Inferring:        opts.Inferring,
 			WithBias:         opts.WithBias,
+			Momentum:         opts.Momentum,
 		}))
 
 		gluInput = gluOutput
