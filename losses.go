@@ -1,6 +1,8 @@
 package tabnet
 
-import "gorgonia.org/gorgonia"
+import (
+	"gorgonia.org/gorgonia"
+)
 
 type MSELossOpts struct {
 	Reduction string
