@@ -1,7 +1,6 @@
 package tabnet
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -41,7 +40,7 @@ func TestTabNet(t *testing.T) {
 			prediction:        64,
 			attentive:         64,
 			expectedShape:     tensor.Shape{4, 12},
-			expectedOutput:    []float64{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 358.2448757644514, 358.2448757644514, 358.2448757644514, 358.2448757644514, 358.2448757644514, 358.2448757644514, 358.2448757644514, 358.2448757644514, 358.2448757644514, 358.2448757644514, 358.2448757644514, 358.2448757644514, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 358.2448757644514, 358.2448757644514, 358.2448757644514, 358.2448757644514, 358.2448757644514, 358.2448757644514, 358.2448757644514, 358.2448757644514, 358.2448757644514, 358.2448757644514, 358.2448757644514, 358.2448757644514},
+			expectedOutput:    []float64{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638},
 		},
 	}
 
@@ -62,13 +61,16 @@ func TestTabNet(t *testing.T) {
 				IndependentBlocks:  tcase.independentBlocks,
 				PredictionLayerDim: tcase.prediction,
 				AttentionLayerDim:  tcase.attentive,
-				WeightsInit:        initDummyWeights,
 				OutputDimension:    tcase.output,
 				SharedBlocks:       tcase.sharedBlocks,
 				DecisionSteps:      tcase.steps,
 				Gamma:              tcase.gamma,
-				InputDimension:           a.Shape()[0],
+				InputDimension:     a.Shape()[0],
+				BatchSize:          a.Shape()[0],
 				Inferring:          false,
+				WeightsInit:        initDummyWeights,
+				ScaleInit:          gorgonia.Ones(),
+				BiasInit:           gorgonia.Zeroes(),
 			})(x, a, priors)
 
 			if tcase.expectedErr != "" {
@@ -89,7 +91,7 @@ func TestTabNet(t *testing.T) {
 			)
 			c.NoError(vm.RunAll())
 
-			fmt.Printf("%v\n", g.String())
+			// fmt.Printf("%v\n", g.String())
 
 			c.Equal(tcase.expectedShape, x.Shape())
 			c.Equal(tcase.expectedOutput, x.Value().Data().([]float64))

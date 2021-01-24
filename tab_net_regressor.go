@@ -16,6 +16,16 @@ type TabNetRegressorOpts struct {
 	MaskFunction     ActivationFn
 	WithBias         bool
 
+	SharedBlocks       int
+	IndependentBlocks  int
+	DecisionSteps      int
+	PredictionLayerDim int
+	AttentionLayerDim  int
+
+	Gamma    float64
+	Momentum float64
+	Epsilon  float64
+
 	WeightsInit, ScaleInit, BiasInit gorgonia.InitWFn
 }
 
@@ -33,15 +43,23 @@ func NewTabNetRegressor(inputDim int, catDims []int, catIdxs []int, catEmbDim []
 
 	tabNetInputDim := inputDim + embedDimSum - len(catEmbDim)
 	tn := nn.TabNet(TabNetOpts{
-		OutputDimension:  1,
-		BatchSize:        opts.BatchSize,
-		VirtualBatchSize: opts.VirtualBatchSize,
-		InputDimension:   tabNetInputDim,
-		MaskFunction:     gorgonia.Sigmoid,
-		WithBias:         opts.WithBias,
-		WeightsInit:      opts.WeightsInit,
-		ScaleInit:        opts.ScaleInit,
-		BiasInit:         opts.BiasInit,
+		OutputDimension:    1,
+		BatchSize:          opts.BatchSize,
+		VirtualBatchSize:   opts.VirtualBatchSize,
+		InputDimension:     tabNetInputDim,
+		MaskFunction:       gorgonia.Sigmoid,
+		WithBias:           opts.WithBias,
+		WeightsInit:        opts.WeightsInit,
+		ScaleInit:          opts.ScaleInit,
+		BiasInit:           opts.BiasInit,
+		SharedBlocks:       opts.SharedBlocks,
+		IndependentBlocks:  opts.IndependentBlocks,
+		DecisionSteps:      opts.DecisionSteps,
+		PredictionLayerDim: opts.PredictionLayerDim,
+		AttentionLayerDim:  opts.AttentionLayerDim,
+		Gamma:              opts.Gamma,
+		Momentum:           opts.Momentum,
+		Epsilon:            opts.Epsilon,
 	})
 
 	layer := nn.Sequential(embedder, tn)
@@ -53,9 +71,8 @@ func NewTabNetRegressor(inputDim int, catDims []int, catIdxs []int, catEmbDim []
 }
 
 func (r *TabNetRegressor) Train(trainX tensor.Tensor, trainY tensor.Tensor, opts TrainOpts) error {
-	lambdaSparse := gorgonia.NewConstant(1e-3)
-
 	if opts.CostFn == nil {
+		lambdaSparse := gorgonia.NewConstant(1e-3)
 		opts.CostFn = func(output *gorgonia.Node, innerLoss *gorgonia.Node, y *gorgonia.Node) *gorgonia.Node {
 			cost := MSELoss(output, y, MSELossOpts{})
 			cost = gorgonia.Must(gorgonia.Sub(cost, gorgonia.Must(gorgonia.Mul(lambdaSparse, innerLoss))))

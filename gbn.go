@@ -1,7 +1,6 @@
 package tabnet
 
 import (
-	"fmt"
 	"math"
 
 	"gorgonia.org/gorgonia"
@@ -20,10 +19,6 @@ type GBNOpts struct {
 }
 
 func (o *GBNOpts) setDefaults() {
-	if o.OutputDimension == 0 {
-		panic("output size can't be 0")
-	}
-
 	if o.VirtualBatchSize == 0 {
 		o.VirtualBatchSize = 128
 	}
@@ -43,6 +38,10 @@ func (o *GBNOpts) setDefaults() {
 func (nn *Model) GBN(opts GBNOpts) Layer {
 	opts.setDefaults()
 
+	lt := incLayer("GBN")
+
+	mustBeGreaterThan(lt, "OutputDimesion", opts.OutputDimension, 0)
+
 	bn := nn.BN(BNOpts{
 		Momentum:  opts.Momentum,
 		Epsilon:   opts.Epsilon,
@@ -54,7 +53,7 @@ func (nn *Model) GBN(opts GBNOpts) Layer {
 	})
 
 	return func(inputs ...*gorgonia.Node) (*gorgonia.Node, *gorgonia.Node, error) {
-		if err := nn.checkArity("GBN", inputs, 1); err != nil {
+		if err := nn.checkArity(lt, inputs, 1); err != nil {
 			return nil, nil, err
 		}
 
@@ -67,7 +66,7 @@ func (nn *Model) GBN(opts GBNOpts) Layer {
 		}
 
 		if inputSize%opts.VirtualBatchSize != 0 {
-			panic(fmt.Errorf("input size (%d) must be divisible by virtual batch size (%v)", inputSize, opts.VirtualBatchSize))
+			panic(errorF(lt, "input size (%d) must be divisible by virtual batch size (%v)", inputSize, opts.VirtualBatchSize))
 		}
 
 		batches := int(math.Ceil(float64(inputSize) / float64(opts.VirtualBatchSize)))
@@ -97,7 +96,7 @@ func (nn *Model) GBN(opts GBNOpts) Layer {
 
 		ret, err := gorgonia.Concat(0, nodes...)
 		if err != nil {
-			return nil, nil, fmt.Errorf("error concatenating %d nodes: %w", len(nodes), err)
+			return nil, nil, errorF(lt, "error concatenating %d nodes: %w", len(nodes), err)
 		}
 
 		return gorgonia.Must(gorgonia.Reshape(ret, xShape)), nil, nil

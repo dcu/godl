@@ -1,7 +1,6 @@
 package tabnet
 
 import (
-	"fmt"
 	"math"
 
 	"gorgonia.org/gorgonia"
@@ -32,6 +31,8 @@ func (o *AttentiveTransformerOpts) setDefaults() {
 
 // AttentiveTransformer implements an attetion transformer layer
 func (nn *Model) AttentiveTransformer(opts AttentiveTransformerOpts) Layer {
+	lt := incLayer("AttentiveTransformer")
+
 	opts.setDefaults()
 
 	fcLayer := nn.FC(FCOpts{
@@ -52,7 +53,7 @@ func (nn *Model) AttentiveTransformer(opts AttentiveTransformerOpts) Layer {
 	})
 
 	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, *gorgonia.Node, error) {
-		if err := nn.checkArity("AttentiveTransformer", nodes, 2); err != nil {
+		if err := nn.checkArity(lt, nodes, 2); err != nil {
 			return nil, nil, err
 		}
 
@@ -61,22 +62,22 @@ func (nn *Model) AttentiveTransformer(opts AttentiveTransformerOpts) Layer {
 
 		fc, _, err := fcLayer(x)
 		if err != nil {
-			return nil, nil, fmt.Errorf("AttentiveTransformer: fc%v failed failed: %w", x.Shape(), err)
+			return nil, nil, errorF(lt, "fc%v failed failed: %w", x.Shape(), err)
 		}
 
 		bn, _, err := gbnLayer(fc)
 		if err != nil {
-			return nil, nil, fmt.Errorf("AttentiveTransformer: gbn%v failed: %w", fc.Shape(), err)
+			return nil, nil, errorF(lt, "gbn%v failed: %w", fc.Shape(), err)
 		}
 
 		mul, err := gorgonia.HadamardProd(bn, prior)
 		if err != nil {
-			return nil, nil, fmt.Errorf("AttentiveTransformer: mul(%v, %v) failed: %w", bn.Shape(), prior.Shape(), err)
+			return nil, nil, errorF(lt, "hadamardProd(%v, %v) failed: %w", bn.Shape(), prior.Shape(), err)
 		}
 
 		sm, err := opts.Activation(mul)
 		if err != nil {
-			return nil, nil, fmt.Errorf("AttentiveTransformer: sparsemax(%v) failed: %w", mul.Shape(), err)
+			return nil, nil, errorF(lt, "fn(%v) failed: %w", mul.Shape(), err)
 		}
 
 		return sm, nil, nil

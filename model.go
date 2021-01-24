@@ -48,7 +48,7 @@ func (o *TrainOpts) setDefaults() {
 type Model struct {
 	g          *gorgonia.ExprGraph
 	learnables gorgonia.Nodes
-	watchables map[string]*gorgonia.Value
+	watchables []watchable
 
 	model map[string]gorgonia.Value
 }
@@ -58,7 +58,7 @@ func NewModel() *Model {
 	return &Model{
 		g:          gorgonia.NewGraph(),
 		learnables: make([]*gorgonia.Node, 0, bufferSizeModel),
-		watchables: make(map[string]*gorgonia.Value),
+		watchables: make([]watchable, 0),
 		model:      make(map[string]gorgonia.Value, bufferSizeModel),
 	}
 }
@@ -115,10 +115,6 @@ func (m *Model) Train(layer Layer, trainX tensor.Tensor, trainY tensor.Tensor, o
 		return fmt.Errorf("error running layer: %w", err)
 	}
 
-	if loss == nil {
-		return fmt.Errorf("loss must be returned in training mode")
-	}
-
 	var (
 		costVal gorgonia.Value
 		predVal gorgonia.Value
@@ -152,7 +148,7 @@ func (m *Model) Train(layer Layer, trainX tensor.Tensor, trainY tensor.Tensor, o
 
 	if opts.Solver == nil {
 		// opts.Solver = gorgonia.NewRMSPropSolver(gorgonia.WithBatchSize(float64(opts.BatchSize)))
-		opts.Solver = gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(opts.BatchSize)), gorgonia.WithLearnRate(0.02), gorgonia.WithClip(0.0001))
+		opts.Solver = gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(opts.BatchSize)), gorgonia.WithLearnRate(0.02), gorgonia.WithClip(2.0))
 	}
 
 	defer vm.Close()
@@ -265,9 +261,9 @@ func (m Model) saveHeatmaps(epoch int, batchSize, features int) {
 	}
 }
 
-func (m Model) checkArity(contextName string, nodes []*gorgonia.Node, arity int) error {
+func (m Model) checkArity(lt layerType, nodes []*gorgonia.Node, arity int) error {
 	if len(nodes) != arity {
-		return fmt.Errorf("arity doesn't match on %s, expected %d, got %d", contextName, arity, len(nodes))
+		return errorF(lt, "arity doesn't match, expected %d, got %d", arity, len(nodes))
 	}
 
 	return nil

@@ -1,9 +1,6 @@
 package tabnet
 
 import (
-	"fmt"
-	"sync/atomic"
-
 	"gorgonia.org/gorgonia"
 )
 
@@ -40,16 +37,7 @@ func (nn *Model) GLU(opts GLUOpts) Layer {
 		panic("virtual batch size must be set")
 	}
 
-	atomic.AddUint64(&gluCount, 1)
-
-	layerType := fmt.Sprintf("GLU_%d", gluCount)
-
-	gbnLayer := nn.GBN(GBNOpts{
-		VirtualBatchSize: opts.VirtualBatchSize,
-		OutputDimension:  opts.OutputDimension * 2,
-		Inferring:        opts.Inferring,
-		Momentum:         opts.Momentum,
-	})
+	lt := incLayer("GLU")
 
 	if opts.FC == nil {
 		opts.FC = nn.FC(FCOpts{
@@ -60,8 +48,15 @@ func (nn *Model) GLU(opts GLUOpts) Layer {
 		})
 	}
 
+	gbnLayer := nn.GBN(GBNOpts{
+		VirtualBatchSize: opts.VirtualBatchSize,
+		OutputDimension:  opts.OutputDimension * 2,
+		Inferring:        opts.Inferring,
+		Momentum:         opts.Momentum,
+	})
+
 	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, *gorgonia.Node, error) {
-		if err := nn.checkArity(layerType, nodes, 1); err != nil {
+		if err := nn.checkArity(lt, nodes, 1); err != nil {
 			return nil, nil, err
 		}
 
@@ -74,12 +69,12 @@ func (nn *Model) GLU(opts GLUOpts) Layer {
 
 		fc, _, err = opts.FC(x)
 		if err != nil {
-			return nil, nil, fmt.Errorf("%s: applying FC(%v) failed: %w", layerType, x.Shape(), err)
+			return nil, nil, errorF(lt, "applying FC(%v) failed: %w", x.Shape(), err)
 		}
 
 		gbn, _, err := gbnLayer(fc)
 		if err != nil {
-			return nil, nil, fmt.Errorf("%s: applying GBN failed: %w", layerType, err)
+			return nil, nil, errorF(lt, "applying GBN failed: %w", err)
 		}
 
 		// GLU
@@ -88,12 +83,12 @@ func (nn *Model) GLU(opts GLUOpts) Layer {
 
 		act, err := opts.ActivationFn(secondHalf)
 		if err != nil {
-			return nil, nil, fmt.Errorf("%s: applying activation function failed: %w", layerType, err)
+			return nil, nil, errorF(lt, "%s: applying activation function failed: %w", err)
 		}
 
 		mul, err := gorgonia.HadamardProd(firstHalf, act)
 		if err != nil {
-			return nil, nil, fmt.Errorf("%s: HadamardProd %d x %d: %w", layerType, firstHalf.Shape(), act.Shape(), err)
+			return nil, nil, errorF(lt, "%s: HadamardProd %d x %d: %w", firstHalf.Shape(), act.Shape(), err)
 		}
 
 		return mul, nil, nil

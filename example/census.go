@@ -230,7 +230,9 @@ func main() {
 			BatchSize:        batchSize,
 			VirtualBatchSize: virtualBatchSize,
 			MaskFunction:     gorgonia.Sigmoid,
-			WithBias:         false,
+			// PredictionLayerDim: 8,
+			// AttentionLayerDim:  8,
+			WithBias: false,
 		},
 	)
 

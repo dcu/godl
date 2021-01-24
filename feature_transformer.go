@@ -1,7 +1,6 @@
 package tabnet
 
 import (
-	"fmt"
 	"math"
 
 	"gorgonia.org/gorgonia"
@@ -21,15 +20,21 @@ type FeatureTransformerOpts struct {
 	WeightsInit gorgonia.InitWFn
 }
 
-// FeatureTransformer implements a feature transformer layer
-func (nn *Model) FeatureTransformer(opts FeatureTransformerOpts) Layer {
-	if opts.InputDimension == 0 {
+func (o *FeatureTransformerOpts) setDefaults() {
+	if o.InputDimension == 0 {
 		panic("input dimension can't be nil")
 	}
 
-	if opts.OutputDimension == 0 {
+	if o.OutputDimension == 0 {
 		panic("output dimension can't be nil")
 	}
+}
+
+// FeatureTransformer implements a feature transformer layer
+func (nn *Model) FeatureTransformer(opts FeatureTransformerOpts) Layer {
+	lt := incLayer("FeatureTransformer")
+
+	opts.setDefaults()
 
 	shared := make([]Layer, 0, len(opts.Shared))
 
@@ -37,12 +42,19 @@ func (nn *Model) FeatureTransformer(opts FeatureTransformerOpts) Layer {
 	gluOutput := opts.OutputDimension
 
 	for _, fcLayer := range opts.Shared {
+		weightsInit := opts.WeightsInit
+
+		if weightsInit == nil {
+			gain := math.Sqrt(float64(gluInput+gluOutput*2) / math.Sqrt(float64(gluInput)))
+			weightsInit = gorgonia.GlorotN(gain)
+		}
+
 		shared = append(shared, nn.GLU(GLUOpts{
 			InputDimension:   gluInput,
 			OutputDimension:  gluOutput,
 			VirtualBatchSize: opts.VirtualBatchSize,
 			FC:               fcLayer,
-			WeightsInit:      opts.WeightsInit,
+			WeightsInit:      weightsInit,
 			Inferring:        opts.Inferring,
 			WithBias:         opts.WithBias,
 			Momentum:         opts.Momentum,
@@ -56,18 +68,31 @@ func (nn *Model) FeatureTransformer(opts FeatureTransformerOpts) Layer {
 
 	independent := make([]Layer, 0, len(opts.Shared))
 	for i := 0; i < independentBlocks; i++ {
+		weightsInit := opts.WeightsInit
+
+		if weightsInit == nil {
+			gain := math.Sqrt(float64(gluInput+gluOutput*2) / math.Sqrt(float64(gluInput)))
+			weightsInit = gorgonia.GlorotN(gain)
+		}
+
 		independent = append(independent, nn.GLU(GLUOpts{
-			OutputDimension:  gluOutput,
 			InputDimension:   gluInput,
+			OutputDimension:  gluOutput,
 			VirtualBatchSize: opts.VirtualBatchSize,
-			WeightsInit:      opts.WeightsInit,
+			WeightsInit:      weightsInit,
+			Inferring:        opts.Inferring,
 			WithBias:         opts.WithBias,
+			Momentum:         opts.Momentum,
 		}))
 	}
 
-	scale := gorgonia.NewConstant(math.Sqrt(0.5))
+	scale := gorgonia.NewConstant(math.Sqrt(0.5), gorgonia.WithName("ft.scale"))
 
 	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, *gorgonia.Node, error) {
+		if err := nn.checkArity(lt, nodes, 1); err != nil {
+			return nil, nil, err
+		}
+
 		var err error
 		x := nodes[0]
 
@@ -80,13 +105,13 @@ func (nn *Model) FeatureTransformer(opts FeatureTransformerOpts) Layer {
 			for _, glu := range shared[1:] {
 				output, _, err := glu(x)
 				if err != nil {
-					return nil, nil, fmt.Errorf("AttentiveTransformer: executing shared GLU layer with %v: %w", x.Shape(), err)
+					return nil, nil, errorF(lt, "executing shared GLU layer with %v: %w", x.Shape(), err)
 				}
 
 				xShape := x.Shape()
 				x, err = gorgonia.Add(x, output)
 				if err != nil {
-					return nil, nil, fmt.Errorf("AttentiveTransformer: %v + %v: %w", xShape, output.Shape(), err)
+					return nil, nil, errorF(lt, "%v + %v: %w", xShape, output.Shape(), err)
 				}
 
 				x, err = gorgonia.Mul(x, scale)
@@ -99,12 +124,12 @@ func (nn *Model) FeatureTransformer(opts FeatureTransformerOpts) Layer {
 		for _, layer := range independent {
 			output, _, err := layer(x)
 			if err != nil {
-				return nil, nil, fmt.Errorf("AttentiveTransformer: executing independent GLU layer with %v: %w", x.Shape(), err)
+				return nil, nil, errorF(lt, "executing independent GLU layer with %v: %w", x.Shape(), err)
 			}
 
 			x, err = gorgonia.Add(x, output)
 			if err != nil {
-				return nil, nil, err
+				return nil, nil, errorF(lt, "add op: %w", err)
 			}
 
 			x, err = gorgonia.Mul(x, scale)

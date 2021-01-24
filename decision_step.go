@@ -26,16 +26,53 @@ type DecisionStepOpts struct {
 }
 
 type DecisionStep struct {
+	Name                 layerType
 	FeatureTransformer   Layer
 	AttentiveTransformer Layer
 }
 
-func (nn *Model) DecisionStep(opts DecisionStepOpts) *DecisionStep {
-	if opts.OutputDimension == 0 {
-		panic("OutputDimension must be set")
+func (step DecisionStep) CalculateMask(xAttentiveLayer, prior, epsilon *gorgonia.Node) (*gorgonia.Node, *gorgonia.Node, error) {
+	mask, _, err := step.AttentiveTransformer(xAttentiveLayer, prior)
+	if err != nil {
+		return nil, nil, errorF(step.Name, "attentive transformer: %w", err)
 	}
 
-	ds := &DecisionStep{}
+	stepLoss := gorgonia.Must(gorgonia.Mean(
+		gorgonia.Must(gorgonia.Sum(
+			gorgonia.Must(gorgonia.HadamardProd(
+				mask,
+				gorgonia.Must(gorgonia.Log(
+					gorgonia.Must(gorgonia.Add(mask, epsilon)),
+				)),
+			)),
+			1,
+		)),
+	))
+
+	return mask, stepLoss, nil
+}
+
+func (nn *Model) DecisionStep(opts DecisionStepOpts) *DecisionStep {
+	lt := incLayer("DecisionStep")
+
+	mustBeGreaterThan(lt, "InputDimension", opts.InputDimension, 0)
+	mustBeGreaterThan(lt, "OutputDimension", opts.OutputDimension, 0)
+
+	ds := &DecisionStep{
+		Name: lt,
+	}
+
+	ds.FeatureTransformer = nn.FeatureTransformer(FeatureTransformerOpts{
+		Shared:            opts.Shared,
+		VirtualBatchSize:  opts.VirtualBatchSize,
+		InputDimension:    opts.OutputDimension,
+		OutputDimension:   opts.AttentionLayerDim + opts.PredictionLayerDim,
+		IndependentBlocks: opts.IndependentBlocks,
+		WeightsInit:       opts.WeightsInit,
+		Inferring:         opts.Inferring,
+		WithBias:          opts.WithBias,
+		Momentum:          opts.Momentum,
+	})
 
 	ds.AttentiveTransformer = nn.AttentiveTransformer(AttentiveTransformerOpts{
 		InputDimension:   opts.PredictionLayerDim,
@@ -50,39 +87,6 @@ func (nn *Model) DecisionStep(opts DecisionStepOpts) *DecisionStep {
 		Activation:       opts.MaskFunction,
 		WithBias:         opts.WithBias,
 	})
-
-	featureTransformer := nn.FeatureTransformer(FeatureTransformerOpts{
-		Shared:            opts.Shared,
-		VirtualBatchSize:  opts.VirtualBatchSize,
-		InputDimension:    opts.OutputDimension,
-		OutputDimension:   opts.AttentionLayerDim + opts.PredictionLayerDim,
-		IndependentBlocks: opts.IndependentBlocks,
-		WeightsInit:       opts.WeightsInit,
-		Inferring:         opts.Inferring,
-		WithBias:          opts.WithBias,
-		Momentum:          opts.Momentum,
-	})
-
-	ds.FeatureTransformer = func(nodes ...*gorgonia.Node) (*gorgonia.Node, *gorgonia.Node, error) {
-		if err := nn.checkArity("DecisionStep-FeatureTransformer", nodes, 2); err != nil {
-			return nil, nil, err
-		}
-
-		x := nodes[0]
-		mask := nodes[1]
-
-		mul, err := gorgonia.HadamardProd(x, mask)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		ft, _, err := featureTransformer(mul)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		return ft, nil, nil
-	}
 
 	return ds
 }
