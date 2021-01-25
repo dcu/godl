@@ -253,6 +253,5 @@ func main() {
 		DevMode:               false,
 		WithLearnablesHeatmap: false,
 	})
-
 	handleErr(err)
 }

@@ -87,8 +87,6 @@ func (r *TabNetRegressor) Train(trainX, trainY, validateX, validateY tensor.Tens
 	}
 
 	if opts.Solver == nil {
-		info("defaulting to RMS solver for TabNet regressor")
-
 		// opts.Solver = gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(opts.BatchSize)), gorgonia.WithLearnRate(0.02), gorgonia.WithClip(2.0)) // FIXME
 		opts.Solver = gorgonia.NewRMSPropSolver(gorgonia.WithBatchSize(float64(opts.BatchSize)), gorgonia.WithLearnRate(0.01))
 	}

@@ -18,7 +18,10 @@ require (
 	github.com/google/go-cmp v0.5.4 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/leesper/go_rng v0.0.0-20190531154944-a612b043e353 // indirect
+	github.com/mattn/go-runewidth v0.0.10 // indirect
+	github.com/mum4k/termdash v0.14.0
 	github.com/pkg/errors v0.9.1
+	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/stretchr/testify v1.6.1
 	golang.org/x/exp v0.0.0-20201203231725-fa01524bc59d // indirect
 	golang.org/x/net v0.0.0-20201202161906-c7110b5ffcbb // indirect

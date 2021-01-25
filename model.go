@@ -32,7 +32,8 @@ type TrainOpts struct {
 	// Solver defines the solver to use. It uses gorgonia.AdamSolver by default if none is passed
 	Solver gorgonia.Solver
 
-	CostFn func(output *gorgonia.Node, loss *gorgonia.Node, y *gorgonia.Node) *gorgonia.Node
+	CostObserver func(epoch int, totalEpoch, batch int, totalBatch int, cost float32)
+	CostFn       func(output *gorgonia.Node, loss *gorgonia.Node, y *gorgonia.Node) *gorgonia.Node
 }
 
 func (o *TrainOpts) setDefaults() {
@@ -155,17 +156,9 @@ func (m *Model) Train(layer Layer, trainX, trainY, validateX, validateY tensor.T
 
 	defer vm.Close()
 
-	// bar := pb.New(batches)
-	// bar.SetRefreshRate(time.Second)
-	// bar.SetMaxWidth(80)
-
 	startTime := time.Now()
 
 	for i := 0; i < opts.Epochs; i++ {
-		// bar.Prefix(fmt.Sprintf("Epoch %d", i))
-		// bar.Set(0)
-		// bar.Start()
-
 		for b := 0; b < batches; b++ {
 			start := b * opts.BatchSize
 			end := start + opts.BatchSize
@@ -211,22 +204,28 @@ func (m *Model) Train(layer Layer, trainX, trainY, validateX, validateY tensor.T
 				fatal("Failed to update nodes with gradients at epoch %d, batch %d. Error %v", i, b, err)
 			}
 
-			color.Yellow(" Epoch %d %d | cost %v\n", i, b, costVal)
+			if opts.CostObserver != nil {
+				opts.CostObserver(i, opts.Epochs, b, batches, costVal.Data().(float32))
+			} else {
+				color.Yellow(" Epoch %d %d | cost %v\n", i, b, costVal)
+			}
 
 			m.PrintWatchables()
 
 			vm.Reset()
-			// bar.Increment()
 		}
 
 		if opts.WithLearnablesHeatmap {
 			m.saveHeatmaps(i, opts.BatchSize, features)
 		}
 
-		fmt.Printf(" Epoch %d | cost %v (%v)\n", i, costVal, time.Since(startTime))
+		_ = startTime
+		if opts.CostObserver != nil {
+			opts.CostObserver(i+1, opts.Epochs, batches, batches, costVal.Data().(float32))
+		} else {
+			fmt.Printf(" Epoch %d | cost %v (%v)\n", i, costVal, time.Since(startTime))
+		}
 	}
-
-	fmt.Println("")
 
 	return m.validate(x, y, costVal, validateX, validateY, opts)
 }
@@ -244,8 +243,6 @@ func (m *Model) validate(x, y *gorgonia.Node, costVal gorgonia.Value, validateX,
 	}
 
 	defer vm.Close()
-
-	startTime := time.Now()
 
 	for b := 0; b < batches; b++ {
 		start := b * opts.BatchSize
@@ -288,12 +285,14 @@ func (m *Model) validate(x, y *gorgonia.Node, costVal gorgonia.Value, validateX,
 			fatal("Failed batch %d. Error: %v", b, err)
 		}
 
-		fmt.Printf(" validation cost %v (%v)\n", costVal, time.Since(startTime))
+		if opts.CostObserver != nil {
+			opts.CostObserver(1, 1, b+1, batches, costVal.Data().(float32))
+		} else {
+			color.Yellow(" Validation cost %v\n", costVal)
+		}
 
 		vm.Reset()
 	}
-
-	fmt.Println("")
 
 	return nil
 }
