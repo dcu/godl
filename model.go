@@ -89,7 +89,7 @@ func (m *Model) ExprGraph() *gorgonia.ExprGraph {
 	return m.g
 }
 
-func (m *Model) Train(layer Layer, trainX tensor.Tensor, trainY tensor.Tensor, opts TrainOpts) error {
+func (m *Model) Train(layer Layer, trainX, trainY, validateX, validateY tensor.Tensor, opts TrainOpts) error {
 	opts.setDefaults()
 
 	if opts.DevMode {
@@ -148,8 +148,9 @@ func (m *Model) Train(layer Layer, trainX tensor.Tensor, trainY tensor.Tensor, o
 	vm := gorgonia.NewTapeMachine(m.g, vmOpts...)
 
 	if opts.Solver == nil {
+		info("defaulting to RMS solver")
+
 		opts.Solver = gorgonia.NewRMSPropSolver(gorgonia.WithBatchSize(float64(opts.BatchSize)))
-		// opts.Solver = gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(opts.BatchSize)), gorgonia.WithLearnRate(0.02), gorgonia.WithClip(1.0))
 	}
 
 	defer vm.Close()
@@ -223,6 +224,73 @@ func (m *Model) Train(layer Layer, trainX tensor.Tensor, trainY tensor.Tensor, o
 		}
 
 		fmt.Printf(" Epoch %d | cost %v (%v)\n", i, costVal, time.Since(startTime))
+	}
+
+	fmt.Println("")
+
+	return m.validate(x, y, costVal, validateX, validateY, opts)
+}
+
+func (m *Model) validate(x, y *gorgonia.Node, costVal gorgonia.Value, validateX, validateY tensor.Tensor, opts TrainOpts) error {
+	opts.setDefaults()
+
+	numExamples, features := validateX.Shape()[0], validateX.Shape()[1]
+	batches := numExamples / opts.BatchSize
+
+	vm := gorgonia.NewTapeMachine(m.g)
+
+	if opts.Solver == nil {
+		opts.Solver = gorgonia.NewRMSPropSolver(gorgonia.WithBatchSize(float64(opts.BatchSize)))
+	}
+
+	defer vm.Close()
+
+	startTime := time.Now()
+
+	for b := 0; b < batches; b++ {
+		start := b * opts.BatchSize
+		end := start + opts.BatchSize
+
+		if start >= numExamples {
+			break
+		}
+
+		if end > numExamples {
+			end = numExamples
+		}
+
+		xVal, err := validateX.Slice(gorgonia.S(start, end))
+		if err != nil {
+			return err
+		}
+
+		yVal, err := validateY.Slice(gorgonia.S(start, end))
+		if err != nil {
+			return err
+		}
+
+		err = xVal.(*tensor.Dense).Reshape(opts.BatchSize, features)
+		if err != nil {
+			return err
+		}
+
+		err = gorgonia.Let(x, xVal)
+		if err != nil {
+			fatal("error assigning x: %v", err)
+		}
+
+		err = gorgonia.Let(y, yVal)
+		if err != nil {
+			fatal("error assigning y: %v", err)
+		}
+
+		if err = vm.RunAll(); err != nil {
+			fatal("Failed batch %d. Error: %v", b, err)
+		}
+
+		fmt.Printf(" validation cost %v (%v)\n", costVal, time.Since(startTime))
+
+		vm.Reset()
 	}
 
 	fmt.Println("")

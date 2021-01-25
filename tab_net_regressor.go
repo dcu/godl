@@ -70,7 +70,7 @@ func NewTabNetRegressor(inputDim int, catDims []int, catIdxs []int, catEmbDim []
 	}
 }
 
-func (r *TabNetRegressor) Train(trainX tensor.Tensor, trainY tensor.Tensor, opts TrainOpts) error {
+func (r *TabNetRegressor) Train(trainX, trainY, validateX, validateY tensor.Tensor, opts TrainOpts) error {
 	if opts.CostFn == nil {
 		lambdaSparse := gorgonia.NewConstant(float32(1e-3))
 		opts.CostFn = func(output *gorgonia.Node, innerLoss *gorgonia.Node, y *gorgonia.Node) *gorgonia.Node {
@@ -86,5 +86,12 @@ func (r *TabNetRegressor) Train(trainX tensor.Tensor, trainY tensor.Tensor, opts
 		}
 	}
 
-	return r.model.Train(r.layer, trainX, trainY, opts)
+	if opts.Solver == nil {
+		info("defaulting to RMS solver for TabNet regressor")
+
+		// opts.Solver = gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(opts.BatchSize)), gorgonia.WithLearnRate(0.02), gorgonia.WithClip(2.0)) // FIXME
+		opts.Solver = gorgonia.NewRMSPropSolver(gorgonia.WithBatchSize(float64(opts.BatchSize)), gorgonia.WithLearnRate(0.01))
+	}
+
+	return r.model.Train(r.layer, trainX, trainY, validateX, validateY, opts)
 }

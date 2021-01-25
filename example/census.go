@@ -163,6 +163,17 @@ func (p *Processor) TrainingTensors() (x tensor.Tensor, y tensor.Tensor) {
 		)
 }
 
+func (p *Processor) ValidateTensors() (x tensor.Tensor, y tensor.Tensor) {
+	return tensor.New(
+			tensor.WithShape(p.validateRows, p.columns),
+			tensor.WithBacking(p.validateX),
+		),
+		tensor.New(
+			tensor.WithShape(p.validateRows, 1),
+			tensor.WithBacking(p.validateY),
+		)
+}
+
 func parseNumber(v string) (float32, bool) {
 	f, err := strconv.ParseFloat(v, 32)
 	if err != nil {
@@ -211,6 +222,7 @@ func main() {
 	}
 
 	trainX, trainY := p.TrainingTensors()
+	validateX, validateY := p.ValidateTensors()
 
 	log.Printf("train x: %v train y: %v", trainX.Shape(), trainY.Shape())
 
@@ -235,9 +247,9 @@ func main() {
 		},
 	)
 
-	err := regressor.Train(trainX, trainY, tabnet.TrainOpts{
+	err := regressor.Train(trainX, trainY, validateX, validateY, tabnet.TrainOpts{
 		BatchSize:             batchSize,
-		Epochs:                100,
+		Epochs:                5,
 		DevMode:               false,
 		WithLearnablesHeatmap: false,
 	})
