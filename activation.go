@@ -8,13 +8,21 @@ import (
 // ActivationFn represents an activation function
 type ActivationFn func(*gorgonia.Node) (*gorgonia.Node, error)
 
+func Sigmoid(x *gorgonia.Node) (*gorgonia.Node, error) {
+	return gorgonia.Sigmoid(x)
+}
+
+func Rectify(x *gorgonia.Node) (*gorgonia.Node, error) {
+	return gorgonia.Rectify(x)
+}
+
 // this is wrap because gorgonia.Sparsemax doesn't match the ActivationFn signature
-func sparsemax(x *gorgonia.Node) (*gorgonia.Node, error) {
+func Sparsemax(x *gorgonia.Node) (*gorgonia.Node, error) {
 	return gorgonia.Sparsemax(x)
 }
 
 // TODO: remove once gorgonia.SoftMax is fixed, currently it's broken on master
-func softmax(a *gorgonia.Node) (retVal *gorgonia.Node, err error) {
+func Softmax(a *gorgonia.Node) (retVal *gorgonia.Node, err error) {
 	aShape := a.Shape()
 	axis := aShape.Dims() - 1 // default: last dim
 	if a.IsColVec() || (a.IsVector() && !a.IsRowVec()) {
@@ -52,6 +60,6 @@ func softmax(a *gorgonia.Node) (retVal *gorgonia.Node, err error) {
 }
 
 var (
-	_ ActivationFn = sparsemax
-	_ ActivationFn = softmax
+	_ ActivationFn = Sparsemax
+	_ ActivationFn = Softmax
 )

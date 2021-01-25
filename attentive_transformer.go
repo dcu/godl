@@ -9,8 +9,8 @@ import (
 type AttentiveTransformerOpts struct {
 	InputDimension                   int
 	OutputDimension                  int
-	Momentum                         float64
-	Epsilon                          float64
+	Momentum                         float32
+	Epsilon                          float32
 	VirtualBatchSize                 int
 	Inferring                        bool
 	Activation                       ActivationFn
@@ -20,7 +20,7 @@ type AttentiveTransformerOpts struct {
 
 func (o *AttentiveTransformerOpts) setDefaults() {
 	if o.Activation == nil {
-		o.Activation = sparsemax
+		o.Activation = Sparsemax
 	}
 
 	if o.WeightsInit == nil {

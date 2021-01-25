@@ -5,37 +5,36 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"gorgonia.org/gorgonia"
-	. "gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
 )
 
 func TestDecisionStep(t *testing.T) {
-	g := NewGraph()
+	g := gorgonia.NewGraph()
 
 	testCases := []struct {
 		desc              string
-		input             *Node
+		input             *gorgonia.Node
 		vbs               int
 		independentBlocks int
 		output            int
 		expectedShape     tensor.Shape
 		expectedErr       string
-		expectedOutput    []float64
-		expectedPriors    []float64
+		expectedOutput    []float32
+		expectedPriors    []float32
 	}{
 		{
 			desc: "Example 1",
-			input: NewTensor(g, tensor.Float64, 2, WithShape(4, 7), WithName("input"), WithValue(
+			input: gorgonia.NewTensor(g, tensor.Float32, 2, gorgonia.WithShape(4, 7), gorgonia.WithName("input"), gorgonia.WithValue(
 				tensor.New(
 					tensor.WithShape(4, 7),
-					tensor.WithBacking([]float64{0.4, 1.4, 2.4, 3.4, 4.4, 5.4, 6.4, 7.4, 0.4, 1.4, 2.4, 3.4, 4.4, 5.4, 6.4, 7.4, 8.4, 9.4, 0.4, 1.4, 2.4, 3.4, 4.4, 5.4, 6.4, 7.4, 0.4, 1.4}),
+					tensor.WithBacking([]float32{0.4, 1.4, 2.4, 3.4, 4.4, 5.4, 6.4, 7.4, 0.4, 1.4, 2.4, 3.4, 4.4, 5.4, 6.4, 7.4, 8.4, 9.4, 0.4, 1.4, 2.4, 3.4, 4.4, 5.4, 6.4, 7.4, 0.4, 1.4}),
 				),
 			)),
 			vbs:               2,
 			independentBlocks: 3,
 			expectedShape:     tensor.Shape{4, 7},
-			expectedOutput:    []float64{-0.27830426180944234, 0.07524912878383146, 0.42880251937710523, 0.7823559099703792, 1.1359093005636534, 1.4894626911569269, 1.8430160817502006, 3.757222084193693, 1.2823483500407766, 1.6359017406340506, 1.989455131227324, 2.343008521820598, 2.6965619124138724, 3.0501153030071455, 3.4036753862990436, 3.7572287768923176, 4.110782167485591, 4.464335558078865, 1.2823550427394004, 1.635908433332674, 1.989461823925948, 0.7823553881246798, 1.1359087787179536, 1.4894621693112278, 1.8430155599045015, 2.1965689504977752, -0.2783047836551418, 0.07524860693813204},
-			expectedPriors:    []float64{1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572},
+			expectedOutput:    []float32{-0.27830428, 0.075249106, 0.42880255, 0.78235584, 1.1359093, 1.4894627, 1.843016, 3.7572215, 1.2823482, 1.6359016, 1.989455, 2.3430083, 2.6965618, 3.050115, 3.4036748, 3.7572284, 4.1107817, 4.464335, 1.2823547, 1.6359084, 1.9894617, 0.7823554, 1.1359088, 1.489462, 1.8430156, 2.196569, -0.27830482, 0.07524856},
+			expectedPriors:    []float32{1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572, 1.0571428571428572},
 		},
 	}
 
@@ -45,8 +44,8 @@ func TestDecisionStep(t *testing.T) {
 		t.Run(tcase.desc, func(t *testing.T) {
 			c := require.New(t)
 
-			a := NewTensor(g, Float64, tcase.input.Dims(), WithShape(tcase.input.Shape()...), WithInit(Ones()))
-			priors := NewTensor(g, Float64, tcase.input.Dims(), WithShape(tcase.input.Shape()...), WithInit(Ones()))
+			a := gorgonia.NewTensor(g, gorgonia.Float32, tcase.input.Dims(), gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithInit(gorgonia.Ones()))
+			priors := gorgonia.NewTensor(g, gorgonia.Float32, tcase.input.Dims(), gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithInit(gorgonia.Ones()))
 			step := tn.DecisionStep(DecisionStepOpts{
 				VirtualBatchSize:   tcase.vbs,
 				Shared:             nil,
@@ -63,7 +62,7 @@ func TestDecisionStep(t *testing.T) {
 
 			// Update prior
 			{
-				gamma := gorgonia.NewScalar(tn.g, tensor.Float64, gorgonia.WithValue(1.2))
+				gamma := gorgonia.NewScalar(tn.g, tensor.Float32, gorgonia.WithValue(float32(1.2)))
 				priors, err = gorgonia.HadamardProd(priors, gorgonia.Must(gorgonia.Sub(gamma, mask)))
 				c.NoError(err)
 			}
@@ -81,7 +80,7 @@ func TestDecisionStep(t *testing.T) {
 				c.NoError(err)
 			}
 
-			vm := NewTapeMachine(g,
+			vm := gorgonia.NewTapeMachine(g,
 				gorgonia.WithLogger(testLogger),
 				gorgonia.WithValueFmt("%v"),
 				gorgonia.TraceExec(),
@@ -89,10 +88,10 @@ func TestDecisionStep(t *testing.T) {
 			c.NoError(vm.RunAll())
 
 			c.Equal(tcase.expectedShape, ds.Shape())
-			c.Equal(tcase.expectedOutput, ds.Value().Data().([]float64))
+			c.Equal(tcase.expectedOutput, ds.Value().Data().([]float32))
 
 			c.Equal(tcase.expectedShape, priors.Shape())
-			c.Equal(tcase.expectedPriors, priors.Value().Data().([]float64))
+			c.Equal(tcase.expectedPriors, priors.Value().Data().([]float32))
 		})
 	}
 }

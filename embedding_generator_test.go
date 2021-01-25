@@ -16,10 +16,10 @@ func TestEmbeddingGenerator(t *testing.T) {
 		catIdxs   []int
 		catEmbDim []int
 
-		input               []float64
+		input               []float32
 		inputShape          tensor.Shape
 		expectedOutputShape tensor.Shape
-		expectedOutput      []float64
+		expectedOutput      []float32
 	}{
 		{
 			// 0 1 2 3 4 5
@@ -29,10 +29,10 @@ func TestEmbeddingGenerator(t *testing.T) {
 			catIdxs:             []int{1, 4},
 			catDims:             []int{4, 4},
 			catEmbDim:           []int{2, 2},
-			input:               []float64{0, 1, 2, 1, 3},
+			input:               []float32{0, 1, 2, 1, 3},
 			inputShape:          tensor.Shape{1, 5},
 			expectedOutputShape: tensor.Shape{1, 7},
-			expectedOutput:      []float64{0, 2, 3, 2, 1, 6, 7},
+			expectedOutput:      []float32{0, 2, 3, 2, 1, 6, 7},
 		},
 		{
 			desc:                "Example 2",
@@ -40,10 +40,10 @@ func TestEmbeddingGenerator(t *testing.T) {
 			catIdxs:             []int{1, 4},
 			catDims:             []int{4, 4},
 			catEmbDim:           []int{2, 2},
-			input:               []float64{0, 1, 2, 1, 3, 0, 1, 2, 1, 3},
+			input:               []float32{0, 1, 2, 1, 3, 0, 1, 2, 1, 3},
 			inputShape:          tensor.Shape{2, 5},
 			expectedOutputShape: tensor.Shape{2, 7},
-			expectedOutput:      []float64{0, 2, 3, 2, 1, 6, 7, 0, 2, 3, 2, 1, 6, 7},
+			expectedOutput:      []float32{0, 2, 3, 2, 1, 6, 7, 0, 2, 3, 2, 1, 6, 7},
 		},
 	}
 	for _, tcase := range testCases {
@@ -60,7 +60,7 @@ func TestEmbeddingGenerator(t *testing.T) {
 				tensor.WithBacking(tcase.input),
 			)
 
-			input := gorgonia.NewTensor(tn.g, tensor.Float64, tcase.inputShape.Dims(), gorgonia.WithShape(tcase.inputShape...), gorgonia.WithValue(ts), gorgonia.WithName("input"))
+			input := gorgonia.NewTensor(tn.g, tensor.Float32, tcase.inputShape.Dims(), gorgonia.WithShape(tcase.inputShape...), gorgonia.WithValue(ts), gorgonia.WithName("input"))
 			output, _, err := embedder(input)
 			c.NoError(err)
 

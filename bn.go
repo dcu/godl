@@ -9,8 +9,8 @@ import (
 
 // BNOpts are the options to configure a batch normalization
 type BNOpts struct {
-	Momentum            float64
-	Epsilon             float64
+	Momentum            float32
+	Epsilon             float32
 	Inferring           bool
 	ScaleInit, BiasInit gorgonia.InitWFn
 
@@ -62,7 +62,7 @@ func (nn *Model) BN(opts BNOpts) Layer {
 
 		x := nodes[0]
 
-		ret, _, _, bnop, err := gorgonia.BatchNorm1d(x, scale, bias, opts.Momentum, opts.Epsilon)
+		ret, _, _, bnop, err := gorgonia.BatchNorm1d(x, scale, bias, float64(opts.Momentum), float64(opts.Epsilon))
 		if err != nil {
 			return nil, nil, fmt.Errorf("BatchNorm1d: %w", err)
 		}

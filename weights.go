@@ -35,10 +35,6 @@ func (t *Model) addLearnable(lt layerType, name string, shape tensor.Shape, init
 	init := gorgonia.WithInit(initFN)
 	if val, ok := t.model[name]; ok {
 		init = gorgonia.WithValue(val)
-
-		// log.Printf("Assigned %d with shape %v pre-trained values to %v", val.Size(), val.Shape(), name)
-	} else {
-		// log.Printf("Assigned new values to %v", name)
 	}
 
 	var w *gorgonia.Node
@@ -46,7 +42,7 @@ func (t *Model) addLearnable(lt layerType, name string, shape tensor.Shape, init
 	if shape.Dims() == 2 {
 		w = gorgonia.NewMatrix(
 			t.g,
-			tensor.Float64,
+			tensor.Float32,
 			gorgonia.WithShape(shape...),
 			gorgonia.WithName(name),
 			init,
@@ -54,7 +50,7 @@ func (t *Model) addLearnable(lt layerType, name string, shape tensor.Shape, init
 	} else {
 		w = gorgonia.NewTensor(
 			t.g,
-			tensor.Float64,
+			tensor.Float32,
 			shape.Dims(),
 			gorgonia.WithShape(shape...),
 			gorgonia.WithName(name),

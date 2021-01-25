@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/dcu/tabnet"
-	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
 )
 
@@ -30,24 +29,24 @@ func handleErr(err error) {
 
 type Processor struct {
 	columns                int
-	categoricalColumnsMap  []map[string]float64
+	categoricalColumnsMap  []map[string]float32
 	columnNames            []string
 	categoricalColumnsUniq []map[string]int
 
 	trainingRows int
 	validateRows int
 
-	trainX []float64
-	trainY []float64
+	trainX []float32
+	trainY []float32
 
-	validateX []float64
-	validateY []float64
+	validateX []float32
+	validateY []float32
 }
 
 func newProcessor(classes int) *Processor {
 	return &Processor{
 		columns:               classes,
-		categoricalColumnsMap: make([]map[string]float64, classes),
+		categoricalColumnsMap: make([]map[string]float32, classes),
 	}
 }
 
@@ -75,12 +74,12 @@ func (p Processor) catIdxs() []int {
 	return indexes
 }
 
-func (p *Processor) assignID(categoricalColumnPos int, categoricalColumnValue string) float64 {
+func (p *Processor) assignID(categoricalColumnPos int, categoricalColumnValue string) float32 {
 	// fmt.Printf("assign id for %d %v\n", categoricalColumnPos, categoricalColumnValue)
 
 	m := p.categoricalColumnsMap[categoricalColumnPos]
 	if m == nil {
-		m = make(map[string]float64, 64)
+		m = make(map[string]float32, 64)
 		p.categoricalColumnsMap[categoricalColumnPos] = m
 	}
 
@@ -89,15 +88,15 @@ func (p *Processor) assignID(categoricalColumnPos int, categoricalColumnValue st
 		return id
 	}
 
-	id = float64(len(p.categoricalColumnsMap[categoricalColumnPos]))
+	id = float32(len(p.categoricalColumnsMap[categoricalColumnPos]))
 	m[categoricalColumnValue] = id
 
 	return id
 }
 
 func (p *Processor) processRow(record []string, targetCol int, targetVal string) {
-	x := make([]float64, p.columns)
-	y := 0.0
+	x := make([]float32, p.columns)
+	y := float32(0.0)
 
 	if p.columnNames == nil {
 		p.columnNames = record
@@ -164,18 +163,18 @@ func (p *Processor) TrainingTensors() (x tensor.Tensor, y tensor.Tensor) {
 		)
 }
 
-func parseNumber(v string) (float64, bool) {
-	f, err := strconv.ParseFloat(v, 64)
+func parseNumber(v string) (float32, bool) {
+	f, err := strconv.ParseFloat(v, 32)
 	if err != nil {
-		i, err := strconv.ParseInt(v, 10, 64)
+		i, err := strconv.ParseInt(v, 10, 32)
 		if err != nil {
 			return 0.0, false
 		}
 
-		return float64(i), true
+		return float32(i), true
 	}
 
-	return f, true
+	return float32(f), true
 }
 
 func process(filePath string) *Processor {
@@ -229,7 +228,7 @@ func main() {
 		trainX.Shape()[1], catDims, catIdxs, catEmbDim, tabnet.TabNetRegressorOpts{
 			BatchSize:        batchSize,
 			VirtualBatchSize: virtualBatchSize,
-			MaskFunction:     gorgonia.Sigmoid,
+			MaskFunction:     tabnet.Sparsemax,
 			// PredictionLayerDim: 8,
 			// AttentionLayerDim:  8,
 			WithBias: false,

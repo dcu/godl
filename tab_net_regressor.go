@@ -22,9 +22,9 @@ type TabNetRegressorOpts struct {
 	PredictionLayerDim int
 	AttentionLayerDim  int
 
-	Gamma    float64
-	Momentum float64
-	Epsilon  float64
+	Gamma    float32
+	Momentum float32
+	Epsilon  float32
 
 	WeightsInit, ScaleInit, BiasInit gorgonia.InitWFn
 }
@@ -72,9 +72,14 @@ func NewTabNetRegressor(inputDim int, catDims []int, catIdxs []int, catEmbDim []
 
 func (r *TabNetRegressor) Train(trainX tensor.Tensor, trainY tensor.Tensor, opts TrainOpts) error {
 	if opts.CostFn == nil {
-		lambdaSparse := gorgonia.NewConstant(1e-3)
+		lambdaSparse := gorgonia.NewConstant(float32(1e-3))
 		opts.CostFn = func(output *gorgonia.Node, innerLoss *gorgonia.Node, y *gorgonia.Node) *gorgonia.Node {
 			cost := MSELoss(output, y, MSELossOpts{})
+
+			// r.model.Watch("output", gorgonia.Must(gorgonia.Sum(output)))
+			// r.model.Watch("loss", cost)
+			// r.model.Watch("innerLoss", innerLoss)
+
 			cost = gorgonia.Must(gorgonia.Sub(cost, gorgonia.Must(gorgonia.Mul(lambdaSparse, innerLoss))))
 
 			return cost

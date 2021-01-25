@@ -15,7 +15,7 @@ type FeatureTransformerOpts struct {
 	OutputDimension   int
 	Inferring         bool
 	WithBias          bool
-	Momentum          float64
+	Momentum          float32
 
 	WeightsInit gorgonia.InitWFn
 }
@@ -86,7 +86,7 @@ func (nn *Model) FeatureTransformer(opts FeatureTransformerOpts) Layer {
 		}))
 	}
 
-	scale := gorgonia.NewConstant(math.Sqrt(0.5), gorgonia.WithName("ft.scale"))
+	scale := gorgonia.NewConstant(float32(math.Sqrt(0.5)), gorgonia.WithName("ft.scale"))
 
 	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, *gorgonia.Node, error) {
 		if err := nn.checkArity(lt, nodes, 1); err != nil {

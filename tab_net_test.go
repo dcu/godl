@@ -5,7 +5,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"gorgonia.org/gorgonia"
-	. "gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
 )
 
@@ -18,18 +17,18 @@ func TestTabNet(t *testing.T) {
 		sharedBlocks      int
 		output            int
 		steps             int
-		gamma             float64
+		gamma             float32
 		prediction        int
 		attentive         int
 		expectedShape     tensor.Shape
 		expectedErr       string
-		expectedOutput    []float64
+		expectedOutput    []float32
 	}{
 		{
 			desc: "Example 1",
 			input: tensor.New(
 				tensor.WithShape(4, 4),
-				tensor.WithBacking([]float64{0.4, 1.4, 2.4, 3.4, 4.4, 5.4, 6.4, 7.4, 8.4, 9.4, 10.4, 11.4, 12.4, 13.4, 14.4, 15.4}),
+				tensor.WithBacking([]float32{0.4, 1.4, 2.4, 3.4, 4.4, 5.4, 6.4, 7.4, 8.4, 9.4, 10.4, 11.4, 12.4, 13.4, 14.4, 15.4}),
 			),
 			vbs:               2,
 			output:            12,
@@ -40,7 +39,7 @@ func TestTabNet(t *testing.T) {
 			prediction:        64,
 			attentive:         64,
 			expectedShape:     tensor.Shape{4, 12},
-			expectedOutput:    []float64{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638},
+			expectedOutput:    []float32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062},
 		},
 	}
 
@@ -48,13 +47,13 @@ func TestTabNet(t *testing.T) {
 		t.Run(tcase.desc, func(t *testing.T) {
 			c := require.New(t)
 
-			g := NewGraph()
+			g := gorgonia.NewGraph()
 			tn := &Model{g: g}
 
-			x := NewTensor(g, tensor.Float64, 2, WithShape(tcase.input.Shape()...), WithName("Input"), WithValue(tcase.input))
+			x := gorgonia.NewTensor(g, tensor.Float32, 2, gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithName("Input"), gorgonia.WithValue(tcase.input))
 
-			a := NewTensor(g, Float64, tcase.input.Dims(), WithShape(tcase.input.Shape()...), WithInit(Ones()), WithName("AttentiveX"))
-			priors := NewTensor(g, Float64, tcase.input.Dims(), WithShape(tcase.input.Shape()...), WithInit(Ones()), WithName("Priors"))
+			a := gorgonia.NewTensor(g, tensor.Float32, tcase.input.Dims(), gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithInit(gorgonia.Ones()), gorgonia.WithName("AttentiveX"))
+			priors := gorgonia.NewTensor(g, tensor.Float32, tcase.input.Dims(), gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithInit(gorgonia.Ones()), gorgonia.WithName("Priors"))
 
 			x, _, err := tn.TabNet(TabNetOpts{
 				VirtualBatchSize:   tcase.vbs,
@@ -83,7 +82,7 @@ func TestTabNet(t *testing.T) {
 				c.NoError(err)
 			}
 
-			vm := NewTapeMachine(g,
+			vm := gorgonia.NewTapeMachine(g,
 				gorgonia.BindDualValues(tn.learnables...),
 				gorgonia.WithLogger(testLogger),
 				gorgonia.WithValueFmt("%+v"),
@@ -94,7 +93,7 @@ func TestTabNet(t *testing.T) {
 			// fmt.Printf("%v\n", g.String())
 
 			c.Equal(tcase.expectedShape, x.Shape())
-			c.Equal(tcase.expectedOutput, x.Value().Data().([]float64))
+			c.Equal(tcase.expectedOutput, x.Value().Data().([]float32))
 		})
 	}
 }

@@ -16,7 +16,7 @@ type GLUOpts struct {
 	WeightsInit      gorgonia.InitWFn
 	Inferring        bool
 	WithBias         bool
-	Momentum         float64
+	Momentum         float32
 }
 
 // GLU implements a Gated Linear Unit Block

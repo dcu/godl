@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/fatih/color"
 	"gonum.org/v1/plot/vg"
 	"gorgonia.org/gorgonia"
 	"gorgonia.org/gorgonia/encoding/dot"
@@ -107,8 +108,8 @@ func (m *Model) Train(layer Layer, trainX tensor.Tensor, trainY tensor.Tensor, o
 	numExamples, features := trainX.Shape()[0], trainX.Shape()[1]
 	batches := numExamples / opts.BatchSize
 
-	x := gorgonia.NewTensor(m.g, tensor.Float64, trainX.Shape().Dims(), gorgonia.WithShape(opts.BatchSize, features), gorgonia.WithName("x"))
-	y := gorgonia.NewMatrix(m.g, tensor.Float64, gorgonia.WithShape(opts.BatchSize, trainY.Shape()[1]), gorgonia.WithName("y"))
+	x := gorgonia.NewTensor(m.g, tensor.Float32, trainX.Shape().Dims(), gorgonia.WithShape(opts.BatchSize, features), gorgonia.WithName("x"))
+	y := gorgonia.NewMatrix(m.g, tensor.Float32, gorgonia.WithShape(opts.BatchSize, trainY.Shape()[1]), gorgonia.WithName("y"))
 
 	output, loss, err := layer(x)
 	if err != nil {
@@ -147,8 +148,8 @@ func (m *Model) Train(layer Layer, trainX tensor.Tensor, trainY tensor.Tensor, o
 	vm := gorgonia.NewTapeMachine(m.g, vmOpts...)
 
 	if opts.Solver == nil {
-		// opts.Solver = gorgonia.NewRMSPropSolver(gorgonia.WithBatchSize(float64(opts.BatchSize)))
-		opts.Solver = gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(opts.BatchSize)), gorgonia.WithLearnRate(0.02), gorgonia.WithClip(2.0))
+		opts.Solver = gorgonia.NewRMSPropSolver(gorgonia.WithBatchSize(float64(opts.BatchSize)))
+		// opts.Solver = gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(opts.BatchSize)), gorgonia.WithLearnRate(0.02), gorgonia.WithClip(1.0))
 	}
 
 	defer vm.Close()
@@ -209,7 +210,7 @@ func (m *Model) Train(layer Layer, trainX tensor.Tensor, trainY tensor.Tensor, o
 				fatal("Failed to update nodes with gradients at epoch %d, batch %d. Error %v", i, b, err)
 			}
 
-			// color.Yellow(" Epoch %d %d | cost %v\n", i, b, costVal)
+			color.Yellow(" Epoch %d %d | cost %v\n", i, b, costVal)
 
 			m.PrintWatchables()
 

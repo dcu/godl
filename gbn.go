@@ -8,8 +8,8 @@ import (
 
 // GBNOpts contains config options for the ghost batch normalization
 type GBNOpts struct {
-	Momentum         float64
-	Epsilon          float64
+	Momentum         float32
+	Epsilon          float32
 	VirtualBatchSize int
 	OutputDimension  int
 

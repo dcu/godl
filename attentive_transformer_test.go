@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	. "gorgonia.org/gorgonia"
+	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
 )
 
@@ -16,18 +16,18 @@ func TestAttentiveTransformer(t *testing.T) {
 		output         int
 		expectedShape  tensor.Shape
 		expectedErr    string
-		expectedOutput []float64
+		expectedOutput []float32
 	}{
 		{
 			desc: "Example 1",
 			input: tensor.New(
 				tensor.WithShape(6, 2),
-				tensor.WithBacking([]float64{0.1, -0.5, 0.3, 0.9, 0.04, -0.3, 0.01, 0.09, -0.1, 0.9, 0.7, 0.04}),
+				tensor.WithBacking([]float32{0.1, -0.5, 0.3, 0.9, 0.04, -0.3, 0.01, 0.09, -0.1, 0.9, 0.7, 0.04}),
 			),
 			vbs:            2,
 			output:         2,
 			expectedShape:  tensor.Shape{6, 2},
-			expectedOutput: []float64{0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5},
+			expectedOutput: []float32{0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5},
 		},
 	}
 
@@ -35,11 +35,11 @@ func TestAttentiveTransformer(t *testing.T) {
 		t.Run(tcase.desc, func(t *testing.T) {
 			c := require.New(t)
 
-			g := NewGraph()
+			g := gorgonia.NewGraph()
 			tn := &Model{g: g}
 
-			input := NewTensor(g, tensor.Float64, tcase.input.Dims(), WithShape(tcase.input.Shape()...), WithName("input"), WithValue(tcase.input))
-			priors := NewTensor(g, Float64, tcase.input.Dims(), WithShape(tcase.input.Shape()...), WithInit(Ones()))
+			input := gorgonia.NewTensor(g, tensor.Float32, tcase.input.Dims(), gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithName("input"), gorgonia.WithValue(tcase.input))
+			priors := gorgonia.NewTensor(g, tensor.Float32, tcase.input.Dims(), gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithInit(gorgonia.Ones()))
 			x, _, err := tn.AttentiveTransformer(AttentiveTransformerOpts{
 				VirtualBatchSize: tcase.vbs,
 				InputDimension:   input.Shape()[1],
@@ -56,11 +56,11 @@ func TestAttentiveTransformer(t *testing.T) {
 				c.NoError(err)
 			}
 
-			vm := NewTapeMachine(g)
+			vm := gorgonia.NewTapeMachine(g)
 			c.NoError(vm.RunAll())
 
 			c.Equal(tcase.expectedShape, x.Shape())
-			c.Equal(tcase.expectedOutput, x.Value().Data().([]float64))
+			c.Equal(tcase.expectedOutput, x.Value().Data().([]float32))
 		})
 	}
 }

@@ -3,6 +3,8 @@ package tabnet
 import (
 	"log"
 	"os"
+
+	"gorgonia.org/tensor"
 )
 
 var (
@@ -16,4 +18,14 @@ func init() {
 	}
 
 	testLogger = log.New(f, "[G]", log.LstdFlags)
+}
+
+func initDummyWeights(dt tensor.Dtype, s ...int) interface{} {
+	v := make([]float32, tensor.Shape(s).TotalSize())
+
+	for i := range v {
+		v[i] = 1.0
+	}
+
+	return v
 }

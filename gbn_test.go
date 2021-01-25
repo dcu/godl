@@ -5,7 +5,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"gorgonia.org/gorgonia"
-	. "gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
 )
 
@@ -16,27 +15,27 @@ func TestGBN(t *testing.T) {
 		vbs            int
 		expectedShape  tensor.Shape
 		expectedErr    string
-		expectedOutput []float64
+		expectedOutput []float32
 	}{
 		{
 			desc: "Example 1",
 			input: tensor.New(
 				tensor.WithShape(10, 1),
-				tensor.WithBacking([]float64{0.4, 1.4, 2.4, 3.4, 4.4, 5.4, 6.4, 7.4, 8.4, 9.4}),
+				tensor.WithBacking([]float32{0.4, 1.4, 2.4, 3.4, 4.4, 5.4, 6.4, 7.4, 8.4, 9.4}),
 			),
 			vbs:            5,
 			expectedShape:  tensor.Shape{10, 1},
-			expectedOutput: []float64{-1.4142100268524476, -0.7071050134262239, -3.140177066934696e-16, 0.7071050134262233, 1.4142100268524473, -1.4142100268524478, -0.7071050134262242, -6.280354133869392e-16, 0.707105013426223, 1.4142100268524467},
+			expectedOutput: []float32{-1.41421, -0.7071051, 0, 0.707105, 1.41421, -1.4142102, -0.7071051, 0, 0.7071048, 1.41421},
 		},
 		{
 			desc: "Example 2",
 			input: tensor.New(
 				tensor.WithShape(5, 2),
-				tensor.WithBacking([]float64{0.4, -1.4, 2.4, -3.4, 4.4, -5.4, 6.4, -7.4, 8.4, -9.4}),
+				tensor.WithBacking([]float32{0.4, -1.4, 2.4, -3.4, 4.4, -5.4, 6.4, -7.4, 8.4, -9.4}),
 			),
 			vbs:            5,
 			expectedShape:  tensor.Shape{5, 2},
-			expectedOutput: []float64{-1.4142126784904472, 1.4142126784904472, -0.7071063392452237, 0.7071063392452237, 0, 0, 0.7071063392452236, -0.7071063392452236, 1.4142126784904472, -1.4142126784904472},
+			expectedOutput: []float32{-1.4142127, 1.4142127, -0.70710635, 0.70710635, 0, 0, 0.70710635, -0.70710635, 1.4142126, -1.4142126},
 		},
 	}
 
@@ -44,13 +43,13 @@ func TestGBN(t *testing.T) {
 		t.Run(tcase.desc, func(t *testing.T) {
 			c := require.New(t)
 
-			g := NewGraph()
+			g := gorgonia.NewGraph()
 			tn := &Model{g: g}
-			input := NewTensor(g, tensor.Float64, 2, WithShape(tcase.input.Shape()...), WithName("GBNInput"), WithValue(tcase.input))
+			input := gorgonia.NewTensor(g, tensor.Float32, 2, gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithName("GBNInput"), gorgonia.WithValue(tcase.input))
 
 			y, _, err := tn.GBN(GBNOpts{
 				VirtualBatchSize: tcase.vbs,
-				OutputDimension:        tcase.input.Shape()[1],
+				OutputDimension:  tcase.input.Shape()[1],
 			})(input)
 
 			if tcase.expectedErr != "" {
@@ -64,7 +63,7 @@ func TestGBN(t *testing.T) {
 			c.NoError(err)
 			c.Equal(tcase.expectedShape, y.Shape())
 
-			vm := NewTapeMachine(tn.g,
+			vm := gorgonia.NewTapeMachine(tn.g,
 				gorgonia.WithLogger(testLogger),
 				gorgonia.BindDualValues(tn.learnables...),
 				gorgonia.WithValueFmt("%+v"),
@@ -72,7 +71,7 @@ func TestGBN(t *testing.T) {
 			)
 			c.NoError(vm.RunAll())
 
-			c.Equal(tcase.expectedOutput, y.Value().Data().([]float64))
+			c.Equal(tcase.expectedOutput, y.Value().Data().([]float32))
 		})
 	}
 }

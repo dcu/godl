@@ -24,9 +24,9 @@ type TabNetOpts struct {
 
 	WithBias bool
 
-	Gamma                            float64
-	Momentum                         float64
-	Epsilon                          float64
+	Gamma                            float32
+	Momentum                         float32
+	Epsilon                          float32
 	VirtualBatchSize                 int
 	Inferring                        bool
 	WeightsInit, ScaleInit, BiasInit gorgonia.InitWFn
@@ -160,11 +160,11 @@ func (nn *Model) TabNet(opts TabNetOpts) Layer {
 	gamma := gorgonia.NewConstant(opts.Gamma)
 	epsilon := gorgonia.NewConstant(opts.Epsilon)
 
-	tabNetLoss := gorgonia.NewScalar(nn.g, tensor.Float64, gorgonia.WithValue(0.0), gorgonia.WithName("TabNetLoss"))
-	stepsCount := gorgonia.NewScalar(nn.g, tensor.Float64, gorgonia.WithValue(float64(len(steps))), gorgonia.WithName("Steps"))
+	tabNetLoss := gorgonia.NewScalar(nn.g, tensor.Float32, gorgonia.WithValue(float32(0.0)), gorgonia.WithName("TabNetLoss"))
+	stepsCount := gorgonia.NewScalar(nn.g, tensor.Float32, gorgonia.WithValue(float32(len(steps))), gorgonia.WithName("Steps"))
 
-	prior := gorgonia.NewTensor(nn.g, tensor.Float64, 2, gorgonia.WithShape(opts.BatchSize, opts.InputDimension), gorgonia.WithInit(gorgonia.Ones()), gorgonia.WithName("Prior"))
-	out := gorgonia.NewTensor(nn.g, tensor.Float64, 2, gorgonia.WithShape(opts.BatchSize, opts.PredictionLayerDim), gorgonia.WithInit(gorgonia.Zeroes()), gorgonia.WithName("Output"))
+	prior := gorgonia.NewTensor(nn.g, tensor.Float32, 2, gorgonia.WithShape(opts.BatchSize, opts.InputDimension), gorgonia.WithInit(gorgonia.Ones()), gorgonia.WithName("Prior"))
+	out := gorgonia.NewTensor(nn.g, tensor.Float32, 2, gorgonia.WithShape(opts.BatchSize, opts.PredictionLayerDim), gorgonia.WithInit(gorgonia.Zeroes()), gorgonia.WithName("Output"))
 
 	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, *gorgonia.Node, error) {
 		x := nodes[0]

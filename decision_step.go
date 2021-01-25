@@ -18,8 +18,8 @@ type DecisionStepOpts struct {
 	MaskFunction ActivationFn
 
 	WithBias                         bool
-	Momentum                         float64
-	Epsilon                          float64
+	Momentum                         float32
+	Epsilon                          float32
 	VirtualBatchSize                 int
 	Inferring                        bool
 	WeightsInit, ScaleInit, BiasInit gorgonia.InitWFn
