@@ -3,6 +3,7 @@ package tabnet
 import (
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -106,7 +107,53 @@ func (m *Model) Train(layer Layer, trainX, trainY, validateX, validateY tensor.T
 		_ = os.RemoveAll(heatmapPath)
 	}
 
+	var err error
+
 	numExamples, features := trainX.Shape()[0], trainX.Shape()[1]
+	missingRows := opts.BatchSize - (numExamples % opts.BatchSize)
+
+	rowsX := make([]tensor.Tensor, missingRows)
+	rowsY := make([]tensor.Tensor, missingRows)
+
+	for i := 0; i < missingRows; i++ {
+		row := rand.Intn(numExamples)
+
+		xS, err := trainX.Slice(gorgonia.S(row))
+		if err != nil {
+			panic(err)
+		}
+
+		err = xS.Reshape(1, trainX.Shape()[1])
+		if err != nil {
+			panic(err)
+		}
+
+		rowsX[i] = xS
+
+		yS, err := trainY.Slice(gorgonia.S(row))
+		if err != nil {
+			panic(err)
+		}
+
+		err = yS.Reshape(1, trainY.Shape()[1])
+		if err != nil {
+			panic(err)
+		}
+
+		rowsY[i] = yS
+	}
+
+	trainX, err = tensor.Concat(0, trainX, rowsX...)
+	if err != nil {
+		panic(err)
+	}
+
+	trainY, err = tensor.Concat(0, trainY, rowsY...)
+	if err != nil {
+		panic(err)
+	}
+
+	numExamples += missingRows
 	batches := numExamples / opts.BatchSize
 
 	x := gorgonia.NewTensor(m.g, tensor.Float32, trainX.Shape().Dims(), gorgonia.WithShape(opts.BatchSize, features), gorgonia.WithName("x"))
@@ -171,6 +218,8 @@ func (m *Model) Train(layer Layer, trainX, trainY, validateX, validateY tensor.T
 				end = numExamples
 			}
 
+			inputSize := end - start
+
 			xVal, err := trainX.Slice(gorgonia.S(start, end))
 			if err != nil {
 				return err
@@ -181,7 +230,7 @@ func (m *Model) Train(layer Layer, trainX, trainY, validateX, validateY tensor.T
 				return err
 			}
 
-			err = xVal.(*tensor.Dense).Reshape(opts.BatchSize, features)
+			err = xVal.(*tensor.Dense).Reshape(inputSize, features)
 			if err != nil {
 				return err
 			}
