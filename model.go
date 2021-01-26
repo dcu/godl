@@ -195,7 +195,7 @@ func (m *Model) Train(layer Layer, trainX, trainY, validateX, validateY tensor.T
 		dl.Reset()
 
 		if opts.WithLearnablesHeatmap {
-			m.saveHeatmaps(i, opts.BatchSize, dl.Features[0])
+			m.saveHeatmaps(i, opts.BatchSize, dl.FeaturesShape[0])
 		}
 
 		_ = startTime

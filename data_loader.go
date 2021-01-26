@@ -5,6 +5,7 @@ import (
 
 	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
+	"gorgonia.org/tensor/native"
 )
 
 type DataLoaderOpts struct {
@@ -21,10 +22,10 @@ type DataLoader struct {
 	y    tensor.Tensor
 	opts DataLoaderOpts
 
-	Features     tensor.Shape
-	Rows         int
-	Batches      int
-	CurrentBatch int
+	FeaturesShape tensor.Shape
+	Rows          int
+	Batches       int
+	CurrentBatch  int
 }
 
 // NewDataLoader creates a data loader with the given data and options
@@ -80,14 +81,16 @@ func NewDataLoader(x tensor.Tensor, y tensor.Tensor, opts DataLoaderOpts) *DataL
 	numExamples += missingRows
 	batches := numExamples / opts.BatchSize
 
-	return &DataLoader{
-		x:        x,
-		y:        y,
-		opts:     opts,
-		Rows:     numExamples,
-		Batches:  batches,
-		Features: tensor.Shape(x.Shape()[1:]),
+	dl := &DataLoader{
+		x:             x,
+		y:             y,
+		opts:          opts,
+		Rows:          numExamples,
+		Batches:       batches,
+		FeaturesShape: tensor.Shape(x.Shape()[1:]),
 	}
+
+	return dl
 }
 
 // HasNext returns true if there's more batches to fetch
@@ -104,6 +107,38 @@ func (dl DataLoader) HasNext() bool {
 // Reset resets the iterator
 func (dl *DataLoader) Reset() {
 	dl.CurrentBatch = 0
+
+	if dl.opts.Shuffle {
+		err := dl.Shuffle()
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+func (dl *DataLoader) Shuffle() error {
+	iterX, err := native.MatrixF32(dl.x.(*tensor.Dense))
+	if err != nil {
+		return err
+	}
+
+	iterY, err := native.MatrixF32(dl.y.(*tensor.Dense))
+	if err != nil {
+		return err
+	}
+
+	tmp := make([]float32, dl.FeaturesShape.TotalSize())
+	rand.Shuffle(dl.Rows, func(i, j int) {
+		copy(tmp, iterX[i])
+		copy(iterX[i], iterX[j])
+		copy(iterX[j], tmp)
+
+		copy(tmp, iterY[i])
+		copy(iterY[i], iterY[j])
+		copy(iterY[j], tmp)
+	})
+
+	return nil
 }
 
 // Next returns the next batch
@@ -131,7 +166,7 @@ func (dl *DataLoader) Next() (tensor.Tensor, tensor.Tensor) {
 		panic(err)
 	}
 
-	err = xVal.(*tensor.Dense).Reshape(append(tensor.Shape{inputSize}, dl.Features...)...)
+	err = xVal.(*tensor.Dense).Reshape(append(tensor.Shape{inputSize}, dl.FeaturesShape...)...)
 	if err != nil {
 		panic(err)
 	}

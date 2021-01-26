@@ -222,6 +222,7 @@ func main() {
 	}
 
 	trainX, trainY := p.TrainingTensors()
+
 	validateX, validateY := p.ValidateTensors()
 
 	log.Printf("train x: %v train y: %v", trainX.Shape(), trainY.Shape())
