@@ -40,10 +40,6 @@ func (nn *Model) FC(opts FCOpts) Layer {
 		x := inputs[0]
 		xShape := x.Shape()
 
-		if opts.OutputDimension <= 0 {
-			return nil, nil, errorF(lt, "wrong output features count %d for FC layer", opts.OutputDimension)
-		}
-
 		if x.Dims() > 2 {
 			b, v := xShape[0], tensor.Shape(xShape[1:]).TotalSize()
 			x = gorgonia.Must(gorgonia.Reshape(x, tensor.Shape{b, v}))
