@@ -35,14 +35,14 @@ func (o *GBNOpts) setDefaults() {
 // GBN implements a Ghost Batch Normalization: https://arxiv.org/pdf/1705.08741.pdf
 // momentum defaults to 0.01 if 0 is passed
 // epsilon defaults to 1e-5 if 0 is passed
-func (nn *Model) GBN(opts GBNOpts) Layer {
+func GBN(nn *Model, opts GBNOpts) Layer {
 	opts.setDefaults()
 
 	lt := incLayer("GBN")
 
 	mustBeGreaterThan(lt, "OutputDimesion", opts.OutputDimension, 0)
 
-	bn := nn.BN(BNOpts{
+	bn := BN(nn, BNOpts{
 		Momentum:       opts.Momentum,
 		Epsilon:        opts.Epsilon,
 		Inferring:      opts.Inferring,

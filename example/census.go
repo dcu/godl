@@ -227,8 +227,8 @@ func main() {
 
 	log.Printf("train x: %v train y: %v", trainX.Shape(), trainY.Shape())
 
-	batchSize := 1024
-	virtualBatchSize := 128
+	batchSize := 128
+	virtualBatchSize := 64
 	catDims := p.catDims()
 	catEmbDim := []int{5, 4, 3, 6, 2, 2, 1, 10}
 	catIdxs := p.catIdxs()

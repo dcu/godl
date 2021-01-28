@@ -47,11 +47,10 @@ func TestGBN(t *testing.T) {
 			tn := &Model{g: g}
 			input := gorgonia.NewTensor(g, tensor.Float32, 2, gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithName("GBNInput"), gorgonia.WithValue(tcase.input))
 
-			y, _, err := tn.GBN(GBNOpts{
+			y, _, err := GBN(tn, GBNOpts{
 				VirtualBatchSize: tcase.vbs,
 				OutputDimension:  tcase.input.Shape()[1],
 			})(input)
-
 			if tcase.expectedErr != "" {
 				c.Error(err)
 

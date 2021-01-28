@@ -20,7 +20,7 @@ type GLUOpts struct {
 }
 
 // GLU implements a Gated Linear Unit Block
-func (nn *Model) GLU(opts GLUOpts) Layer {
+func GLU(nn *Model, opts GLUOpts) Layer {
 	if opts.ActivationFn == nil {
 		opts.ActivationFn = gorgonia.Sigmoid
 	}
@@ -40,7 +40,7 @@ func (nn *Model) GLU(opts GLUOpts) Layer {
 	lt := incLayer("GLU")
 
 	if opts.FC == nil {
-		opts.FC = nn.FC(FCOpts{
+		opts.FC = FC(nn, FCOpts{
 			OutputDimension: opts.OutputDimension * 2,
 			InputDimension:  opts.InputDimension,
 			WeightsInit:     opts.WeightsInit,
@@ -48,7 +48,7 @@ func (nn *Model) GLU(opts GLUOpts) Layer {
 		})
 	}
 
-	gbnLayer := nn.GBN(GBNOpts{
+	gbnLayer := GBN(nn, GBNOpts{
 		VirtualBatchSize: opts.VirtualBatchSize,
 		OutputDimension:  opts.OutputDimension * 2,
 		Inferring:        opts.Inferring,

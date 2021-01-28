@@ -51,7 +51,7 @@ func TestEmbeddingGenerator(t *testing.T) {
 			c := require.New(t)
 
 			tn := NewModel()
-			embedder := tn.EmbeddingGenerator(tcase.classes, tcase.catDims, tcase.catIdxs, tcase.catEmbDim, EmbeddingOpts{
+			embedder := EmbeddingGenerator(tn, tcase.classes, tcase.catDims, tcase.catIdxs, tcase.catEmbDim, EmbeddingOpts{
 				WeightsInit: gorgonia.RangedFrom(0),
 			})
 

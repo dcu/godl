@@ -10,7 +10,7 @@ type EmbeddingOpts struct {
 }
 
 // Embedding implements a embedding layer
-func (m *Model) Embedding(embeddingSize int, embeddingDim int, opts EmbeddingOpts) Layer {
+func Embedding(m *Model, embeddingSize int, embeddingDim int, opts EmbeddingOpts) Layer {
 	lt := incLayer("Embedding")
 
 	if opts.WeightsInit == nil {

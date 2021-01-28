@@ -52,7 +52,7 @@ func (step DecisionStep) CalculateMask(xAttentiveLayer, prior, epsilon *gorgonia
 	return mask, stepLoss, nil
 }
 
-func (nn *Model) DecisionStep(opts DecisionStepOpts) *DecisionStep {
+func NewDecisionStep(nn *Model, opts DecisionStepOpts) *DecisionStep {
 	lt := incLayer("DecisionStep")
 
 	mustBeGreaterThan(lt, "InputDimension", opts.InputDimension, 0)
@@ -62,7 +62,7 @@ func (nn *Model) DecisionStep(opts DecisionStepOpts) *DecisionStep {
 		Name: lt,
 	}
 
-	ds.FeatureTransformer = nn.FeatureTransformer(FeatureTransformerOpts{
+	ds.FeatureTransformer = FeatureTransformer(nn, FeatureTransformerOpts{
 		Shared:            opts.Shared,
 		VirtualBatchSize:  opts.VirtualBatchSize,
 		InputDimension:    opts.OutputDimension,
@@ -74,7 +74,7 @@ func (nn *Model) DecisionStep(opts DecisionStepOpts) *DecisionStep {
 		Momentum:          opts.Momentum,
 	})
 
-	ds.AttentiveTransformer = nn.AttentiveTransformer(AttentiveTransformerOpts{
+	ds.AttentiveTransformer = AttentiveTransformer(nn, AttentiveTransformerOpts{
 		InputDimension:   opts.PredictionLayerDim,
 		OutputDimension:  opts.OutputDimension,
 		Momentum:         opts.Momentum,

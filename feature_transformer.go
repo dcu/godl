@@ -31,7 +31,7 @@ func (o *FeatureTransformerOpts) setDefaults() {
 }
 
 // FeatureTransformer implements a feature transformer layer
-func (nn *Model) FeatureTransformer(opts FeatureTransformerOpts) Layer {
+func FeatureTransformer(nn *Model, opts FeatureTransformerOpts) Layer {
 	lt := incLayer("FeatureTransformer")
 
 	opts.setDefaults()
@@ -49,7 +49,7 @@ func (nn *Model) FeatureTransformer(opts FeatureTransformerOpts) Layer {
 			weightsInit = gorgonia.GlorotN(gain)
 		}
 
-		shared = append(shared, nn.GLU(GLUOpts{
+		shared = append(shared, GLU(nn, GLUOpts{
 			InputDimension:   gluInput,
 			OutputDimension:  gluOutput,
 			VirtualBatchSize: opts.VirtualBatchSize,
@@ -75,7 +75,7 @@ func (nn *Model) FeatureTransformer(opts FeatureTransformerOpts) Layer {
 			weightsInit = gorgonia.GlorotN(gain)
 		}
 
-		independent = append(independent, nn.GLU(GLUOpts{
+		independent = append(independent, GLU(nn, GLUOpts{
 			InputDimension:   gluInput,
 			OutputDimension:  gluOutput,
 			VirtualBatchSize: opts.VirtualBatchSize,

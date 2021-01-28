@@ -30,19 +30,19 @@ func (o *AttentiveTransformerOpts) setDefaults() {
 }
 
 // AttentiveTransformer implements an attetion transformer layer
-func (nn *Model) AttentiveTransformer(opts AttentiveTransformerOpts) Layer {
+func AttentiveTransformer(nn *Model, opts AttentiveTransformerOpts) Layer {
 	lt := incLayer("AttentiveTransformer")
 
 	opts.setDefaults()
 
-	fcLayer := nn.FC(FCOpts{
+	fcLayer := FC(nn, FCOpts{
 		InputDimension:  opts.InputDimension,
 		OutputDimension: opts.OutputDimension,
 		WeightsInit:     opts.WeightsInit,
 		WithBias:        opts.WithBias,
 	})
 
-	gbnLayer := nn.GBN(GBNOpts{
+	gbnLayer := GBN(nn, GBNOpts{
 		Momentum:         opts.Momentum,
 		Epsilon:          opts.Epsilon,
 		VirtualBatchSize: opts.VirtualBatchSize,

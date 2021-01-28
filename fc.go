@@ -16,7 +16,7 @@ type FCOpts struct {
 	WithBias    bool
 }
 
-func (nn *Model) FC(opts FCOpts) Layer {
+func FC(nn *Model, opts FCOpts) Layer {
 	lt := incLayer("FC")
 
 	mustBeGreaterThan(lt, "input dimension", opts.InputDimension, 0)

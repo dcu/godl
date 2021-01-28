@@ -32,7 +32,7 @@ type TabNetRegressorOpts struct {
 func NewTabNetRegressor(inputDim int, catDims []int, catIdxs []int, catEmbDim []int, opts TabNetRegressorOpts) *TabNetRegressor {
 	nn := NewModel()
 
-	embedder := nn.EmbeddingGenerator(inputDim, catDims, catIdxs, catEmbDim, EmbeddingOpts{
+	embedder := EmbeddingGenerator(nn, inputDim, catDims, catIdxs, catEmbDim, EmbeddingOpts{
 		WeightsInit: opts.WeightsInit,
 	})
 
@@ -42,7 +42,7 @@ func NewTabNetRegressor(inputDim int, catDims []int, catIdxs []int, catEmbDim []
 	}
 
 	tabNetInputDim := inputDim + embedDimSum - len(catEmbDim)
-	tn := nn.TabNet(TabNetOpts{
+	tn := TabNet(nn, TabNetOpts{
 		OutputDimension:    1,
 		BatchSize:          opts.BatchSize,
 		VirtualBatchSize:   opts.VirtualBatchSize,
@@ -62,7 +62,7 @@ func NewTabNetRegressor(inputDim int, catDims []int, catIdxs []int, catEmbDim []
 		Epsilon:            opts.Epsilon,
 	})
 
-	layer := nn.Sequential(embedder, tn)
+	layer := Sequential(nn, embedder, tn)
 
 	return &TabNetRegressor{
 		model: nn,

@@ -46,7 +46,7 @@ func TestDecisionStep(t *testing.T) {
 
 			a := gorgonia.NewTensor(g, gorgonia.Float32, tcase.input.Dims(), gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithInit(gorgonia.Ones()))
 			priors := gorgonia.NewTensor(g, gorgonia.Float32, tcase.input.Dims(), gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithInit(gorgonia.Ones()))
-			step := tn.DecisionStep(DecisionStepOpts{
+			step := NewDecisionStep(tn, DecisionStepOpts{
 				VirtualBatchSize:   tcase.vbs,
 				Shared:             nil,
 				IndependentBlocks:  tcase.independentBlocks,

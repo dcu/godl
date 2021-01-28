@@ -7,7 +7,7 @@ import (
 	"gorgonia.org/tensor"
 )
 
-func (m *Model) EmbeddingGenerator(inputDims int, catDims []int, catIdxs []int, catEmbDim []int, opts EmbeddingOpts) Layer {
+func EmbeddingGenerator(m *Model, inputDims int, catDims []int, catIdxs []int, catEmbDim []int, opts EmbeddingOpts) Layer {
 	skipEmbedding := false
 	if len(catDims) == 0 || len(catIdxs) == 0 {
 		skipEmbedding = true
@@ -21,7 +21,8 @@ func (m *Model) EmbeddingGenerator(inputDims int, catDims []int, catIdxs []int, 
 	categoricalColumnIndexes := make([]bool, inputDims)
 
 	for i, v := range catIdxs {
-		embeddings[i] = m.Embedding(
+		embeddings[i] = Embedding(
+			m,
 			catDims[i],
 			catEmbDim[i],
 			opts,

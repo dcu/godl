@@ -71,10 +71,10 @@ func (o *TabNetOpts) setDefaults() {
 }
 
 // TabNet implements the tab net architecture
-func (nn *Model) TabNet(opts TabNetOpts) Layer {
+func TabNet(nn *Model, opts TabNetOpts) Layer {
 	opts.setDefaults()
 
-	bnLayer := nn.BN(BNOpts{
+	bnLayer := BN(nn, BNOpts{
 		ScaleInit:      opts.ScaleInit,
 		BiasInit:       opts.BiasInit,
 		Inferring:      opts.Inferring,
@@ -98,7 +98,7 @@ func (nn *Model) TabNet(opts TabNetOpts) Layer {
 				sharedWeightsInit = gorgonia.GlorotN(gain)
 			}
 
-			shared = append(shared, nn.FC(FCOpts{
+			shared = append(shared, FC(nn, FCOpts{
 				InputDimension:  fcInput,
 				OutputDimension: fcOutput,
 				WeightsInit:     sharedWeightsInit,
@@ -110,7 +110,7 @@ func (nn *Model) TabNet(opts TabNetOpts) Layer {
 	}
 
 	// first step
-	initialSplitter := nn.FeatureTransformer(FeatureTransformerOpts{
+	initialSplitter := FeatureTransformer(nn, FeatureTransformerOpts{
 		Shared:            shared,
 		VirtualBatchSize:  opts.VirtualBatchSize,
 		IndependentBlocks: opts.IndependentBlocks,
@@ -123,7 +123,7 @@ func (nn *Model) TabNet(opts TabNetOpts) Layer {
 
 	steps := make([]*DecisionStep, 0, opts.DecisionSteps)
 	for i := 0; i < opts.DecisionSteps; i++ {
-		steps = append(steps, nn.DecisionStep(
+		steps = append(steps, NewDecisionStep(nn,
 			DecisionStepOpts{
 				Shared:             shared,
 				IndependentBlocks:  opts.IndependentBlocks,
@@ -149,7 +149,7 @@ func (nn *Model) TabNet(opts TabNetOpts) Layer {
 		weightsInit = gorgonia.GlorotN(gain)
 	}
 
-	finalMapping := nn.FC(FCOpts{
+	finalMapping := FC(nn, FCOpts{
 		InputDimension:  opts.PredictionLayerDim,
 		OutputDimension: opts.OutputDimension,
 		WeightsInit:     weightsInit,

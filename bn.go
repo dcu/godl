@@ -42,7 +42,7 @@ func (o *BNOpts) setDefaults() {
 }
 
 // BN runs a batch normalization on the input x
-func (nn *Model) BN(opts BNOpts) Layer {
+func BN(nn *Model, opts BNOpts) Layer {
 	opts.setDefaults()
 
 	lt := incLayer("BN")

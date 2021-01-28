@@ -3,7 +3,7 @@ package tabnet
 import "gorgonia.org/gorgonia"
 
 // Sequential runs the given layers one after the other
-func (m *Model) Sequential(layers ...Layer) Layer {
+func Sequential(m *Model, layers ...Layer) Layer {
 	return func(inputs ...*gorgonia.Node) (*gorgonia.Node, *gorgonia.Node, error) {
 		err := m.checkArity("Sequential", inputs, 1)
 		if err != nil {

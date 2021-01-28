@@ -61,7 +61,7 @@ func TestFeatureTransformer(t *testing.T) {
 			fcInput := input.Shape()[1]
 			fcOutput := 2 * (8 + 8)
 			for i := 0; i < tcase.sharedBlocks; i++ {
-				shared[i] = tn.FC(FCOpts{
+				shared[i] = FC(tn, FCOpts{
 					OutputDimension: fcOutput, // double the size so we can take half and half
 					WeightsInit:     initDummyWeights,
 					InputDimension:  fcInput,
@@ -70,7 +70,7 @@ func TestFeatureTransformer(t *testing.T) {
 				fcInput = 8 + 8
 			}
 
-			x, _, err := tn.FeatureTransformer(FeatureTransformerOpts{
+			x, _, err := FeatureTransformer(tn, FeatureTransformerOpts{
 				VirtualBatchSize:  tcase.vbs,
 				InputDimension:    input.Shape()[1],
 				OutputDimension:   tcase.output,
