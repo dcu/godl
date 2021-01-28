@@ -14,16 +14,11 @@ type BNOpts struct {
 	Inferring           bool
 	ScaleInit, BiasInit gorgonia.InitWFn
 
-	InputDim  int
-	OutputDim int
+	InputDimension int
 }
 
 func (o *BNOpts) setDefaults() {
-	if o.InputDim == 0 {
-		panic("input size for BN can't be 0")
-	}
-
-	if o.OutputDim == 0 {
+	if o.InputDimension == 0 {
 		panic("output size for BN can't be 0")
 	}
 
@@ -52,8 +47,8 @@ func (nn *Model) BN(opts BNOpts) Layer {
 
 	lt := incLayer("BN")
 
-	bias := nn.addBias(lt, tensor.Shape{1, opts.OutputDim}, opts.BiasInit)
-	scale := nn.addLearnable(lt, "scale", tensor.Shape{1, opts.OutputDim}, opts.ScaleInit)
+	bias := nn.addBias(lt, tensor.Shape{1, opts.InputDimension}, opts.BiasInit)
+	scale := nn.addLearnable(lt, "scale", tensor.Shape{1, opts.InputDimension}, opts.ScaleInit)
 
 	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, *gorgonia.Node, error) {
 		if err := nn.checkArity(lt, nodes, 1); err != nil {

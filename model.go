@@ -3,6 +3,7 @@ package tabnet
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -95,13 +96,19 @@ func (m *Model) Train(layer Layer, trainX, trainY, validateX, validateY tensor.T
 
 	if opts.DevMode {
 		warn("Start training in dev mode")
+
+		defer func() {
+			if err := recover(); err != nil {
+				graphFileName := "graph.dot"
+
+				log.Printf("panic triggered, dumping the model graph to: %v", graphFileName)
+				_ = ioutil.WriteFile(graphFileName, []byte(m.g.ToDot()), 0644)
+				panic(err)
+			}
+		}()
 	}
 
 	if opts.WithLearnablesHeatmap {
-		if opts.BatchSize > 128 {
-			panic("to enable Heatmap BatchSize must be <= 128")
-		}
-
 		warn("Heatmaps will be stored in: %s", heatmapPath)
 		_ = os.RemoveAll(heatmapPath)
 	}
@@ -177,6 +184,10 @@ func (m *Model) Train(layer Layer, trainX, trainY, validateX, validateY tensor.T
 				fatal("Failed at epoch  %d, batch %d. Error: %v", i, dl.CurrentBatch, err)
 			}
 
+			if opts.WithLearnablesHeatmap {
+				m.saveHeatmaps(i, dl.CurrentBatch, dl.opts.BatchSize, dl.FeaturesShape[0])
+			}
+
 			if err = opts.Solver.Step(gorgonia.NodesToValueGrads(m.learnables)); err != nil {
 				fatal("Failed to update nodes with gradients at epoch %d, batch %d. Error %v", i, dl.CurrentBatch, err)
 			}
@@ -194,10 +205,6 @@ func (m *Model) Train(layer Layer, trainX, trainY, validateX, validateY tensor.T
 
 		dl.Reset()
 
-		if opts.WithLearnablesHeatmap {
-			m.saveHeatmaps(i, opts.BatchSize, dl.FeaturesShape[0])
-		}
-
 		_ = startTime
 		if opts.CostObserver != nil {
 			opts.CostObserver(i+1, opts.Epochs, dl.Batches, dl.Batches, costVal.Data().(float32))
@@ -206,10 +213,10 @@ func (m *Model) Train(layer Layer, trainX, trainY, validateX, validateY tensor.T
 		}
 	}
 
-	return m.validate(x, y, costVal, validateX, validateY, opts)
+	return m.validate(x, y, costVal, predVal, validateX, validateY, opts)
 }
 
-func (m *Model) validate(x, y *gorgonia.Node, costVal gorgonia.Value, validateX, validateY tensor.Tensor, opts TrainOpts) error {
+func (m *Model) validate(x, y *gorgonia.Node, costVal, predVal gorgonia.Value, validateX, validateY tensor.Tensor, opts TrainOpts) error {
 	opts.setDefaults()
 
 	numExamples, features := validateX.Shape()[0], validateX.Shape()[1]
@@ -222,6 +229,8 @@ func (m *Model) validate(x, y *gorgonia.Node, costVal gorgonia.Value, validateX,
 	}
 
 	defer vm.Close()
+
+	correct := 0
 
 	for b := 0; b < batches; b++ {
 		start := b * opts.BatchSize
@@ -270,22 +279,55 @@ func (m *Model) validate(x, y *gorgonia.Node, costVal gorgonia.Value, validateX,
 			color.Yellow(" Validation cost %v\n", costVal)
 		}
 
+		pred := predVal.Data().([]float32)
+
+		for j := 0; j < opts.BatchSize; j++ {
+			targetVal, err := yVal.Slice(gorgonia.S(j))
+			if err != nil {
+				panic(err)
+			}
+
+			target := targetVal.Data().(float32)
+
+			if target == 1 {
+				if pred[j] >= 0.5 {
+					correct++
+				}
+			} else {
+				if pred[j] < 0.5 {
+					correct++
+				}
+			}
+		}
+
 		vm.Reset()
 	}
+
+	accuracy := float64(correct) / float64(numExamples)
+
+	log.Printf("accuracy: %0.3f%%", accuracy*100)
 
 	return nil
 }
 
-func (m Model) saveHeatmaps(epoch int, batchSize, features int) {
+func (m Model) saveHeatmaps(epoch, batch, batchSize, features int) {
 	for _, v := range m.learnables {
 		wt := v.Value().(tensor.Tensor)
 		wtShape := wt.Shape().Clone()
 		newShape := tensor.Shape{wtShape[0], tensor.Shape(wtShape[1:]).TotalSize()}
 
-		pathName := filepath.Join(heatmapPath, v.Name())
-		fileName := fmt.Sprintf("%s/%d_%v.png", pathName, epoch, wtShape)
+		grad, err := v.Grad()
+		if err != nil {
+			panic(err)
+		}
 
-		err := wt.Reshape(newShape...)
+		gradT := grad.(tensor.Tensor)
+
+		pathName := filepath.Join(heatmapPath, v.Name())
+		fileName := fmt.Sprintf("%s/%d_%d_%v.png", pathName, epoch, batch, wtShape)
+		gradFileName := fmt.Sprintf("%s/grad_%d_%d_%v.png", pathName, epoch, batch, wtShape)
+
+		err = wt.Reshape(newShape...)
 		if err != nil {
 			panic(err)
 		}
@@ -295,16 +337,27 @@ func (m Model) saveHeatmaps(epoch int, batchSize, features int) {
 			panic(fmt.Errorf("failed to process %s: %w", fileName, err))
 		}
 
+		pGrad, err := plot.Heatmap(gradT, nil)
+		if err != nil {
+			panic(fmt.Errorf("failed to process %s: %w", fileName, err))
+		}
+
 		err = wt.Reshape(wtShape...)
 		if err != nil {
 			panic(err)
 		}
 
-		width := vg.Length(features) * vg.Centimeter
-		height := vg.Length(batchSize) * vg.Centimeter
+		width := vg.Length(wtShape[0]) * vg.Centimeter
+		height := vg.Length(wtShape[1]) * vg.Centimeter
+
+		if newShape[0] == 1 {
+			height = 1 * vg.Centimeter
+		}
 
 		_ = os.MkdirAll(pathName, 0755)
 		_ = p.Save(width, height, fileName)
+
+		_ = pGrad.Save(width, height, gradFileName)
 	}
 }
 

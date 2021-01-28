@@ -43,13 +43,12 @@ func (nn *Model) GBN(opts GBNOpts) Layer {
 	mustBeGreaterThan(lt, "OutputDimesion", opts.OutputDimension, 0)
 
 	bn := nn.BN(BNOpts{
-		Momentum:  opts.Momentum,
-		Epsilon:   opts.Epsilon,
-		Inferring: opts.Inferring,
-		ScaleInit: opts.ScaleInit,
-		BiasInit:  opts.BiasInit,
-		InputDim:  opts.VirtualBatchSize,
-		OutputDim: opts.OutputDimension,
+		Momentum:       opts.Momentum,
+		Epsilon:        opts.Epsilon,
+		Inferring:      opts.Inferring,
+		ScaleInit:      opts.ScaleInit,
+		BiasInit:       opts.BiasInit,
+		InputDimension: opts.OutputDimension,
 	})
 
 	return func(inputs ...*gorgonia.Node) (*gorgonia.Node, *gorgonia.Node, error) {

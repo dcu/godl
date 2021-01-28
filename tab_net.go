@@ -75,12 +75,11 @@ func (nn *Model) TabNet(opts TabNetOpts) Layer {
 	opts.setDefaults()
 
 	bnLayer := nn.BN(BNOpts{
-		ScaleInit: opts.ScaleInit,
-		BiasInit:  opts.BiasInit,
-		Inferring: opts.Inferring,
-		InputDim:  opts.BatchSize,
-		OutputDim: opts.InputDimension,
-		Momentum:  0.01,
+		ScaleInit:      opts.ScaleInit,
+		BiasInit:       opts.BiasInit,
+		Inferring:      opts.Inferring,
+		InputDimension: opts.InputDimension,
+		Momentum:       0.01,
 	})
 
 	shared := make([]Layer, 0, opts.SharedBlocks)
