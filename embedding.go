@@ -11,16 +11,16 @@ type EmbeddingOpts struct {
 
 // Embedding implements a embedding layer
 func Embedding(m *Model, embeddingSize int, embeddingDim int, opts EmbeddingOpts) Layer {
-	lt := incLayer("Embedding")
+	lt := AddLayer("Embedding")
 
 	if opts.WeightsInit == nil {
 		opts.WeightsInit = gorgonia.Gaussian(0.0, 1.0)
 	}
 
-	w := m.addWeights(lt, tensor.Shape{embeddingSize, embeddingDim}, opts.WeightsInit)
+	w := m.AddWeights(lt, tensor.Shape{embeddingSize, embeddingDim}, opts.WeightsInit)
 
 	return func(inputs ...*gorgonia.Node) (*gorgonia.Node, *gorgonia.Node, error) {
-		err := m.checkArity(lt, inputs, 1)
+		err := m.CheckArity(lt, inputs, 1)
 		if err != nil {
 			return nil, nil, err
 		}

@@ -12,15 +12,15 @@ var (
 	countMutex  = sync.Mutex{}
 )
 
-type layerType string
+type LayerType string
 
 // Layer defines a layer on the network
 type Layer func(inputs ...*gorgonia.Node) (output *gorgonia.Node, loss *gorgonia.Node, err error)
 
-func incLayer(typ string) layerType {
+func AddLayer(typ string) LayerType {
 	countMutex.Lock()
 	layersCount[typ]++
 	countMutex.Unlock()
 
-	return layerType(fmt.Sprintf("%s_%d", typ, layersCount[typ]))
+	return LayerType(fmt.Sprintf("%s_%d", typ, layersCount[typ]))
 }

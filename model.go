@@ -373,7 +373,7 @@ func (m Model) saveHeatmaps(epoch, batch, batchSize, features int) {
 	}
 }
 
-func (m Model) checkArity(lt layerType, nodes []*gorgonia.Node, arity int) error {
+func (m Model) CheckArity(lt LayerType, nodes []*gorgonia.Node, arity int) error {
 	if len(nodes) != arity {
 		return errorF(lt, "arity doesn't match, expected %d, got %d", arity, len(nodes))
 	}

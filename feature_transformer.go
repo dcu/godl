@@ -32,7 +32,7 @@ func (o *FeatureTransformerOpts) setDefaults() {
 
 // FeatureTransformer implements a feature transformer layer
 func FeatureTransformer(nn *Model, opts FeatureTransformerOpts) Layer {
-	lt := incLayer("FeatureTransformer")
+	lt := AddLayer("FeatureTransformer")
 
 	opts.setDefaults()
 
@@ -89,7 +89,7 @@ func FeatureTransformer(nn *Model, opts FeatureTransformerOpts) Layer {
 	scale := gorgonia.NewConstant(float32(math.Sqrt(0.5)), gorgonia.WithName("ft.scale"))
 
 	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, *gorgonia.Node, error) {
-		if err := nn.checkArity(lt, nodes, 1); err != nil {
+		if err := nn.CheckArity(lt, nodes, 1); err != nil {
 			return nil, nil, err
 		}
 

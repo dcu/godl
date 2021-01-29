@@ -15,15 +15,15 @@ func (t *Model) LearnablesCount() int64 {
 	return learnablesCount
 }
 
-func (t *Model) addWeights(lt layerType, shape tensor.Shape, initFN gorgonia.InitWFn) *gorgonia.Node {
-	return t.addLearnable(lt, "weight", shape, initFN)
+func (t *Model) AddWeights(lt LayerType, shape tensor.Shape, initFN gorgonia.InitWFn) *gorgonia.Node {
+	return t.AddLearnable(lt, "weight", shape, initFN)
 }
 
-func (t *Model) addBias(lt layerType, shape tensor.Shape, initFN gorgonia.InitWFn) *gorgonia.Node {
-	return t.addLearnable(lt, "bias", shape, initFN)
+func (t *Model) AddBias(lt LayerType, shape tensor.Shape, initFN gorgonia.InitWFn) *gorgonia.Node {
+	return t.AddLearnable(lt, "bias", shape, initFN)
 }
 
-func (t *Model) addLearnable(lt layerType, name string, shape tensor.Shape, initFN gorgonia.InitWFn) *gorgonia.Node {
+func (t *Model) AddLearnable(lt LayerType, name string, shape tensor.Shape, initFN gorgonia.InitWFn) *gorgonia.Node {
 	atomic.AddInt64(&learnablesCount, 1)
 
 	name = fmt.Sprintf("%s.%d.%s.%d.%d", lt, learnablesCount, name, len(t.learnables), shape.TotalSize())

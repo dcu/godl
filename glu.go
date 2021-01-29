@@ -37,7 +37,7 @@ func GLU(nn *Model, opts GLUOpts) Layer {
 		panic("virtual batch size must be set")
 	}
 
-	lt := incLayer("GLU")
+	lt := AddLayer("GLU")
 
 	if opts.FC == nil {
 		opts.FC = FC(nn, FCOpts{
@@ -56,7 +56,7 @@ func GLU(nn *Model, opts GLUOpts) Layer {
 	})
 
 	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, *gorgonia.Node, error) {
-		if err := nn.checkArity(lt, nodes, 1); err != nil {
+		if err := nn.CheckArity(lt, nodes, 1); err != nil {
 			return nil, nil, err
 		}
 

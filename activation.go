@@ -12,6 +12,10 @@ func Sigmoid(x *gorgonia.Node) (*gorgonia.Node, error) {
 	return gorgonia.Sigmoid(x)
 }
 
+func Tanh(x *gorgonia.Node) (*gorgonia.Node, error) {
+	return gorgonia.Tanh(x)
+}
+
 func Rectify(x *gorgonia.Node) (*gorgonia.Node, error) {
 	return gorgonia.Rectify(x)
 }

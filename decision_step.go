@@ -26,7 +26,7 @@ type DecisionStepOpts struct {
 }
 
 type DecisionStep struct {
-	Name                 layerType
+	Name                 LayerType
 	FeatureTransformer   Layer
 	AttentiveTransformer Layer
 }
@@ -53,7 +53,7 @@ func (step DecisionStep) CalculateMask(xAttentiveLayer, prior, epsilon *gorgonia
 }
 
 func NewDecisionStep(nn *Model, opts DecisionStepOpts) *DecisionStep {
-	lt := incLayer("DecisionStep")
+	lt := AddLayer("DecisionStep")
 
 	mustBeGreaterThan(lt, "InputDimension", opts.InputDimension, 0)
 	mustBeGreaterThan(lt, "OutputDimension", opts.OutputDimension, 0)

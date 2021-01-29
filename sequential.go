@@ -5,7 +5,7 @@ import "gorgonia.org/gorgonia"
 // Sequential runs the given layers one after the other
 func Sequential(m *Model, layers ...Layer) Layer {
 	return func(inputs ...*gorgonia.Node) (*gorgonia.Node, *gorgonia.Node, error) {
-		err := m.checkArity("Sequential", inputs, 1)
+		err := m.CheckArity("Sequential", inputs, 1)
 		if err != nil {
 			return nil, nil, err
 		}

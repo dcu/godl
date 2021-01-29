@@ -32,7 +32,7 @@ func EmbeddingGenerator(m *Model, inputDims int, catDims []int, catIdxs []int, c
 	}
 
 	return func(inputs ...*gorgonia.Node) (*gorgonia.Node, *gorgonia.Node, error) {
-		err := m.checkArity("EmbeddingGenerator", inputs, 1)
+		err := m.CheckArity("EmbeddingGenerator", inputs, 1)
 		if err != nil {
 			return nil, nil, err
 		}

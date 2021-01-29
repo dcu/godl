@@ -38,7 +38,7 @@ func (o *GBNOpts) setDefaults() {
 func GBN(nn *Model, opts GBNOpts) Layer {
 	opts.setDefaults()
 
-	lt := incLayer("GBN")
+	lt := AddLayer("GBN")
 
 	mustBeGreaterThan(lt, "OutputDimesion", opts.OutputDimension, 0)
 
@@ -52,7 +52,7 @@ func GBN(nn *Model, opts GBNOpts) Layer {
 	})
 
 	return func(inputs ...*gorgonia.Node) (*gorgonia.Node, *gorgonia.Node, error) {
-		if err := nn.checkArity(lt, inputs, 1); err != nil {
+		if err := nn.CheckArity(lt, inputs, 1); err != nil {
 			return nil, nil, err
 		}
 

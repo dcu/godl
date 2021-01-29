@@ -31,7 +31,7 @@ func (o *AttentiveTransformerOpts) setDefaults() {
 
 // AttentiveTransformer implements an attetion transformer layer
 func AttentiveTransformer(nn *Model, opts AttentiveTransformerOpts) Layer {
-	lt := incLayer("AttentiveTransformer")
+	lt := AddLayer("AttentiveTransformer")
 
 	opts.setDefaults()
 
@@ -53,7 +53,7 @@ func AttentiveTransformer(nn *Model, opts AttentiveTransformerOpts) Layer {
 	})
 
 	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, *gorgonia.Node, error) {
-		if err := nn.checkArity(lt, nodes, 2); err != nil {
+		if err := nn.CheckArity(lt, nodes, 2); err != nil {
 			return nil, nil, err
 		}
 

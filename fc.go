@@ -17,22 +17,22 @@ type FCOpts struct {
 }
 
 func FC(nn *Model, opts FCOpts) Layer {
-	lt := incLayer("FC")
+	lt := AddLayer("FC")
 
 	mustBeGreaterThan(lt, "input dimension", opts.InputDimension, 0)
 	mustBeGreaterThan(lt, "output dimension", opts.OutputDimension, 0)
 
 	var (
 		bias *gorgonia.Node
-		w    = nn.addWeights(lt, tensor.Shape{opts.InputDimension, opts.OutputDimension}, opts.WeightsInit)
+		w    = nn.AddWeights(lt, tensor.Shape{opts.InputDimension, opts.OutputDimension}, opts.WeightsInit)
 	)
 
 	if opts.WithBias {
-		bias = nn.addBias(lt, tensor.Shape{1, opts.OutputDimension}, opts.WeightsInit)
+		bias = nn.AddBias(lt, tensor.Shape{1, opts.OutputDimension}, opts.WeightsInit)
 	}
 
 	return func(inputs ...*gorgonia.Node) (*gorgonia.Node, *gorgonia.Node, error) {
-		err := nn.checkArity(lt, inputs, 1)
+		err := nn.CheckArity(lt, inputs, 1)
 		if err != nil {
 			return nil, nil, err
 		}

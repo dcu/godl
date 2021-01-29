@@ -45,13 +45,13 @@ func (o *BNOpts) setDefaults() {
 func BN(nn *Model, opts BNOpts) Layer {
 	opts.setDefaults()
 
-	lt := incLayer("BN")
+	lt := AddLayer("BN")
 
-	scale := nn.addLearnable(lt, "scale", tensor.Shape{1, opts.InputDimension}, opts.ScaleInit)
-	bias := nn.addBias(lt, tensor.Shape{1, opts.InputDimension}, opts.BiasInit)
+	scale := nn.AddLearnable(lt, "scale", tensor.Shape{1, opts.InputDimension}, opts.ScaleInit)
+	bias := nn.AddBias(lt, tensor.Shape{1, opts.InputDimension}, opts.BiasInit)
 
 	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, *gorgonia.Node, error) {
-		if err := nn.checkArity(lt, nodes, 1); err != nil {
+		if err := nn.CheckArity(lt, nodes, 1); err != nil {
 			return nil, nil, err
 		}
 
