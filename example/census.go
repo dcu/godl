@@ -227,8 +227,8 @@ func main() {
 
 	log.Printf("train x: %v train y: %v", trainX.Shape(), trainY.Shape())
 
-	batchSize := 128
-	virtualBatchSize := 64
+	batchSize := 1024
+	virtualBatchSize := 128
 	catDims := p.catDims()
 	catEmbDim := []int{5, 4, 3, 6, 2, 2, 1, 10}
 	catIdxs := p.catIdxs()
@@ -241,7 +241,7 @@ func main() {
 		trainX.Shape()[1], catDims, catIdxs, catEmbDim, tabnet.TabNetRegressorOpts{
 			BatchSize:        batchSize,
 			VirtualBatchSize: virtualBatchSize,
-			MaskFunction:     tabnet.Sparsemax,
+			MaskFunction:     tabnet.Sigmoid,
 			// PredictionLayerDim: 8,
 			// AttentionLayerDim:  8,
 			WithBias: false,
@@ -249,10 +249,10 @@ func main() {
 	)
 
 	err := regressor.Train(trainX, trainY, validateX, validateY, tabnet.TrainOpts{
-		BatchSize:             batchSize,
-		Epochs:                5,
-		DevMode:               false,
-		WithLearnablesHeatmap: false,
+		BatchSize: batchSize,
+		Epochs:    5,
+		DevMode:   false,
+		// WithLearnablesHeatmap: true,
 	})
 	handleErr(err)
 }

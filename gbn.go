@@ -98,6 +98,6 @@ func GBN(nn *Model, opts GBNOpts) Layer {
 			return nil, nil, errorF(lt, "error concatenating %d nodes: %w", len(nodes), err)
 		}
 
-		return gorgonia.Must(gorgonia.Reshape(ret, xShape)), nil, nil
+		return ret, nil, nil
 	}
 }

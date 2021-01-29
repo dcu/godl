@@ -92,7 +92,7 @@ func (r *TabNetRegressor) Train(trainX, trainY, validateX, validateY tensor.Tens
 
 	if opts.Solver == nil {
 		opts.Solver = gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(opts.BatchSize)), gorgonia.WithLearnRate(0.02), gorgonia.WithClip(1.0))
-		// opts.Solver = gorgonia.NewRMSPropSolver(gorgonia.WithBatchSize(float64(1)), gorgonia.WithLearnRate(0.02))
+		// opts.Solver = gorgonia.NewRMSPropSolver(gorgonia.WithBatchSize(float64(opts.BatchSize)), gorgonia.WithLearnRate(0.02))
 	}
 
 	return r.model.Train(r.layer, trainX, trainY, validateX, validateY, opts)

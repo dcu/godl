@@ -314,7 +314,13 @@ func (m Model) saveHeatmaps(epoch, batch, batchSize, features int) {
 	for _, v := range m.learnables {
 		wt := v.Value().(tensor.Tensor)
 		wtShape := wt.Shape().Clone()
-		newShape := tensor.Shape{wtShape[0], tensor.Shape(wtShape[1:]).TotalSize()}
+		x, y := wtShape[0], tensor.Shape(wtShape[1:]).TotalSize()
+
+		if x == 1 {
+			x, y = PrimeFactors(y)
+		}
+
+		newShape := tensor.Shape{x, y}
 
 		grad, err := v.Grad()
 		if err != nil {
@@ -337,6 +343,11 @@ func (m Model) saveHeatmaps(epoch, batch, batchSize, features int) {
 			panic(fmt.Errorf("failed to process %s: %w", fileName, err))
 		}
 
+		err = gradT.Reshape(newShape...)
+		if err != nil {
+			panic(err)
+		}
+
 		pGrad, err := plot.Heatmap(gradT, nil)
 		if err != nil {
 			panic(fmt.Errorf("failed to process %s: %w", fileName, err))
@@ -347,12 +358,13 @@ func (m Model) saveHeatmaps(epoch, batch, batchSize, features int) {
 			panic(err)
 		}
 
-		width := vg.Length(wtShape[0]) * vg.Centimeter
-		height := vg.Length(wtShape[1]) * vg.Centimeter
-
-		if newShape[0] == 1 {
-			height = 1 * vg.Centimeter
+		err = gradT.Reshape(wtShape...)
+		if err != nil {
+			panic(err)
 		}
+
+		width := vg.Length(newShape[0]) * vg.Centimeter
+		height := vg.Length(newShape[1]) * vg.Centimeter
 
 		_ = os.MkdirAll(pathName, 0755)
 		_ = p.Save(width, height, fileName)
@@ -367,4 +379,45 @@ func (m Model) checkArity(lt layerType, nodes []*gorgonia.Node, arity int) error
 	}
 
 	return nil
+}
+
+// PrimeFactors Get all prime factors of a given number n
+func PrimeFactors(n int) (int, int) {
+	pfs := make([]int, 0)
+
+	// Get the number of 2s that divide n
+	for n%2 == 0 {
+		pfs = append(pfs, 2)
+		n = n / 2
+	}
+
+	// n must be odd at this point. so we can skip one element
+	// (note i = i + 2)
+	for i := 3; i*i <= n; i = i + 2 {
+		// while i divides n, append i and divide n
+		for n%i == 0 {
+			pfs = append(pfs, i)
+			n = n / i
+		}
+	}
+
+	// This condition is to handle the case when n is a prime number
+	// greater than 2
+	if n > 2 {
+		pfs = append(pfs, n)
+	}
+
+	mul := func(arr []int) int {
+		r := 1
+		for _, v := range arr {
+			r *= v
+		}
+
+		return r
+	}
+
+	first := mul(pfs[:len(pfs)/2])
+	second := mul(pfs[len(pfs)/2:])
+
+	return first, second
 }
