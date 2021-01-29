@@ -47,8 +47,8 @@ func BN(nn *Model, opts BNOpts) Layer {
 
 	lt := incLayer("BN")
 
-	bias := nn.addBias(lt, tensor.Shape{1, opts.InputDimension}, opts.BiasInit)
 	scale := nn.addLearnable(lt, "scale", tensor.Shape{1, opts.InputDimension}, opts.ScaleInit)
+	bias := nn.addBias(lt, tensor.Shape{1, opts.InputDimension}, opts.BiasInit)
 
 	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, *gorgonia.Node, error) {
 		if err := nn.checkArity(lt, nodes, 1); err != nil {
