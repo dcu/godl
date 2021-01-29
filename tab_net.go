@@ -165,28 +165,28 @@ func TabNet(nn *Model, opts TabNetOpts) Layer {
 	prior := gorgonia.NewTensor(nn.g, tensor.Float32, 2, gorgonia.WithShape(opts.BatchSize, opts.InputDimension), gorgonia.WithInit(gorgonia.Ones()), gorgonia.WithName("Prior"))
 	out := gorgonia.NewTensor(nn.g, tensor.Float32, 2, gorgonia.WithShape(opts.BatchSize, opts.PredictionLayerDim), gorgonia.WithInit(gorgonia.Zeroes()), gorgonia.WithName("Output"))
 
-	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, *gorgonia.Node, error) {
+	return func(nodes ...*gorgonia.Node) (Result, error) {
 		x := nodes[0]
 
-		bn, _, err := bnLayer(x)
+		bn, err := bnLayer(x)
 		if err != nil {
-			return nil, nil, fmt.Errorf("applying initial batch norm %v: %w", x.Shape(), err)
+			return Result{}, fmt.Errorf("applying initial batch norm %v: %w", x.Shape(), err)
 		}
 
-		ft, _, err := initialSplitter(bn)
+		ft, err := initialSplitter(bn.Output)
 		if err != nil {
-			return nil, nil, fmt.Errorf("applying initial splitter %v: %w", bn.Shape(), err)
+			return Result{}, fmt.Errorf("applying initial splitter %v: %w", bn.Output.Shape(), err)
 		}
 
-		xAttentiveLayer, err := gorgonia.Slice(ft, nil, gorgonia.S(opts.PredictionLayerDim, ft.Shape()[1]))
+		xAttentiveLayer, err := gorgonia.Slice(ft.Output, nil, gorgonia.S(opts.PredictionLayerDim, ft.Shape()[1]))
 		if err != nil {
-			return nil, nil, fmt.Errorf("slicing %v: %w", ft.Shape(), err)
+			return Result{}, fmt.Errorf("slicing %v: %w", ft.Shape(), err)
 		}
 
 		for _, step := range steps {
 			mask, stepLoss, err := step.CalculateMask(xAttentiveLayer, prior, epsilon)
 			if err != nil {
-				return nil, nil, err
+				return Result{}, err
 			}
 
 			// accum losses
@@ -196,48 +196,50 @@ func TabNet(nn *Model, opts TabNetOpts) Layer {
 			{
 				prior, err = gorgonia.HadamardProd(gorgonia.Must(gorgonia.Sub(gamma, mask)), prior)
 				if err != nil {
-					return nil, nil, fmt.Errorf("updating prior: %w", err)
+					return Result{}, fmt.Errorf("updating prior: %w", err)
 				}
 			}
 
-			maskedX, err := gorgonia.HadamardProd(mask, bn)
+			maskedX, err := gorgonia.HadamardProd(mask, bn.Output)
 			if err != nil {
-				return nil, nil, err
+				return Result{}, err
 			}
 
-			ds, _, err := step.FeatureTransformer(maskedX)
+			ds, err := step.FeatureTransformer(maskedX)
 			if err != nil {
-				return nil, nil, err
+				return Result{}, err
 			}
 
-			firstPart, err := gorgonia.Slice(ds, nil, gorgonia.S(0, opts.PredictionLayerDim))
+			firstPart, err := gorgonia.Slice(ds.Output, nil, gorgonia.S(0, opts.PredictionLayerDim))
 			if err != nil {
-				return nil, nil, err
+				return Result{}, err
 			}
 
 			relu, err := gorgonia.Rectify(firstPart)
 			if err != nil {
-				return nil, nil, err
+				return Result{}, err
 			}
 
 			out, err = gorgonia.Add(out, relu)
 			if err != nil {
-				return nil, nil, err
+				return Result{}, err
 			}
 
-			xAttentiveLayer, err = gorgonia.Slice(ds, nil, gorgonia.S(opts.PredictionLayerDim, ds.Shape()[1]))
+			xAttentiveLayer, err = gorgonia.Slice(ds.Output, nil, gorgonia.S(opts.PredictionLayerDim, ds.Shape()[1]))
 			if err != nil {
-				return nil, nil, err
+				return Result{}, err
 			}
 		}
 
 		tabNetLoss = gorgonia.Must(gorgonia.Div(tabNetLoss, stepsCount))
 
-		out, _, err = finalMapping(out)
+		result, err := finalMapping(out)
 		if err != nil {
-			return nil, nil, fmt.Errorf("TabNet: applying final FC layer to %v: %w", out.Shape(), err)
+			return Result{}, fmt.Errorf("TabNet: applying final FC layer to %v: %w", out.Shape(), err)
 		}
 
-		return out, tabNetLoss, nil
+		result.Loss = tabNetLoss
+
+		return result, nil
 	}
 }

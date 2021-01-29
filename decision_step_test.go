@@ -57,17 +57,17 @@ func TestDecisionStep(t *testing.T) {
 				OutputDimension:    a.Shape()[1],
 			})
 
-			mask, _, err := step.AttentiveTransformer(a, priors)
+			mask, err := step.AttentiveTransformer(a, priors)
 			c.NoError(err)
 
 			// Update prior
 			{
 				gamma := gorgonia.NewScalar(tn.g, tensor.Float32, gorgonia.WithValue(float32(1.2)))
-				priors, err = gorgonia.HadamardProd(priors, gorgonia.Must(gorgonia.Sub(gamma, mask)))
+				priors, err = gorgonia.HadamardProd(priors, gorgonia.Must(gorgonia.Sub(gamma, mask.Output)))
 				c.NoError(err)
 			}
 
-			ds, _, err := step.FeatureTransformer(tcase.input)
+			ds, err := step.FeatureTransformer(tcase.input)
 			c.NoError(err)
 
 			if tcase.expectedErr != "" {

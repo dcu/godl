@@ -51,7 +51,7 @@ func TestGLU(t *testing.T) {
 
 			input := gorgonia.NewTensor(g, tensor.Float32, tcase.input.Shape().Dims(), gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithName("input"), gorgonia.WithValue(tcase.input))
 
-			x, _, err := GLU(tn, GLUOpts{
+			x, err := GLU(tn, GLUOpts{
 				InputDimension:   tcase.vbs,
 				OutputDimension:  tcase.output,
 				WeightsInit:      initDummyWeights,

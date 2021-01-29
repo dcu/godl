@@ -52,34 +52,34 @@ func AttentiveTransformer(nn *Model, opts AttentiveTransformerOpts) Layer {
 		BiasInit:         opts.BiasInit,
 	})
 
-	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, *gorgonia.Node, error) {
+	return func(nodes ...*gorgonia.Node) (Result, error) {
 		if err := nn.CheckArity(lt, nodes, 2); err != nil {
-			return nil, nil, err
+			return Result{}, err
 		}
 
 		x := nodes[0]
 		prior := nodes[1]
 
-		fc, _, err := fcLayer(x)
+		fc, err := fcLayer(x)
 		if err != nil {
-			return nil, nil, errorF(lt, "fc%v failed failed: %w", x.Shape(), err)
+			return Result{}, errorF(lt, "fc%v failed failed: %w", x.Shape(), err)
 		}
 
-		bn, _, err := gbnLayer(fc)
+		bn, err := gbnLayer(fc.Output)
 		if err != nil {
-			return nil, nil, errorF(lt, "gbn%v failed: %w", fc.Shape(), err)
+			return Result{}, errorF(lt, "gbn%v failed: %w", fc.Shape(), err)
 		}
 
-		mul, err := gorgonia.HadamardProd(bn, prior)
+		mul, err := gorgonia.HadamardProd(bn.Output, prior)
 		if err != nil {
-			return nil, nil, errorF(lt, "hadamardProd(%v, %v) failed: %w", bn.Shape(), prior.Shape(), err)
+			return Result{}, errorF(lt, "hadamardProd(%v, %v) failed: %w", bn.Shape(), prior.Shape(), err)
 		}
 
 		sm, err := opts.Activation(mul)
 		if err != nil {
-			return nil, nil, errorF(lt, "fn(%v) failed: %w", mul.Shape(), err)
+			return Result{}, errorF(lt, "fn(%v) failed: %w", mul.Shape(), err)
 		}
 
-		return sm, nil, nil
+		return Result{Output: sm}, nil
 	}
 }

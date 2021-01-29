@@ -55,7 +55,7 @@ func TestTabNet(t *testing.T) {
 			a := gorgonia.NewTensor(g, tensor.Float32, tcase.input.Dims(), gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithInit(gorgonia.Ones()), gorgonia.WithName("AttentiveX"))
 			priors := gorgonia.NewTensor(g, tensor.Float32, tcase.input.Dims(), gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithInit(gorgonia.Ones()), gorgonia.WithName("Priors"))
 
-			x, _, err := TabNet(tn, TabNetOpts{
+			result, err := TabNet(tn, TabNetOpts{
 				VirtualBatchSize:   tcase.vbs,
 				IndependentBlocks:  tcase.independentBlocks,
 				PredictionLayerDim: tcase.prediction,
@@ -71,6 +71,8 @@ func TestTabNet(t *testing.T) {
 				ScaleInit:          gorgonia.Ones(),
 				BiasInit:           gorgonia.Zeroes(),
 			})(x, a, priors)
+
+			x = result.Output
 
 			if tcase.expectedErr != "" {
 				c.Error(err)

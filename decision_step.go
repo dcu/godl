@@ -32,10 +32,12 @@ type DecisionStep struct {
 }
 
 func (step DecisionStep) CalculateMask(xAttentiveLayer, prior, epsilon *gorgonia.Node) (*gorgonia.Node, *gorgonia.Node, error) {
-	mask, _, err := step.AttentiveTransformer(xAttentiveLayer, prior)
+	result, err := step.AttentiveTransformer(xAttentiveLayer, prior)
 	if err != nil {
 		return nil, nil, errorF(step.Name, "attentive transformer: %w", err)
 	}
+
+	mask := result.Output
 
 	stepLoss := gorgonia.Must(gorgonia.Mean(
 		gorgonia.Must(gorgonia.Sum(

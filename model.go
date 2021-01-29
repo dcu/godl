@@ -120,7 +120,7 @@ func (m *Model) Train(layer Layer, trainX, trainY, validateX, validateY tensor.T
 	x := gorgonia.NewTensor(m.g, tensor.Float32, trainX.Shape().Dims(), gorgonia.WithShape(opts.BatchSize, trainX.Shape()[1]), gorgonia.WithName("x"))
 	y := gorgonia.NewMatrix(m.g, tensor.Float32, gorgonia.WithShape(opts.BatchSize, trainY.Shape()[1]), gorgonia.WithName("y"))
 
-	output, loss, err := layer(x)
+	result, err := layer(x)
 	if err != nil {
 		return fmt.Errorf("error running layer: %w", err)
 	}
@@ -131,10 +131,10 @@ func (m *Model) Train(layer Layer, trainX, trainY, validateX, validateY tensor.T
 	)
 
 	{
-		cost := opts.CostFn(output, loss, y)
+		cost := opts.CostFn(result.Output, result.Loss, y)
 
 		gorgonia.Read(cost, &costVal)
-		gorgonia.Read(output, &predVal)
+		gorgonia.Read(result.Output, &predVal)
 
 		if _, err := gorgonia.Grad(cost, m.learnables...); err != nil {
 			return fmt.Errorf("error calculating gradient: %w", err)

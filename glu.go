@@ -55,42 +55,37 @@ func GLU(nn *Model, opts GLUOpts) Layer {
 		Momentum:         opts.Momentum,
 	})
 
-	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, *gorgonia.Node, error) {
+	return func(nodes ...*gorgonia.Node) (Result, error) {
 		if err := nn.CheckArity(lt, nodes, 1); err != nil {
-			return nil, nil, err
+			return Result{}, err
 		}
 
 		x := nodes[0]
 
-		var (
-			fc  *gorgonia.Node
-			err error
-		)
-
-		fc, _, err = opts.FC(x)
+		fcResult, err := opts.FC(x)
 		if err != nil {
-			return nil, nil, errorF(lt, "applying FC(%v) failed: %w", x.Shape(), err)
+			return Result{}, errorF(lt, "applying FC(%v) failed: %w", x.Shape(), err)
 		}
 
-		gbn, _, err := gbnLayer(fc)
+		gnbResult, err := gbnLayer(fcResult.Output)
 		if err != nil {
-			return nil, nil, errorF(lt, "applying GBN failed: %w", err)
+			return Result{}, errorF(lt, "applying GBN failed: %w", err)
 		}
 
 		// GLU
-		firstHalf := gorgonia.Must(gorgonia.Slice(gbn, nil, gorgonia.S(0, opts.OutputDimension)))
-		secondHalf := gorgonia.Must(gorgonia.Slice(gbn, nil, gorgonia.S(opts.OutputDimension, gbn.Shape()[1])))
+		firstHalf := gorgonia.Must(gorgonia.Slice(gnbResult.Output, nil, gorgonia.S(0, opts.OutputDimension)))
+		secondHalf := gorgonia.Must(gorgonia.Slice(gnbResult.Output, nil, gorgonia.S(opts.OutputDimension, gnbResult.Output.Shape()[1])))
 
 		act, err := opts.ActivationFn(secondHalf)
 		if err != nil {
-			return nil, nil, errorF(lt, "%s: applying activation function failed: %w", err)
+			return Result{}, errorF(lt, "%s: applying activation function failed: %w", err)
 		}
 
 		mul, err := gorgonia.HadamardProd(firstHalf, act)
 		if err != nil {
-			return nil, nil, errorF(lt, "%s: HadamardProd %d x %d: %w", firstHalf.Shape(), act.Shape(), err)
+			return Result{}, errorF(lt, "%s: HadamardProd %d x %d: %w", firstHalf.Shape(), act.Shape(), err)
 		}
 
-		return mul, nil, nil
+		return Result{Output: mul}, nil
 	}
 }

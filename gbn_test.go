@@ -47,7 +47,7 @@ func TestGBN(t *testing.T) {
 			tn := &Model{g: g}
 			input := gorgonia.NewTensor(g, tensor.Float32, 2, gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithName("GBNInput"), gorgonia.WithValue(tcase.input))
 
-			y, _, err := GBN(tn, GBNOpts{
+			x, err := GBN(tn, GBNOpts{
 				VirtualBatchSize: tcase.vbs,
 				OutputDimension:  tcase.input.Shape()[1],
 			})(input)
@@ -60,7 +60,7 @@ func TestGBN(t *testing.T) {
 			}
 
 			c.NoError(err)
-			c.Equal(tcase.expectedShape, y.Shape())
+			c.Equal(tcase.expectedShape, x.Shape())
 
 			vm := gorgonia.NewTapeMachine(tn.g,
 				gorgonia.WithLogger(testLogger),
@@ -70,7 +70,7 @@ func TestGBN(t *testing.T) {
 			)
 			c.NoError(vm.RunAll())
 
-			c.Equal(tcase.expectedOutput, y.Value().Data().([]float32))
+			c.Equal(tcase.expectedOutput, x.Value().Data().([]float32))
 		})
 	}
 }

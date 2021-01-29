@@ -50,16 +50,16 @@ func BN(nn *Model, opts BNOpts) Layer {
 	scale := nn.AddLearnable(lt, "scale", tensor.Shape{1, opts.InputDimension}, opts.ScaleInit)
 	bias := nn.AddBias(lt, tensor.Shape{1, opts.InputDimension}, opts.BiasInit)
 
-	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, *gorgonia.Node, error) {
+	return func(nodes ...*gorgonia.Node) (Result, error) {
 		if err := nn.CheckArity(lt, nodes, 1); err != nil {
-			return nil, nil, err
+			return Result{}, err
 		}
 
 		x := nodes[0]
 
 		ret, _, _, bnop, err := gorgonia.BatchNorm1d(x, scale, bias, float64(opts.Momentum), float64(opts.Epsilon))
 		if err != nil {
-			return nil, nil, fmt.Errorf("BatchNorm1d: %w", err)
+			return Result{}, fmt.Errorf("BatchNorm1d: %w", err)
 		}
 
 		if opts.Inferring {
@@ -68,6 +68,6 @@ func BN(nn *Model, opts BNOpts) Layer {
 			bnop.SetTraining()
 		}
 
-		return ret, nil, nil
+		return Result{Output: ret}, nil
 	}
 }

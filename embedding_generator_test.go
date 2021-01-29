@@ -61,14 +61,14 @@ func TestEmbeddingGenerator(t *testing.T) {
 			)
 
 			input := gorgonia.NewTensor(tn.g, tensor.Float32, tcase.inputShape.Dims(), gorgonia.WithShape(tcase.inputShape...), gorgonia.WithValue(ts), gorgonia.WithName("input"))
-			output, _, err := embedder(input)
+			result, err := embedder(input)
 			c.NoError(err)
 
 			vm := gorgonia.NewTapeMachine(tn.g)
 			c.NoError(vm.RunAll())
 
-			c.Equal(tcase.expectedOutputShape, output.Shape())
-			c.Equal(tcase.expectedOutput, output.Value().Data())
+			c.Equal(tcase.expectedOutputShape, result.Shape())
+			c.Equal(tcase.expectedOutput, result.Value().Data())
 		})
 	}
 }

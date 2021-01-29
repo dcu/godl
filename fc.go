@@ -31,10 +31,10 @@ func FC(nn *Model, opts FCOpts) Layer {
 		bias = nn.AddBias(lt, tensor.Shape{1, opts.OutputDimension}, opts.WeightsInit)
 	}
 
-	return func(inputs ...*gorgonia.Node) (*gorgonia.Node, *gorgonia.Node, error) {
+	return func(inputs ...*gorgonia.Node) (Result, error) {
 		err := nn.CheckArity(lt, inputs, 1)
 		if err != nil {
-			return nil, nil, err
+			return Result{}, err
 		}
 
 		x := inputs[0]
@@ -47,30 +47,30 @@ func FC(nn *Model, opts FCOpts) Layer {
 
 		layer, err := gorgonia.Mul(x, w)
 		if err != nil {
-			return nil, nil, errorF(lt, "error applying mul %v x %v: %w ", x.Shape(), w.Shape(), err)
+			return Result{}, errorF(lt, "error applying mul %v x %v: %w ", x.Shape(), w.Shape(), err)
 		}
 
 		if opts.WithBias {
 			layer, err = gorgonia.BroadcastAdd(layer, bias, nil, []byte{0})
 			if err != nil {
-				return nil, nil, errorF(lt, "error adding bias %w", err)
+				return Result{}, errorF(lt, "error adding bias %w", err)
 			}
 		}
 
 		if opts.Activation != nil {
 			layer, err = opts.Activation(layer)
 			if err != nil {
-				return nil, nil, errorF(lt, "error applying activation %w", err)
+				return Result{}, errorF(lt, "error applying activation %w", err)
 			}
 		}
 
 		if opts.Dropout > 0.0 {
 			layer, err = gorgonia.Dropout(layer, opts.Dropout)
 			if err != nil {
-				return nil, nil, errorF(lt, "error applying dropout %w", err)
+				return Result{}, errorF(lt, "error applying dropout %w", err)
 			}
 		}
 
-		return layer, nil, nil
+		return Result{Output: layer}, nil
 	}
 }

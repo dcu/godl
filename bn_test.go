@@ -48,10 +48,10 @@ func TestBN(t *testing.T) {
 			x := gorgonia.NewTensor(m.g, tensor.Float32, 2, gorgonia.WithShape(tC.input.Shape()...), gorgonia.WithValue(tC.input), gorgonia.WithName("x"))
 			y := gorgonia.NewTensor(m.g, tensor.Float32, 2, gorgonia.WithShape(tC.y.Shape()...), gorgonia.WithValue(tC.y), gorgonia.WithName("y"))
 
-			outputNode, _, err := bn(x)
+			result, err := bn(x)
 			c.NoError(err)
 
-			diff := gorgonia.Must(gorgonia.Sub(outputNode, y))
+			diff := gorgonia.Must(gorgonia.Sub(result.Output, y))
 			cost := gorgonia.Must(gorgonia.Mean(diff))
 
 			l := m.learnables
@@ -69,7 +69,7 @@ func TestBN(t *testing.T) {
 			c.NoError(vm.RunAll())
 			c.NoError(vm.Close())
 
-			outputGrad, err := outputNode.Grad()
+			outputGrad, err := result.Output.Grad()
 			c.NoError(err)
 
 			scaleGrad, err := m.learnables[0].Grad()
@@ -79,13 +79,13 @@ func TestBN(t *testing.T) {
 			c.NoError(err)
 
 			log.Printf("input: %v", tC.input)
-			log.Printf("output: %v", outputNode.Value())
+			log.Printf("output: %v", result.Value())
 			log.Printf("output grad: %v", outputGrad)
 			log.Printf("scale grad: %v", scaleGrad)
 			log.Printf("bias grad: %v", biasGrad)
 			log.Printf("cost: %v", cost.Value())
 
-			c.Equal(tC.expectedOutput.Data(), outputNode.Value().Data())
+			c.Equal(tC.expectedOutput.Data(), result.Value().Data())
 			c.Equal(tC.expectedOutputGrad.Data(), outputGrad.Data())
 			c.Equal(tC.expectedScaleGrad.Data(), scaleGrad.Data())
 			c.Equal(tC.expectedBiasGrad.Data(), biasGrad.Data())

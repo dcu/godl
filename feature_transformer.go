@@ -88,56 +88,57 @@ func FeatureTransformer(nn *Model, opts FeatureTransformerOpts) Layer {
 
 	scale := gorgonia.NewConstant(float32(math.Sqrt(0.5)), gorgonia.WithName("ft.scale"))
 
-	return func(nodes ...*gorgonia.Node) (*gorgonia.Node, *gorgonia.Node, error) {
+	return func(nodes ...*gorgonia.Node) (Result, error) {
 		if err := nn.CheckArity(lt, nodes, 1); err != nil {
-			return nil, nil, err
+			return Result{}, err
 		}
 
-		var err error
 		x := nodes[0]
 
 		if len(shared) > 0 {
-			x, _, err = shared[0](x)
+			result, err := shared[0](x)
 			if err != nil {
-				return nil, nil, err
+				return Result{}, err
 			}
 
+			x = result.Output
+
 			for _, glu := range shared[1:] {
-				output, _, err := glu(x)
+				result, err := glu(x)
 				if err != nil {
-					return nil, nil, errorF(lt, "executing shared GLU layer with %v: %w", x.Shape(), err)
+					return Result{}, errorF(lt, "executing shared GLU layer with %v: %w", x.Shape(), err)
 				}
 
 				xShape := x.Shape()
-				x, err = gorgonia.Add(x, output)
+				x, err = gorgonia.Add(x, result.Output)
 				if err != nil {
-					return nil, nil, errorF(lt, "%v + %v: %w", xShape, output.Shape(), err)
+					return Result{}, errorF(lt, "%v + %v: %w", xShape, result.Shape(), err)
 				}
 
 				x, err = gorgonia.Mul(x, scale)
 				if err != nil {
-					return nil, nil, err
+					return Result{}, err
 				}
 			}
 		}
 
 		for _, layer := range independent {
-			output, _, err := layer(x)
+			result, err := layer(x)
 			if err != nil {
-				return nil, nil, errorF(lt, "executing independent GLU layer with %v: %w", x.Shape(), err)
+				return Result{}, errorF(lt, "executing independent GLU layer with %v: %w", x.Shape(), err)
 			}
 
-			x, err = gorgonia.Add(x, output)
+			x, err = gorgonia.Add(x, result.Output)
 			if err != nil {
-				return nil, nil, errorF(lt, "add op: %w", err)
+				return Result{}, errorF(lt, "add op: %w", err)
 			}
 
 			x, err = gorgonia.Mul(x, scale)
 			if err != nil {
-				return nil, nil, err
+				return Result{}, err
 			}
 		}
 
-		return x, nil, nil
+		return Result{Output: x}, nil
 	}
 }

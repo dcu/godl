@@ -70,7 +70,7 @@ func TestFeatureTransformer(t *testing.T) {
 				fcInput = 8 + 8
 			}
 
-			x, _, err := FeatureTransformer(tn, FeatureTransformerOpts{
+			x, err := FeatureTransformer(tn, FeatureTransformerOpts{
 				VirtualBatchSize:  tcase.vbs,
 				InputDimension:    input.Shape()[1],
 				OutputDimension:   tcase.output,

@@ -51,9 +51,9 @@ func GBN(nn *Model, opts GBNOpts) Layer {
 		InputDimension: opts.OutputDimension,
 	})
 
-	return func(inputs ...*gorgonia.Node) (*gorgonia.Node, *gorgonia.Node, error) {
+	return func(inputs ...*gorgonia.Node) (Result, error) {
 		if err := nn.CheckArity(lt, inputs, 1); err != nil {
-			return nil, nil, err
+			return Result{}, err
 		}
 
 		x := inputs[0]
@@ -85,19 +85,19 @@ func GBN(nn *Model, opts GBNOpts) Layer {
 
 			virtualBatch := gorgonia.Must(gorgonia.Slice(x, gorgonia.S(start, end)))
 
-			ret, _, err := bn(virtualBatch)
+			result, err := bn(virtualBatch)
 			if err != nil {
-				return nil, nil, err
+				return Result{}, err
 			}
 
-			nodes = append(nodes, ret)
+			nodes = append(nodes, result.Output)
 		}
 
 		ret, err := gorgonia.Concat(0, nodes...)
 		if err != nil {
-			return nil, nil, errorF(lt, "error concatenating %d nodes: %w", len(nodes), err)
+			return Result{}, errorF(lt, "error concatenating %d nodes: %w", len(nodes), err)
 		}
 
-		return ret, nil, nil
+		return Result{Output: ret}, nil
 	}
 }

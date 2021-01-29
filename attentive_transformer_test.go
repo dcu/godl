@@ -40,12 +40,14 @@ func TestAttentiveTransformer(t *testing.T) {
 
 			input := gorgonia.NewTensor(g, tensor.Float32, tcase.input.Dims(), gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithName("input"), gorgonia.WithValue(tcase.input))
 			priors := gorgonia.NewTensor(g, tensor.Float32, tcase.input.Dims(), gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithInit(gorgonia.Ones()))
-			x, _, err := AttentiveTransformer(tn, AttentiveTransformerOpts{
+			result, err := AttentiveTransformer(tn, AttentiveTransformerOpts{
 				VirtualBatchSize: tcase.vbs,
 				InputDimension:   input.Shape()[1],
 				OutputDimension:  tcase.output,
 				WeightsInit:      initDummyWeights,
 			})(input, priors)
+
+			x := result.Output
 
 			if tcase.expectedErr != "" {
 				c.Error(err)
