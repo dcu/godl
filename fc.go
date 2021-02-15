@@ -13,6 +13,7 @@ type FCOpts struct {
 	InputDimension  int
 
 	WeightsInit gorgonia.InitWFn
+	BiasInit    gorgonia.InitWFn
 	WithBias    bool
 }
 
@@ -28,7 +29,7 @@ func FC(nn *Model, opts FCOpts) Layer {
 	)
 
 	if opts.WithBias {
-		bias = nn.AddBias(lt, tensor.Shape{1, opts.OutputDimension}, opts.WeightsInit)
+		bias = nn.AddBias(lt, tensor.Shape{1, opts.OutputDimension}, opts.BiasInit)
 	}
 
 	return func(inputs ...*gorgonia.Node) (Result, error) {
