@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/dcu/tabnet/storage"
 	"github.com/fatih/color"
 	"gonum.org/v1/plot/vg"
 	"gorgonia.org/gorgonia"
@@ -53,7 +54,7 @@ type Model struct {
 	learnables gorgonia.Nodes
 	watchables []watchable
 
-	model map[string]gorgonia.Value
+	loader storage.Storage
 }
 
 // NewModel creates a new model for the neural network
@@ -62,7 +63,6 @@ func NewModel() *Model {
 		g:          gorgonia.NewGraph(),
 		learnables: make([]*gorgonia.Node, 0, bufferSizeModel),
 		watchables: make([]watchable, 0),
-		model:      make(map[string]gorgonia.Value, bufferSizeModel),
 	}
 }
 

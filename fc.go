@@ -25,11 +25,15 @@ func FC(nn *Model, opts FCOpts) Layer {
 
 	var (
 		bias *gorgonia.Node
-		w    = nn.AddWeights(lt, tensor.Shape{opts.InputDimension, opts.OutputDimension}, opts.WeightsInit)
+		w    = nn.AddWeights(lt, tensor.Shape{opts.InputDimension, opts.OutputDimension}, NewNodeOpts{
+			InitFN: opts.WeightsInit,
+		})
 	)
 
 	if opts.WithBias {
-		bias = nn.AddBias(lt, tensor.Shape{1, opts.OutputDimension}, opts.BiasInit)
+		bias = nn.AddBias(lt, tensor.Shape{1, opts.OutputDimension}, NewNodeOpts{
+			InitFN: opts.BiasInit,
+		})
 	}
 
 	return func(inputs ...*gorgonia.Node) (Result, error) {

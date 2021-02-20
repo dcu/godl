@@ -33,10 +33,16 @@ func LSTM(m *tabnet.Model, opts LSTMOpts) tabnet.Layer {
 	opts.setDefaults()
 	lt := tabnet.AddLayer("LSTM")
 
-	inputWeights := m.AddWeights(lt, tensor.Shape{1, opts.InputDimension, opts.HiddenSize * 4}, opts.WeightsInit)
-	hiddenWeights := m.AddWeights(lt, tensor.Shape{1, opts.HiddenSize, opts.HiddenSize * 4}, opts.WeightsInit)
+	inputWeights := m.AddWeights(lt, tensor.Shape{1, opts.InputDimension, opts.HiddenSize * 4}, tabnet.NewNodeOpts{
+		InitFN: opts.WeightsInit,
+	})
+	hiddenWeights := m.AddWeights(lt, tensor.Shape{1, opts.HiddenSize, opts.HiddenSize * 4}, tabnet.NewNodeOpts{
+		InitFN: opts.WeightsInit,
+	})
 
-	bias := m.AddBias(lt, tensor.Shape{1, 1, opts.HiddenSize * 4}, opts.BiasInit)
+	bias := m.AddBias(lt, tensor.Shape{1, 1, opts.HiddenSize * 4}, tabnet.NewNodeOpts{
+		InitFN: opts.BiasInit,
+	})
 
 	dummyHidden := gorgonia.NewMatrix(m.ExprGraph(), tensor.Float32, gorgonia.WithShape(1, opts.HiddenSize), gorgonia.WithInit(gorgonia.Zeroes()), gorgonia.WithName("LSTMDummyHidden"))
 	dummyCell := gorgonia.NewMatrix(m.ExprGraph(), tensor.Float32, gorgonia.WithShape(1, opts.HiddenSize), gorgonia.WithInit(gorgonia.Zeroes()), gorgonia.WithName("LSTMDummyCell"))

@@ -4,6 +4,7 @@ import (
 	"math"
 
 	"github.com/dcu/tabnet"
+	"github.com/dcu/tabnet/storage"
 	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
 )
@@ -23,6 +24,9 @@ type BlockOpts struct {
 	WithPooling  bool
 
 	WeightsInit, BiasInit gorgonia.InitWFn
+
+	weightsName, biasName string
+	loader                storage.Storage
 }
 
 func (o *BlockOpts) setDefaults() {
@@ -62,11 +66,16 @@ func Block(m *tabnet.Model, opts BlockOpts) tabnet.Layer {
 	opts.setDefaults()
 
 	lt := tabnet.AddLayer("vgg.Block")
-	w := m.AddWeights(lt, tensor.Shape{opts.OutputDimension, opts.InputDimension, opts.Channels, opts.Channels}, opts.WeightsInit)
+
+	w := m.AddWeights(lt, tensor.Shape{opts.OutputDimension, opts.InputDimension, opts.Channels, opts.Channels}, tabnet.NewNodeOpts{
+		InitFN: opts.WeightsInit,
+	})
 
 	var bias *gorgonia.Node
 	if opts.WithBias {
-		bias = m.AddWeights(lt, tensor.Shape{1, opts.OutputDimension, 1, 1}, opts.BiasInit)
+		bias = m.AddWeights(lt, tensor.Shape{1, opts.OutputDimension, 1, 1}, tabnet.NewNodeOpts{
+			InitFN: opts.BiasInit,
+		})
 	}
 
 	return func(inputs ...*gorgonia.Node) (tabnet.Result, error) {

@@ -8,26 +8,19 @@ replace gorgonia.org/tensor => ../../../gorgonia.org/tensor
 
 require (
 	github.com/awalterschulze/gographviz v2.0.3+incompatible // indirect
-	github.com/cheggaaa/pb v1.0.29
-	github.com/chewxy/hm v1.0.0
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fatih/color v1.10.0
-	github.com/goccy/go-graphviz v0.0.9
-	github.com/golang/protobuf v1.4.3 // indirect
-	github.com/google/flatbuffers v1.12.0 // indirect
+	github.com/flanglet/kanzi-go v1.8.0
 	github.com/google/go-cmp v0.5.4 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/leesper/go_rng v0.0.0-20190531154944-a612b043e353 // indirect
 	github.com/mattn/go-runewidth v0.0.10 // indirect
 	github.com/mum4k/termdash v0.14.0
-	github.com/pkg/errors v0.9.1
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/stretchr/testify v1.6.1
 	golang.org/x/exp v0.0.0-20201203231725-fa01524bc59d // indirect
 	golang.org/x/net v0.0.0-20201202161906-c7110b5ffcbb // indirect
 	golang.org/x/sys v0.0.0-20201204225414-ed752295db88 // indirect
-	golang.org/x/text v0.3.4 // indirect
-	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	gonum.org/v1/plot v0.8.1
 	google.golang.org/genproto v0.0.0-20201204160425-06b3db808446 // indirect
 	google.golang.org/grpc v1.34.0 // indirect
