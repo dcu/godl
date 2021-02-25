@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dcu/tabnet"
+	"github.com/dcu/deepzen"
 	"gorgonia.org/tensor"
 )
 
@@ -237,18 +237,18 @@ func main() {
 	log.Printf("cat emb dims: %v", catEmbDim)
 	log.Printf("cat idxs: %v", catIdxs)
 
-	regressor := tabnet.NewTabNetRegressor(
-		trainX.Shape()[1], catDims, catIdxs, catEmbDim, tabnet.TabNetRegressorOpts{
+	regressor := deepzen.NewTabNetRegressor(
+		trainX.Shape()[1], catDims, catIdxs, catEmbDim, deepzen.TabNetRegressorOpts{
 			BatchSize:        batchSize,
 			VirtualBatchSize: virtualBatchSize,
-			MaskFunction:     tabnet.Sigmoid,
+			MaskFunction:     deepzen.Sigmoid,
 			// PredictionLayerDim: 8,
 			// AttentionLayerDim:  8,
 			WithBias: false,
 		},
 	)
 
-	err := regressor.Train(trainX, trainY, validateX, validateY, tabnet.TrainOpts{
+	err := regressor.Train(trainX, trainY, validateX, validateY, deepzen.TrainOpts{
 		BatchSize: batchSize,
 		Epochs:    5,
 		DevMode:   false,

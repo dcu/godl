@@ -1,4 +1,4 @@
-package tabnet
+package deepzen
 
 import (
 	"log"

@@ -3,7 +3,7 @@ package lstm
 import (
 	"fmt"
 
-	"github.com/dcu/tabnet"
+	"github.com/dcu/deepzen"
 	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
 )
@@ -15,39 +15,39 @@ type LSTMOpts struct {
 	// Bidirectional bool
 	WeightsInit, BiasInit gorgonia.InitWFn
 
-	RecurrentActivation tabnet.ActivationFn
-	Activation          tabnet.ActivationFn
+	RecurrentActivation deepzen.ActivationFn
+	Activation          deepzen.ActivationFn
 }
 
 func (o *LSTMOpts) setDefaults() {
 	if o.RecurrentActivation == nil {
-		o.RecurrentActivation = tabnet.Sigmoid
+		o.RecurrentActivation = deepzen.Sigmoid
 	}
 
 	if o.Activation == nil {
-		o.Activation = tabnet.Tanh
+		o.Activation = deepzen.Tanh
 	}
 }
 
-func LSTM(m *tabnet.Model, opts LSTMOpts) tabnet.Layer {
+func LSTM(m *deepzen.Model, opts LSTMOpts) deepzen.Layer {
 	opts.setDefaults()
-	lt := tabnet.AddLayer("LSTM")
+	lt := deepzen.AddLayer("LSTM")
 
-	inputWeights := m.AddWeights(lt, tensor.Shape{1, opts.InputDimension, opts.HiddenSize * 4}, tabnet.NewNodeOpts{
+	inputWeights := m.AddWeights(lt, tensor.Shape{1, opts.InputDimension, opts.HiddenSize * 4}, deepzen.NewNodeOpts{
 		InitFN: opts.WeightsInit,
 	})
-	hiddenWeights := m.AddWeights(lt, tensor.Shape{1, opts.HiddenSize, opts.HiddenSize * 4}, tabnet.NewNodeOpts{
+	hiddenWeights := m.AddWeights(lt, tensor.Shape{1, opts.HiddenSize, opts.HiddenSize * 4}, deepzen.NewNodeOpts{
 		InitFN: opts.WeightsInit,
 	})
 
-	bias := m.AddBias(lt, tensor.Shape{1, 1, opts.HiddenSize * 4}, tabnet.NewNodeOpts{
+	bias := m.AddBias(lt, tensor.Shape{1, 1, opts.HiddenSize * 4}, deepzen.NewNodeOpts{
 		InitFN: opts.BiasInit,
 	})
 
 	dummyHidden := gorgonia.NewMatrix(m.ExprGraph(), tensor.Float32, gorgonia.WithShape(1, opts.HiddenSize), gorgonia.WithInit(gorgonia.Zeroes()), gorgonia.WithName("LSTMDummyHidden"))
 	dummyCell := gorgonia.NewMatrix(m.ExprGraph(), tensor.Float32, gorgonia.WithShape(1, opts.HiddenSize), gorgonia.WithInit(gorgonia.Zeroes()), gorgonia.WithName("LSTMDummyCell"))
 
-	return func(inputs ...*gorgonia.Node) (tabnet.Result, error) {
+	return func(inputs ...*gorgonia.Node) (deepzen.Result, error) {
 		var (
 			x, prevHidden, prevCell *gorgonia.Node
 		)
@@ -62,7 +62,7 @@ func LSTM(m *tabnet.Model, opts LSTMOpts) tabnet.Layer {
 			prevHidden = inputs[1]
 			prevCell = inputs[2]
 		default:
-			return tabnet.Result{}, fmt.Errorf("%v: invalid input size", lt)
+			return deepzen.Result{}, fmt.Errorf("%v: invalid input size", lt)
 		}
 
 		seqs := x.Shape()[0]
@@ -92,24 +92,24 @@ func LSTM(m *tabnet.Model, opts LSTMOpts) tabnet.Layer {
 
 			retain, err := gorgonia.BroadcastHadamardProd(forgetGate, prevCell, nil, []byte{0})
 			if err != nil {
-				return tabnet.Result{}, err
+				return deepzen.Result{}, err
 			}
 
 			write, err := gorgonia.BroadcastHadamardProd(inputGate, cellGate, nil, []byte{0})
 			if err != nil {
-				return tabnet.Result{}, err
+				return deepzen.Result{}, err
 			}
 
 			prevCell, err = gorgonia.Add(retain, write)
 			if err != nil {
-				return tabnet.Result{}, err
+				return deepzen.Result{}, err
 			}
 
-			cellTan := gorgonia.Must(tabnet.Tanh(prevCell))
+			cellTan := gorgonia.Must(deepzen.Tanh(prevCell))
 
 			prevHidden, err = gorgonia.BroadcastHadamardProd(outputGate, cellTan, nil, []byte{0})
 			if err != nil {
-				return tabnet.Result{}, err
+				return deepzen.Result{}, err
 			}
 
 			outputs[seq] = prevHidden
@@ -117,7 +117,7 @@ func LSTM(m *tabnet.Model, opts LSTMOpts) tabnet.Layer {
 
 		outputGate := gorgonia.Must(gorgonia.Concat(0, outputs...))
 
-		return tabnet.Result{
+		return deepzen.Result{
 			Output: outputGate,
 			Nodes: gorgonia.Nodes{
 				prevHidden,

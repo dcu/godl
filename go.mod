@@ -1,6 +1,6 @@
-module github.com/dcu/tabnet
+module github.com/dcu/deepzen
 
-go 1.15
+go 1.16
 
 replace gorgonia.org/gorgonia => ../../../gorgonia.org/gorgonia
 

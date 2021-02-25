@@ -3,7 +3,7 @@ package lstm
 import (
 	"testing"
 
-	"github.com/dcu/tabnet"
+	"github.com/dcu/deepzen"
 	"github.com/stretchr/testify/require"
 	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
@@ -106,7 +106,7 @@ func TestLSTM(t *testing.T) {
 		t.Run(tC.desc, func(t *testing.T) {
 			c := require.New(t)
 
-			m := tabnet.NewModel()
+			m := deepzen.NewModel()
 
 			input := gorgonia.NodeFromAny(m.ExprGraph(), tC.Input, gorgonia.WithName("input"))
 			hiddenInput := gorgonia.NodeFromAny(m.ExprGraph(), tC.HiddenInput, gorgonia.WithName("hidden"))

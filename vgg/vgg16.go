@@ -3,8 +3,8 @@ package vgg
 import (
 	"log"
 
-	"github.com/dcu/tabnet"
-	"github.com/dcu/tabnet/storage/nn1"
+	"github.com/dcu/deepzen"
+	"github.com/dcu/deepzen/storage/nn1"
 	"gorgonia.org/gorgonia"
 )
 
@@ -17,8 +17,8 @@ type Opts struct {
 	OnlyFeatureExtraction bool
 }
 
-func VGG16(m *tabnet.Model, opts Opts) tabnet.Layer {
-	lt := tabnet.AddLayer("vgg.VGG16")
+func VGG16(m *deepzen.Model, opts Opts) deepzen.Layer {
+	lt := deepzen.AddLayer("vgg.VGG16")
 
 	var (
 		loader *nn1.NN1
@@ -37,7 +37,7 @@ func VGG16(m *tabnet.Model, opts Opts) tabnet.Layer {
 		}
 	}
 
-	layers := []tabnet.Layer{
+	layers := []deepzen.Layer{
 		Block(m, BlockOpts{
 			Channels:        3,
 			InputDimension:  3,
@@ -216,7 +216,7 @@ func VGG16(m *tabnet.Model, opts Opts) tabnet.Layer {
 
 	if !opts.OnlyFeatureExtraction {
 		layers = append(layers,
-			tabnet.FC(m, tabnet.FCOpts{
+			deepzen.FC(m, deepzen.FCOpts{
 				InputDimension:  25088,
 				OutputDimension: 4096,
 				WithBias:        opts.WithBias,
@@ -225,7 +225,7 @@ func VGG16(m *tabnet.Model, opts Opts) tabnet.Layer {
 				WeightsInit:     opts.WeightsInit,
 				BiasInit:        opts.BiasInit,
 			}),
-			tabnet.FC(m, tabnet.FCOpts{
+			deepzen.FC(m, deepzen.FCOpts{
 				InputDimension:  4096,
 				OutputDimension: 4096,
 				WithBias:        opts.WithBias,
@@ -234,7 +234,7 @@ func VGG16(m *tabnet.Model, opts Opts) tabnet.Layer {
 				WeightsInit:     opts.WeightsInit,
 				BiasInit:        opts.BiasInit,
 			}),
-			tabnet.FC(m, tabnet.FCOpts{
+			deepzen.FC(m, deepzen.FCOpts{
 				InputDimension:  4096,
 				OutputDimension: 1000,
 				WithBias:        opts.WithBias,
@@ -246,11 +246,11 @@ func VGG16(m *tabnet.Model, opts Opts) tabnet.Layer {
 		)
 	}
 
-	seq := tabnet.Sequential(m, layers...)
+	seq := deepzen.Sequential(m, layers...)
 
-	return func(inputs ...*gorgonia.Node) (tabnet.Result, error) {
+	return func(inputs ...*gorgonia.Node) (deepzen.Result, error) {
 		if err := m.CheckArity(lt, inputs, 1); err != nil {
-			return tabnet.Result{}, err
+			return deepzen.Result{}, err
 		}
 
 		x := inputs[0]

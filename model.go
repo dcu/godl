@@ -1,4 +1,4 @@
-package tabnet
+package deepzen
 
 import (
 	"fmt"
@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/dcu/tabnet/storage"
+	"github.com/dcu/deepzen/storage"
 	"github.com/fatih/color"
 	"gonum.org/v1/plot/vg"
 	"gorgonia.org/gorgonia"
@@ -87,10 +87,12 @@ func (m *Model) ToSVG(path string) error {
 	return cmd.Run()
 }
 
+// ExprGraph returns the graph for the model
 func (m *Model) ExprGraph() *gorgonia.ExprGraph {
 	return m.g
 }
 
+// Train trains the model with the given data
 func (m *Model) Train(layer Layer, trainX, trainY, validateX, validateY tensor.Tensor, opts TrainOpts) error {
 	opts.setDefaults()
 
@@ -316,10 +318,6 @@ func (m Model) saveHeatmaps(epoch, batch, batchSize, features int) {
 		wtShape := wt.Shape().Clone()
 		x, y := wtShape[0], tensor.Shape(wtShape[1:]).TotalSize()
 
-		if x == 1 {
-			x, y = PrimeFactors(y)
-		}
-
 		newShape := tensor.Shape{x, y}
 
 		grad, err := v.Grad()
@@ -373,51 +371,11 @@ func (m Model) saveHeatmaps(epoch, batch, batchSize, features int) {
 	}
 }
 
+// CheckArity checks if the arity is the correct one
 func (m Model) CheckArity(lt LayerType, nodes []*gorgonia.Node, arity int) error {
 	if len(nodes) != arity {
 		return errorF(lt, "arity doesn't match, expected %d, got %d", arity, len(nodes))
 	}
 
 	return nil
-}
-
-// PrimeFactors Get all prime factors of a given number n
-func PrimeFactors(n int) (int, int) {
-	pfs := make([]int, 0)
-
-	// Get the number of 2s that divide n
-	for n%2 == 0 {
-		pfs = append(pfs, 2)
-		n = n / 2
-	}
-
-	// n must be odd at this point. so we can skip one element
-	// (note i = i + 2)
-	for i := 3; i*i <= n; i = i + 2 {
-		// while i divides n, append i and divide n
-		for n%i == 0 {
-			pfs = append(pfs, i)
-			n = n / i
-		}
-	}
-
-	// This condition is to handle the case when n is a prime number
-	// greater than 2
-	if n > 2 {
-		pfs = append(pfs, n)
-	}
-
-	mul := func(arr []int) int {
-		r := 1
-		for _, v := range arr {
-			r *= v
-		}
-
-		return r
-	}
-
-	first := mul(pfs[:len(pfs)/2])
-	second := mul(pfs[len(pfs)/2:])
-
-	return first, second
 }

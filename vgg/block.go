@@ -3,8 +3,8 @@ package vgg
 import (
 	"math"
 
-	"github.com/dcu/tabnet"
-	"github.com/dcu/tabnet/storage"
+	"github.com/dcu/deepzen"
+	"github.com/dcu/deepzen/storage"
 	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
 )
@@ -14,7 +14,7 @@ type BlockOpts struct {
 	InputDimension  int
 	OutputDimension int
 
-	ActivationFn tabnet.ActivationFn
+	ActivationFn deepzen.ActivationFn
 	Dropout      float64
 	Kernel       tensor.Shape
 	Pad          []int
@@ -61,26 +61,26 @@ func (o *BlockOpts) setDefaults() {
 	}
 }
 
-// VGG block composed of conv2d+maxpool with optional dropout and activation function
-func Block(m *tabnet.Model, opts BlockOpts) tabnet.Layer {
+// Block is a VGG block composed of conv2d+maxpool with optional dropout and activation function
+func Block(m *deepzen.Model, opts BlockOpts) deepzen.Layer {
 	opts.setDefaults()
 
-	lt := tabnet.AddLayer("vgg.Block")
+	lt := deepzen.AddLayer("vgg.Block")
 
-	w := m.AddWeights(lt, tensor.Shape{opts.OutputDimension, opts.InputDimension, opts.Channels, opts.Channels}, tabnet.NewNodeOpts{
+	w := m.AddWeights(lt, tensor.Shape{opts.OutputDimension, opts.InputDimension, opts.Channels, opts.Channels}, deepzen.NewNodeOpts{
 		InitFN: opts.WeightsInit,
 	})
 
 	var bias *gorgonia.Node
 	if opts.WithBias {
-		bias = m.AddWeights(lt, tensor.Shape{1, opts.OutputDimension, 1, 1}, tabnet.NewNodeOpts{
+		bias = m.AddWeights(lt, tensor.Shape{1, opts.OutputDimension, 1, 1}, deepzen.NewNodeOpts{
 			InitFN: opts.BiasInit,
 		})
 	}
 
-	return func(inputs ...*gorgonia.Node) (tabnet.Result, error) {
+	return func(inputs ...*gorgonia.Node) (deepzen.Result, error) {
 		if err := m.CheckArity(lt, inputs, 1); err != nil {
-			return tabnet.Result{}, err
+			return deepzen.Result{}, err
 		}
 
 		x := inputs[0]
@@ -102,7 +102,7 @@ func Block(m *tabnet.Model, opts BlockOpts) tabnet.Layer {
 			x = gorgonia.Must(gorgonia.Dropout(x, opts.Dropout))
 		}
 
-		return tabnet.Result{
+		return deepzen.Result{
 			Output: x,
 		}, nil
 	}
