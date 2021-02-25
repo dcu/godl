@@ -1,15 +1,17 @@
-package deepzen
+package tabnet
 
 import (
 	"testing"
 
+	"github.com/dcu/deepzen"
 	"github.com/stretchr/testify/require"
 	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
 )
 
 func TestDecisionStep(t *testing.T) {
-	g := gorgonia.NewGraph()
+	tn := deepzen.NewModel()
+	g := tn.ExprGraph()
 
 	testCases := []struct {
 		desc              string
@@ -38,8 +40,6 @@ func TestDecisionStep(t *testing.T) {
 		},
 	}
 
-	tn := &Model{g: g}
-
 	for _, tcase := range testCases {
 		t.Run(tcase.desc, func(t *testing.T) {
 			c := require.New(t)
@@ -62,7 +62,7 @@ func TestDecisionStep(t *testing.T) {
 
 			// Update prior
 			{
-				gamma := gorgonia.NewScalar(tn.g, tensor.Float32, gorgonia.WithValue(float32(1.2)))
+				gamma := gorgonia.NewScalar(tn.ExprGraph(), tensor.Float32, gorgonia.WithValue(float32(1.2)))
 				priors, err = gorgonia.HadamardProd(priors, gorgonia.Must(gorgonia.Sub(gamma, mask.Output)))
 				c.NoError(err)
 			}

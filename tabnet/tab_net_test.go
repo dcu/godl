@@ -1,8 +1,9 @@
-package deepzen
+package tabnet
 
 import (
 	"testing"
 
+	"github.com/dcu/deepzen"
 	"github.com/stretchr/testify/require"
 	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
@@ -47,8 +48,8 @@ func TestTabNet(t *testing.T) {
 		t.Run(tcase.desc, func(t *testing.T) {
 			c := require.New(t)
 
-			g := gorgonia.NewGraph()
-			tn := &Model{g: g}
+			tn := deepzen.NewModel()
+			g := tn.ExprGraph()
 
 			x := gorgonia.NewTensor(g, tensor.Float32, 2, gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithName("Input"), gorgonia.WithValue(tcase.input))
 
@@ -85,7 +86,7 @@ func TestTabNet(t *testing.T) {
 			}
 
 			vm := gorgonia.NewTapeMachine(g,
-				gorgonia.BindDualValues(tn.learnables...),
+				gorgonia.BindDualValues(tn.Learnables()...),
 				gorgonia.WithLogger(testLogger),
 				gorgonia.WithValueFmt("%+v"),
 				gorgonia.WithWatchlist(),

@@ -92,6 +92,11 @@ func (m *Model) ExprGraph() *gorgonia.ExprGraph {
 	return m.g
 }
 
+// Learnables returns all learnables in the model
+func (m *Model) Learnables() gorgonia.Nodes {
+	return m.learnables
+}
+
 // Train trains the model with the given data
 func (m *Model) Train(layer Layer, trainX, trainY, validateX, validateY tensor.Tensor, opts TrainOpts) error {
 	opts.setDefaults()
@@ -374,7 +379,7 @@ func (m Model) saveHeatmaps(epoch, batch, batchSize, features int) {
 // CheckArity checks if the arity is the correct one
 func (m Model) CheckArity(lt LayerType, nodes []*gorgonia.Node, arity int) error {
 	if len(nodes) != arity {
-		return errorF(lt, "arity doesn't match, expected %d, got %d", arity, len(nodes))
+		return ErrorF(lt, "arity doesn't match, expected %d, got %d", arity, len(nodes))
 	}
 
 	return nil

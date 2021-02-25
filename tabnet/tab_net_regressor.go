@@ -1,19 +1,20 @@
-package deepzen
+package tabnet
 
 import (
+	"github.com/dcu/deepzen"
 	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
 )
 
-type TabNetRegressor struct {
-	model *Model
-	layer Layer
+type Regressor struct {
+	model *deepzen.Model
+	layer deepzen.Layer
 }
 
-type TabNetRegressorOpts struct {
+type RegressorOpts struct {
 	BatchSize        int
 	VirtualBatchSize int
-	MaskFunction     ActivationFn
+	MaskFunction     deepzen.ActivationFn
 	WithBias         bool
 
 	SharedBlocks       int
@@ -29,10 +30,10 @@ type TabNetRegressorOpts struct {
 	WeightsInit, ScaleInit, BiasInit gorgonia.InitWFn
 }
 
-func NewTabNetRegressor(inputDim int, catDims []int, catIdxs []int, catEmbDim []int, opts TabNetRegressorOpts) *TabNetRegressor {
-	nn := NewModel()
+func NewRegressor(inputDim int, catDims []int, catIdxs []int, catEmbDim []int, opts RegressorOpts) *Regressor {
+	nn := deepzen.NewModel()
 
-	embedder := EmbeddingGenerator(nn, inputDim, catDims, catIdxs, catEmbDim, EmbeddingOpts{
+	embedder := deepzen.EmbeddingGenerator(nn, inputDim, catDims, catIdxs, catEmbDim, deepzen.EmbeddingOpts{
 		WeightsInit: opts.WeightsInit,
 	})
 
@@ -62,23 +63,23 @@ func NewTabNetRegressor(inputDim int, catDims []int, catIdxs []int, catEmbDim []
 		Epsilon:            opts.Epsilon,
 	})
 
-	layer := Sequential(nn, embedder, tn)
+	layer := deepzen.Sequential(nn, embedder, tn)
 
-	return &TabNetRegressor{
+	return &Regressor{
 		model: nn,
 		layer: layer,
 	}
 }
 
-func (r *TabNetRegressor) Model() *Model {
+func (r *Regressor) Model() *deepzen.Model {
 	return r.model
 }
 
-func (r *TabNetRegressor) Train(trainX, trainY, validateX, validateY tensor.Tensor, opts TrainOpts) error {
+func (r *Regressor) Train(trainX, trainY, validateX, validateY tensor.Tensor, opts deepzen.TrainOpts) error {
 	if opts.CostFn == nil {
 		lambdaSparse := gorgonia.NewConstant(float32(1e-3))
 		opts.CostFn = func(output *gorgonia.Node, innerLoss *gorgonia.Node, y *gorgonia.Node) *gorgonia.Node {
-			cost := MSELoss(output, y, MSELossOpts{})
+			cost := deepzen.MSELoss(output, y, deepzen.MSELossOpts{})
 
 			// r.model.Watch("output", gorgonia.Must(gorgonia.Sum(output)))
 			// r.model.Watch("loss", cost)

@@ -17,7 +17,7 @@ func HandleErr(err error, where string, args ...interface{}) {
 	panic(fmt.Sprintf("%s: %v", color.RedString(message), err))
 }
 
-func errorF(lt LayerType, template string, args ...interface{}) error {
+func ErrorF(lt LayerType, template string, args ...interface{}) error {
 	args = append([]interface{}{lt}, args...)
 	return fmt.Errorf("[%s] "+template, args...)
 }

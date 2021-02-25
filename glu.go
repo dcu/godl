@@ -64,12 +64,12 @@ func GLU(nn *Model, opts GLUOpts) Layer {
 
 		fcResult, err := opts.FC(x)
 		if err != nil {
-			return Result{}, errorF(lt, "applying FC(%v) failed: %w", x.Shape(), err)
+			return Result{}, ErrorF(lt, "applying FC(%v) failed: %w", x.Shape(), err)
 		}
 
 		gnbResult, err := gbnLayer(fcResult.Output)
 		if err != nil {
-			return Result{}, errorF(lt, "applying GBN failed: %w", err)
+			return Result{}, ErrorF(lt, "applying GBN failed: %w", err)
 		}
 
 		// GLU
@@ -78,12 +78,12 @@ func GLU(nn *Model, opts GLUOpts) Layer {
 
 		act, err := opts.ActivationFn(secondHalf)
 		if err != nil {
-			return Result{}, errorF(lt, "%s: applying activation function failed: %w", err)
+			return Result{}, ErrorF(lt, "%s: applying activation function failed: %w", err)
 		}
 
 		mul, err := gorgonia.HadamardProd(firstHalf, act)
 		if err != nil {
-			return Result{}, errorF(lt, "%s: HadamardProd %d x %d: %w", firstHalf.Shape(), act.Shape(), err)
+			return Result{}, ErrorF(lt, "%s: HadamardProd %d x %d: %w", firstHalf.Shape(), act.Shape(), err)
 		}
 
 		return Result{Output: mul}, nil

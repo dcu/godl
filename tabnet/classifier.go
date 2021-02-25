@@ -1,19 +1,20 @@
-package deepzen
+package tabnet
 
 import (
+	"github.com/dcu/deepzen"
 	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
 )
 
-type TabNetClassifier struct {
-	model *Model
-	layer Layer
+type Classifier struct {
+	model *deepzen.Model
+	layer deepzen.Layer
 }
 
-type TabNetClassifierOpts struct {
+type ClassifierOpts struct {
 	BatchSize        int
 	VirtualBatchSize int
-	MaskFunction     ActivationFn
+	MaskFunction     deepzen.ActivationFn
 	WithBias         bool
 
 	SharedBlocks       int
@@ -29,10 +30,10 @@ type TabNetClassifierOpts struct {
 	WeightsInit, ScaleInit, BiasInit gorgonia.InitWFn
 }
 
-func NewTabNetClassifier(inputDim int, catDims []int, catIdxs []int, catEmbDim []int, opts TabNetClassifierOpts) *TabNetClassifier {
-	nn := NewModel()
+func NewClassifier(inputDim int, catDims []int, catIdxs []int, catEmbDim []int, opts ClassifierOpts) *Classifier {
+	nn := deepzen.NewModel()
 
-	embedder := EmbeddingGenerator(nn, inputDim, catDims, catIdxs, catEmbDim, EmbeddingOpts{
+	embedder := deepzen.EmbeddingGenerator(nn, inputDim, catDims, catIdxs, catEmbDim, deepzen.EmbeddingOpts{
 		WeightsInit: opts.WeightsInit,
 	})
 
@@ -62,23 +63,23 @@ func NewTabNetClassifier(inputDim int, catDims []int, catIdxs []int, catEmbDim [
 		Epsilon:            opts.Epsilon,
 	})
 
-	layer := Sequential(nn, embedder, tn)
+	layer := deepzen.Sequential(nn, embedder, tn)
 
-	return &TabNetClassifier{
+	return &Classifier{
 		model: nn,
 		layer: layer,
 	}
 }
 
-func (r *TabNetClassifier) Model() *Model {
+func (r *Classifier) Model() *deepzen.Model {
 	return r.model
 }
 
-func (r *TabNetClassifier) Train(trainX, trainY, validateX, validateY tensor.Tensor, opts TrainOpts) error {
+func (r *Classifier) Train(trainX, trainY, validateX, validateY tensor.Tensor, opts deepzen.TrainOpts) error {
 	if opts.CostFn == nil {
 		lambdaSparse := gorgonia.NewConstant(float32(1e-3))
 		opts.CostFn = func(output *gorgonia.Node, innerLoss *gorgonia.Node, y *gorgonia.Node) *gorgonia.Node {
-			cost := CrossEntropyLoss(output, y, CrossEntropyLossOpt{})
+			cost := deepzen.CrossEntropyLoss(output, y, deepzen.CrossEntropyLossOpt{})
 			cost = gorgonia.Must(gorgonia.Sub(cost, gorgonia.Must(gorgonia.Mul(lambdaSparse, innerLoss))))
 
 			return cost

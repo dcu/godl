@@ -40,7 +40,7 @@ func GBN(nn *Model, opts GBNOpts) Layer {
 
 	lt := AddLayer("GBN")
 
-	mustBeGreaterThan(lt, "OutputDimesion", opts.OutputDimension, 0)
+	MustBeGreatherThan(lt, "OutputDimesion", opts.OutputDimension, 0)
 
 	bn := BN(nn, BNOpts{
 		Momentum:       opts.Momentum,
@@ -65,7 +65,7 @@ func GBN(nn *Model, opts GBNOpts) Layer {
 		}
 
 		if inputSize%opts.VirtualBatchSize != 0 {
-			panic(errorF(lt, "input size (%d) must be divisible by virtual batch size (%v)", inputSize, opts.VirtualBatchSize))
+			panic(ErrorF(lt, "input size (%d) must be divisible by virtual batch size (%v)", inputSize, opts.VirtualBatchSize))
 		}
 
 		batches := int(math.Ceil(float64(inputSize) / float64(opts.VirtualBatchSize)))
@@ -95,7 +95,7 @@ func GBN(nn *Model, opts GBNOpts) Layer {
 
 		ret, err := gorgonia.Concat(0, nodes...)
 		if err != nil {
-			return Result{}, errorF(lt, "error concatenating %d nodes: %w", len(nodes), err)
+			return Result{}, ErrorF(lt, "error concatenating %d nodes: %w", len(nodes), err)
 		}
 
 		return Result{Output: ret}, nil

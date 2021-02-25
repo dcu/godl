@@ -17,7 +17,7 @@ func anyNumberToFloat64(v interface{}) float64 {
 	panic(fmt.Errorf("unsupported type: %T", v))
 }
 
-func mustBeGreaterThan(lt LayerType, context string, v interface{}, base interface{}) {
+func MustBeGreatherThan(lt LayerType, context string, v interface{}, base interface{}) {
 	if anyNumberToFloat64(v) <= anyNumberToFloat64(base) {
 		panic(fmt.Errorf("[%s] %s: %v must be greater than %v", lt, context, v, base))
 	}

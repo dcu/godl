@@ -14,7 +14,7 @@ type DataLoaderOpts struct {
 }
 
 func (o *DataLoaderOpts) setDefaults() {
-	mustBeGreaterThan(LayerType("DataLoader"), "BatchSize", o.BatchSize, 0)
+	MustBeGreatherThan(LayerType("DataLoader"), "BatchSize", o.BatchSize, 0)
 }
 
 type DataLoader struct {

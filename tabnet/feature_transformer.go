@@ -1,14 +1,15 @@
-package deepzen
+package tabnet
 
 import (
 	"math"
 
+	"github.com/dcu/deepzen"
 	"gorgonia.org/gorgonia"
 )
 
 // FeatureTransformerOpts contains options for feature transformer layer
 type FeatureTransformerOpts struct {
-	Shared            []Layer
+	Shared            []deepzen.Layer
 	VirtualBatchSize  int
 	IndependentBlocks int
 	InputDimension    int
@@ -31,12 +32,12 @@ func (o *FeatureTransformerOpts) setDefaults() {
 }
 
 // FeatureTransformer implements a feature transformer layer
-func FeatureTransformer(nn *Model, opts FeatureTransformerOpts) Layer {
-	lt := AddLayer("FeatureTransformer")
+func FeatureTransformer(nn *deepzen.Model, opts FeatureTransformerOpts) deepzen.Layer {
+	lt := deepzen.AddLayer("FeatureTransformer")
 
 	opts.setDefaults()
 
-	shared := make([]Layer, 0, len(opts.Shared))
+	shared := make([]deepzen.Layer, 0, len(opts.Shared))
 
 	gluInput := opts.InputDimension
 	gluOutput := opts.OutputDimension
@@ -49,7 +50,7 @@ func FeatureTransformer(nn *Model, opts FeatureTransformerOpts) Layer {
 			weightsInit = gorgonia.GlorotN(gain)
 		}
 
-		shared = append(shared, GLU(nn, GLUOpts{
+		shared = append(shared, deepzen.GLU(nn, deepzen.GLUOpts{
 			InputDimension:   gluInput,
 			OutputDimension:  gluOutput,
 			VirtualBatchSize: opts.VirtualBatchSize,
@@ -66,7 +67,7 @@ func FeatureTransformer(nn *Model, opts FeatureTransformerOpts) Layer {
 	independentBlocks := opts.IndependentBlocks
 	gluOutput = opts.OutputDimension
 
-	independent := make([]Layer, 0, len(opts.Shared))
+	independent := make([]deepzen.Layer, 0, len(opts.Shared))
 	for i := 0; i < independentBlocks; i++ {
 		weightsInit := opts.WeightsInit
 
@@ -75,7 +76,7 @@ func FeatureTransformer(nn *Model, opts FeatureTransformerOpts) Layer {
 			weightsInit = gorgonia.GlorotN(gain)
 		}
 
-		independent = append(independent, GLU(nn, GLUOpts{
+		independent = append(independent, deepzen.GLU(nn, deepzen.GLUOpts{
 			InputDimension:   gluInput,
 			OutputDimension:  gluOutput,
 			VirtualBatchSize: opts.VirtualBatchSize,
@@ -88,9 +89,9 @@ func FeatureTransformer(nn *Model, opts FeatureTransformerOpts) Layer {
 
 	scale := gorgonia.NewConstant(float32(math.Sqrt(0.5)), gorgonia.WithName("ft.scale"))
 
-	return func(nodes ...*gorgonia.Node) (Result, error) {
+	return func(nodes ...*gorgonia.Node) (deepzen.Result, error) {
 		if err := nn.CheckArity(lt, nodes, 1); err != nil {
-			return Result{}, err
+			return deepzen.Result{}, err
 		}
 
 		x := nodes[0]
@@ -98,7 +99,7 @@ func FeatureTransformer(nn *Model, opts FeatureTransformerOpts) Layer {
 		if len(shared) > 0 {
 			result, err := shared[0](x)
 			if err != nil {
-				return Result{}, err
+				return deepzen.Result{}, err
 			}
 
 			x = result.Output
@@ -106,18 +107,18 @@ func FeatureTransformer(nn *Model, opts FeatureTransformerOpts) Layer {
 			for _, glu := range shared[1:] {
 				result, err := glu(x)
 				if err != nil {
-					return Result{}, errorF(lt, "executing shared GLU layer with %v: %w", x.Shape(), err)
+					return deepzen.Result{}, deepzen.ErrorF(lt, "executing shared GLU layer with %v: %w", x.Shape(), err)
 				}
 
 				xShape := x.Shape()
 				x, err = gorgonia.Add(x, result.Output)
 				if err != nil {
-					return Result{}, errorF(lt, "%v + %v: %w", xShape, result.Shape(), err)
+					return deepzen.Result{}, deepzen.ErrorF(lt, "%v + %v: %w", xShape, result.Shape(), err)
 				}
 
 				x, err = gorgonia.Mul(x, scale)
 				if err != nil {
-					return Result{}, err
+					return deepzen.Result{}, err
 				}
 			}
 		}
@@ -125,20 +126,20 @@ func FeatureTransformer(nn *Model, opts FeatureTransformerOpts) Layer {
 		for _, layer := range independent {
 			result, err := layer(x)
 			if err != nil {
-				return Result{}, errorF(lt, "executing independent GLU layer with %v: %w", x.Shape(), err)
+				return deepzen.Result{}, deepzen.ErrorF(lt, "executing independent GLU layer with %v: %w", x.Shape(), err)
 			}
 
 			x, err = gorgonia.Add(x, result.Output)
 			if err != nil {
-				return Result{}, errorF(lt, "add op: %w", err)
+				return deepzen.Result{}, deepzen.ErrorF(lt, "add op: %w", err)
 			}
 
 			x, err = gorgonia.Mul(x, scale)
 			if err != nil {
-				return Result{}, err
+				return deepzen.Result{}, err
 			}
 		}
 
-		return Result{Output: x}, nil
+		return deepzen.Result{Output: x}, nil
 	}
 }

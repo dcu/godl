@@ -1,8 +1,9 @@
-package deepzen
+package tabnet
 
 import (
 	"testing"
 
+	"github.com/dcu/deepzen"
 	"github.com/stretchr/testify/require"
 	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
@@ -35,8 +36,8 @@ func TestAttentiveTransformer(t *testing.T) {
 		t.Run(tcase.desc, func(t *testing.T) {
 			c := require.New(t)
 
-			g := gorgonia.NewGraph()
-			tn := &Model{g: g}
+			tn := deepzen.NewModel()
+			g := tn.ExprGraph()
 
 			input := gorgonia.NewTensor(g, tensor.Float32, tcase.input.Dims(), gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithName("input"), gorgonia.WithValue(tcase.input))
 			priors := gorgonia.NewTensor(g, tensor.Float32, tcase.input.Dims(), gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithInit(gorgonia.Ones()))
