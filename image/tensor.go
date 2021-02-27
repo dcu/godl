@@ -1,0 +1,81 @@
+package image
+
+import (
+	"image"
+	"image/color"
+
+	"gorgonia.org/tensor"
+)
+
+type TensorMode string
+
+const (
+	TensorModeCaffe      TensorMode = "caffe"
+	TensorModeTensorFlow TensorMode = "tensorflow"
+	TensorModeTorch      TensorMode = "torch"
+)
+
+// ToTensorOpts are the options to convert the image to a tensor
+type ToTensorOpts struct {
+	// TensorMode is the mode to weight the pixels. The default one is Caffe
+	TensorMode TensorMode
+}
+
+// ToTensor converts the given image to a tensor
+func ToTensor(img image.Image, opts ToTensorOpts) tensor.Tensor {
+	bounds := img.Bounds()
+
+	return tensor.New(
+		tensor.Of(tensor.Float32),
+		tensor.WithShape(1, 3, bounds.Max.X, bounds.Max.Y), // batchSize, channels, width, height
+		tensor.WithBacking(imageToWeights(img, opts)),
+	)
+}
+
+func imageToWeights(img image.Image, opts ToTensorOpts) []float32 {
+	bounds := img.Bounds()
+	width, height := bounds.Max.X, bounds.Max.Y
+
+	pixels := make([]float32, 3*width*height)
+
+	for x := 0; x < width; x++ {
+		for y := 0; y < height; y++ {
+			w1, w2, w3 := pixelWeight(img.At(x, y), opts)
+
+			pixels[width*y+x] = w1
+			pixels[(width*y+x)+1*width*height] = w2
+			pixels[(width*y+x)+2*width*height] = w3
+		}
+	}
+
+	return pixels
+}
+
+func pixelWeight(pixel color.Color, opts ToTensorOpts) (float32, float32, float32) {
+	r, g, b, _ := pixel.RGBA()
+
+	switch opts.TensorMode {
+	case TensorModeTensorFlow:
+		// https://github.com/tensorflow/tensorflow/blob/v2.4.1/tensorflow/python/keras/applications/imagenet_utils.py#L192
+
+		return float32(r/256)/127.5 - 1.0,
+			float32(g/256)/127.5 - 1.0,
+			float32(b/256)/127.5 - 1.0
+	case TensorModeTorch:
+		// https://github.com/tensorflow/tensorflow/blob/v2.4.1/tensorflow/python/keras/applications/imagenet_utils.py#L197
+		mean := []float32{0.485, 0.456, 0.406}
+		std := []float32{0.229, 0.224, 0.225}
+
+		return (float32(r)/65536 - mean[0]) / std[0],
+			(float32(g)/65536 - mean[1]) / std[1],
+			(float32(b)/65536 - mean[2]) / std[2]
+	default:
+		// https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/keras/applications/imagenet_utils.py#L202
+		mean := []float32{103.939, 116.779, 123.68}
+
+		// RGB -> BGR
+		return float32(b/256) - mean[0],
+			float32(g/256) - mean[1],
+			float32(r/256) - mean[2]
+	}
+}
