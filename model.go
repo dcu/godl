@@ -224,33 +224,16 @@ func (m *Model) Train(layer Layer, trainX, trainY, validateX, validateY tensor.T
 	return m.validate(x, y, costVal, predVal, validateX, validateY, opts)
 }
 
-// Predict predicts the input tensors
-func (m *Model) Predict(fwd Layer, input tensor.Tensor) (tensor.Tensor, error) {
-	x := gorgonia.NewTensor(m.g, tensor.Float32, input.Shape().Dims(), gorgonia.WithShape(input.Shape()...), gorgonia.WithName("x"), gorgonia.WithValue(input)) // FIXME: don't add a new node every time this function is called
+// Run runs the virtual machine in prediction mode
+func (m *Model) Run() error {
+	vm := gorgonia.NewTapeMachine(m.g)
 
-	result, err := fwd(x)
+	err := vm.RunAll()
 	if err != nil {
-		return nil, fmt.Errorf("error running layer: %w", err)
+		return err
 	}
 
-	var (
-		predVal gorgonia.Value
-	)
-
-	{
-		gorgonia.Read(result.Output, &predVal)
-	}
-
-	vm := gorgonia.NewTapeMachine(m.g, gorgonia.WithInfWatch(), gorgonia.TraceExec(), gorgonia.WithNaNWatch())
-
-	err = vm.RunAll()
-	if err != nil {
-		return nil, err
-	}
-
-	_ = vm.Close()
-
-	return predVal.(tensor.Tensor), nil
+	return vm.Close()
 }
 
 func (m *Model) validate(x, y *gorgonia.Node, costVal, predVal gorgonia.Value, validateX, validateY tensor.Tensor, opts TrainOpts) error {

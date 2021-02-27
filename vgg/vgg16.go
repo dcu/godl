@@ -16,7 +16,14 @@ type Opts struct {
 
 // VGG16 is a convolutional neural network for classification and object detection
 // The input must be a 224x224 RGB image
-func VGG16(m *deepzen.Model, opts Opts) deepzen.Layer {
+func VGG16(opts Opts) func(m *deepzen.Model) deepzen.Layer {
+	return func(m *deepzen.Model) deepzen.Layer {
+		return VGG16Layer(m, opts)
+	}
+}
+
+// VGG16Layer returns the layer for the VGG16 network
+func VGG16Layer(m *deepzen.Model, opts Opts) deepzen.Layer {
 	lt := deepzen.AddLayer("vgg.VGG16")
 	fixedWeights := false
 
