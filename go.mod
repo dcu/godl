@@ -9,6 +9,7 @@ require (
 	github.com/apache/arrow/go/arrow v0.0.0-20210225050147-b5ac048c75cc // indirect
 	github.com/awalterschulze/gographviz v2.0.3+incompatible // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/dcu/resize v0.0.0-20201120200444-0e5185b92511 // indirect
 	github.com/fatih/color v1.10.0
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/google/go-cmp v0.5.4 // indirect

@@ -4,11 +4,11 @@ import (
 	"math"
 
 	"github.com/dcu/deepzen"
-	"github.com/dcu/deepzen/storage"
 	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
 )
 
+// BlockOpts are the options for a VGG Block
 type BlockOpts struct {
 	Channels        int
 	InputDimension  int
@@ -24,9 +24,8 @@ type BlockOpts struct {
 	WithPooling  bool
 
 	WeightsInit, BiasInit gorgonia.InitWFn
-
-	weightsName, biasName string
-	loader                storage.Storage
+	WeightsName, BiasName string
+	FixedWeights          bool
 }
 
 func (o *BlockOpts) setDefaults() {
@@ -67,14 +66,18 @@ func Block(m *deepzen.Model, opts BlockOpts) deepzen.Layer {
 
 	lt := deepzen.AddLayer("vgg.Block")
 
-	w := m.AddWeights(lt, tensor.Shape{opts.OutputDimension, opts.InputDimension, opts.Channels, opts.Channels}, deepzen.NewNodeOpts{
-		InitFN: opts.WeightsInit,
+	w := m.AddWeights(lt, tensor.Shape{opts.OutputDimension, opts.InputDimension, opts.Channels, opts.Channels}, deepzen.NewWeightsOpts{
+		InitFN:     opts.WeightsInit,
+		UniqueName: opts.WeightsName,
+		Fixed:      opts.FixedWeights,
 	})
 
 	var bias *gorgonia.Node
 	if opts.WithBias {
-		bias = m.AddWeights(lt, tensor.Shape{1, opts.OutputDimension, 1, 1}, deepzen.NewNodeOpts{
-			InitFN: opts.BiasInit,
+		bias = m.AddBias(lt, tensor.Shape{1, opts.OutputDimension, 1, 1}, deepzen.NewWeightsOpts{
+			InitFN:     opts.BiasInit,
+			UniqueName: opts.BiasName,
+			Fixed:      opts.FixedWeights,
 		})
 	}
 

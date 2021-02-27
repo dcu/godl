@@ -4,47 +4,51 @@ import (
 	"fmt"
 	"sync/atomic"
 
+	"github.com/fatih/color"
 	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
 )
 
-var learnablesCount int64
+var weightsCount int64
 
-// NewNodeOpts defines the options to create a node
+// NewWeightsOpts defines the options to create a node
 // Value has priority if it's not defined then it uses the InitFN if it's not defined it uses Glorot/Xavier(1.0)
 // If UniqueName is empty an automatic one will be assigned.
-type NewNodeOpts struct {
+type NewWeightsOpts struct {
 	UniqueName string
 	Value      gorgonia.Value
 	InitFN     gorgonia.InitWFn
+
+	// Fixed indicates that the weights won't be learnable. By default the weights are learnable
+	Fixed bool
 }
 
-// LearnablesCount return the number of learnables
-func (t *Model) LearnablesCount() int64 {
-	return learnablesCount
+// WeightsCount return the number of learnables
+func (t *Model) WeightsCount() int64 {
+	return weightsCount
 }
 
-func (t *Model) AddWeights(lt LayerType, shape tensor.Shape, opts NewNodeOpts) *gorgonia.Node {
+func (t *Model) AddWeights(lt LayerType, shape tensor.Shape, opts NewWeightsOpts) *gorgonia.Node {
 	return t.AddLearnable(lt, "weight", shape, opts)
 }
 
-func (t *Model) AddBias(lt LayerType, shape tensor.Shape, opts NewNodeOpts) *gorgonia.Node {
+func (t *Model) AddBias(lt LayerType, shape tensor.Shape, opts NewWeightsOpts) *gorgonia.Node {
 	return t.AddLearnable(lt, "bias", shape, opts)
 }
 
-func (t *Model) AddLearnable(lt LayerType, typ string, shape tensor.Shape, opts NewNodeOpts) *gorgonia.Node {
+func (t *Model) AddLearnable(lt LayerType, typ string, shape tensor.Shape, opts NewWeightsOpts) *gorgonia.Node {
 	if opts.UniqueName == "" {
-		opts.UniqueName = fmt.Sprintf("%s.%d.%s.%d.%d", lt, learnablesCount, typ, len(t.learnables), shape.TotalSize())
+		opts.UniqueName = fmt.Sprintf("%s.%d.%s.%d.%d", lt, weightsCount, typ, len(t.learnables), shape.TotalSize())
 	}
 
-	w := t.CreateNode(shape, opts)
+	w := t.CreateWeightsNode(shape, opts)
 	t.learnables = append(t.learnables, w)
 
 	return w
 }
 
-func (t *Model) CreateNode(shape tensor.Shape, opts NewNodeOpts) *gorgonia.Node {
-	atomic.AddInt64(&learnablesCount, 1)
+func (t *Model) CreateWeightsNode(shape tensor.Shape, opts NewWeightsOpts) *gorgonia.Node {
+	atomic.AddInt64(&weightsCount, 1)
 
 	var init gorgonia.NodeConsOpt
 
@@ -56,11 +60,12 @@ func (t *Model) CreateNode(shape tensor.Shape, opts NewNodeOpts) *gorgonia.Node 
 		init = gorgonia.WithInit(gorgonia.GlorotN(1.0))
 	}
 
-	if t.loader != nil {
-		val, err := t.loader.Load(opts.UniqueName)
-		if err == nil {
-			init = gorgonia.WithValue(val)
-		}
+	val, err := t.Storage.TensorByName(opts.UniqueName)
+	if err == nil {
+		color.Green("Loaded weights %v %v from storage", shape, opts.UniqueName)
+		init = gorgonia.WithValue(val)
+	} else {
+		color.Yellow("Assigned random weights to %v %v", shape, opts.UniqueName)
 	}
 
 	var w *gorgonia.Node

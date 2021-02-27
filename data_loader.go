@@ -8,6 +8,7 @@ import (
 	"gorgonia.org/tensor/native"
 )
 
+// DataLoaderOpts are the options for the data loader
 type DataLoaderOpts struct {
 	Shuffle   bool
 	BatchSize int
@@ -17,6 +18,7 @@ func (o *DataLoaderOpts) setDefaults() {
 	MustBeGreatherThan(LayerType("DataLoader"), "BatchSize", o.BatchSize, 0)
 }
 
+// DataLoader loads the data in batches on every iteration/epoch. It has features like shuffling the data
 type DataLoader struct {
 	x    tensor.Tensor
 	y    tensor.Tensor
@@ -116,6 +118,7 @@ func (dl *DataLoader) Reset() {
 	}
 }
 
+// Shuffle shuffles the data in the loader
 func (dl *DataLoader) Shuffle() error {
 	iterX, err := native.MatrixF32(dl.x.(*tensor.Dense))
 	if err != nil {

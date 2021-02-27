@@ -12,9 +12,11 @@ type FCOpts struct {
 	OutputDimension int
 	InputDimension  int
 
-	WeightsInit gorgonia.InitWFn
-	BiasInit    gorgonia.InitWFn
-	WithBias    bool
+	WeightsInit           gorgonia.InitWFn
+	BiasInit              gorgonia.InitWFn
+	WithBias              bool
+	WeightsName, BiasName string
+	FixedWeights          bool
 }
 
 func FC(nn *Model, opts FCOpts) Layer {
@@ -25,14 +27,18 @@ func FC(nn *Model, opts FCOpts) Layer {
 
 	var (
 		bias *gorgonia.Node
-		w    = nn.AddWeights(lt, tensor.Shape{opts.InputDimension, opts.OutputDimension}, NewNodeOpts{
-			InitFN: opts.WeightsInit,
+		w    = nn.AddWeights(lt, tensor.Shape{opts.InputDimension, opts.OutputDimension}, NewWeightsOpts{
+			InitFN:     opts.WeightsInit,
+			UniqueName: opts.WeightsName,
+			Fixed:      opts.FixedWeights,
 		})
 	)
 
 	if opts.WithBias {
-		bias = nn.AddBias(lt, tensor.Shape{1, opts.OutputDimension}, NewNodeOpts{
-			InitFN: opts.BiasInit,
+		bias = nn.AddBias(lt, tensor.Shape{1, opts.OutputDimension}, NewWeightsOpts{
+			InitFN:     opts.BiasInit,
+			UniqueName: opts.BiasName,
+			Fixed:      opts.FixedWeights,
 		})
 	}
 

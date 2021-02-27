@@ -54,7 +54,7 @@ type Model struct {
 	learnables gorgonia.Nodes
 	watchables []watchable
 
-	loader storage.Storage
+	Storage *storage.Storage
 }
 
 // NewModel creates a new model for the neural network
@@ -63,6 +63,7 @@ func NewModel() *Model {
 		g:          gorgonia.NewGraph(),
 		learnables: make([]*gorgonia.Node, 0, bufferSizeModel),
 		watchables: make([]watchable, 0),
+		Storage:    storage.NewStorage(),
 	}
 }
 
@@ -221,6 +222,35 @@ func (m *Model) Train(layer Layer, trainX, trainY, validateX, validateY tensor.T
 	}
 
 	return m.validate(x, y, costVal, predVal, validateX, validateY, opts)
+}
+
+// Predict predicts the input tensors
+func (m *Model) Predict(fwd Layer, input tensor.Tensor) (tensor.Tensor, error) {
+	x := gorgonia.NewTensor(m.g, tensor.Float32, input.Shape().Dims(), gorgonia.WithShape(input.Shape()...), gorgonia.WithName("x"), gorgonia.WithValue(input)) // FIXME: don't add a new node every time this function is called
+
+	result, err := fwd(x)
+	if err != nil {
+		return nil, fmt.Errorf("error running layer: %w", err)
+	}
+
+	var (
+		predVal gorgonia.Value
+	)
+
+	{
+		gorgonia.Read(result.Output, &predVal)
+	}
+
+	vm := gorgonia.NewTapeMachine(m.g, gorgonia.WithInfWatch(), gorgonia.TraceExec(), gorgonia.WithNaNWatch())
+
+	err = vm.RunAll()
+	if err != nil {
+		return nil, err
+	}
+
+	_ = vm.Close()
+
+	return predVal.(tensor.Tensor), nil
 }
 
 func (m *Model) validate(x, y *gorgonia.Node, costVal, predVal gorgonia.Value, validateX, validateY tensor.Tensor, opts TrainOpts) error {

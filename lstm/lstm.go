@@ -33,14 +33,14 @@ func LSTM(m *deepzen.Model, opts LSTMOpts) deepzen.Layer {
 	opts.setDefaults()
 	lt := deepzen.AddLayer("LSTM")
 
-	inputWeights := m.AddWeights(lt, tensor.Shape{1, opts.InputDimension, opts.HiddenSize * 4}, deepzen.NewNodeOpts{
+	inputWeights := m.AddWeights(lt, tensor.Shape{1, opts.InputDimension, opts.HiddenSize * 4}, deepzen.NewWeightsOpts{
 		InitFN: opts.WeightsInit,
 	})
-	hiddenWeights := m.AddWeights(lt, tensor.Shape{1, opts.HiddenSize, opts.HiddenSize * 4}, deepzen.NewNodeOpts{
+	hiddenWeights := m.AddWeights(lt, tensor.Shape{1, opts.HiddenSize, opts.HiddenSize * 4}, deepzen.NewWeightsOpts{
 		InitFN: opts.WeightsInit,
 	})
 
-	bias := m.AddBias(lt, tensor.Shape{1, 1, opts.HiddenSize * 4}, deepzen.NewNodeOpts{
+	bias := m.AddBias(lt, tensor.Shape{1, 1, opts.HiddenSize * 4}, deepzen.NewWeightsOpts{
 		InitFN: opts.BiasInit,
 	})
 

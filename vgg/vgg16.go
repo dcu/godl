@@ -1,10 +1,7 @@
 package vgg
 
 import (
-	"log"
-
 	"github.com/dcu/deepzen"
-	"github.com/dcu/deepzen/storage/nn1"
 	"gorgonia.org/gorgonia"
 )
 
@@ -17,24 +14,25 @@ type Opts struct {
 	OnlyFeatureExtraction bool
 }
 
+// VGG16 is a convolutional neural network for classification and object detection
+// The input must be a 224x224 RGB image
 func VGG16(m *deepzen.Model, opts Opts) deepzen.Layer {
 	lt := deepzen.AddLayer("vgg.VGG16")
-
-	var (
-		loader *nn1.NN1
-		err    error
-	)
+	fixedWeights := false
 
 	if opts.PreTrained {
-		fileName := "vgg16.nn1"
+		fileName := "vgg16_weights_th_dim_ordering_th_kernels.nn1"
 		if opts.OnlyFeatureExtraction {
-			fileName = "vgg16_notop.nn1"
+			fileName = "vgg16_weights_th_dim_ordering_th_kernels_notop.nn1"
 		}
 
-		loader, err = nn1.Open(fileName)
+		err := m.Storage.LoadFile(fileName)
 		if err != nil {
-			log.Panicf("couldn't load %v in pre-trained mode: %v", fileName, err)
+			panic(err)
 		}
+
+		fixedWeights = !opts.Learnable
+		opts.WithBias = true
 	}
 
 	layers := []deepzen.Layer{
@@ -47,9 +45,9 @@ func VGG16(m *deepzen.Model, opts Opts) deepzen.Layer {
 			WithBias:        opts.WithBias,
 			BiasInit:        opts.BiasInit,
 			WeightsInit:     opts.WeightsInit,
-			loader:          loader,
-			weightsName:     "/block1_conv1/block1_conv1_W_1:0",
-			biasName:        "/block1_conv1/block1_conv1_b_1:0",
+			WeightsName:     "/block1_conv1/block1_conv1_W:0",
+			BiasName:        "/block1_conv1/block1_conv1_b:0",
+			FixedWeights:    fixedWeights,
 		}),
 		Block(m, BlockOpts{
 			Channels:        3,
@@ -61,9 +59,9 @@ func VGG16(m *deepzen.Model, opts Opts) deepzen.Layer {
 			BiasInit:        opts.BiasInit,
 			WeightsInit:     opts.WeightsInit,
 			WithPooling:     true,
-			loader:          loader,
-			weightsName:     "/block1_conv1/block1_conv1_W_1:0",
-			biasName:        "/block1_conv1/block1_conv1_b_1:0",
+			WeightsName:     "/block1_conv2/block1_conv2_W:0",
+			BiasName:        "/block1_conv2/block1_conv2_b:0",
+			FixedWeights:    fixedWeights,
 		}),
 		Block(m, BlockOpts{
 			Channels:        3,
@@ -74,9 +72,9 @@ func VGG16(m *deepzen.Model, opts Opts) deepzen.Layer {
 			WithBias:        opts.WithBias,
 			BiasInit:        opts.BiasInit,
 			WeightsInit:     opts.WeightsInit,
-			loader:          loader,
-			weightsName:     "/block1_conv1/block1_conv1_W_1:0",
-			biasName:        "/block1_conv1/block1_conv1_b_1:0",
+			WeightsName:     "/block2_conv1/block2_conv1_W:0",
+			BiasName:        "/block2_conv1/block2_conv1_b:0",
+			FixedWeights:    fixedWeights,
 		}),
 		Block(m, BlockOpts{
 			Channels:        3,
@@ -88,9 +86,9 @@ func VGG16(m *deepzen.Model, opts Opts) deepzen.Layer {
 			BiasInit:        opts.BiasInit,
 			WeightsInit:     opts.WeightsInit,
 			WithPooling:     true,
-			loader:          loader,
-			weightsName:     "/block1_conv1/block1_conv1_W_1:0",
-			biasName:        "/block1_conv1/block1_conv1_b_1:0",
+			WeightsName:     "/block2_conv2/block2_conv2_W:0",
+			BiasName:        "/block2_conv2/block2_conv2_b:0",
+			FixedWeights:    fixedWeights,
 		}),
 		Block(m, BlockOpts{
 			Channels:        3,
@@ -101,9 +99,9 @@ func VGG16(m *deepzen.Model, opts Opts) deepzen.Layer {
 			WithBias:        opts.WithBias,
 			BiasInit:        opts.BiasInit,
 			WeightsInit:     opts.WeightsInit,
-			loader:          loader,
-			weightsName:     "/block1_conv1/block1_conv1_W_1:0",
-			biasName:        "/block1_conv1/block1_conv1_b_1:0",
+			WeightsName:     "/block3_conv1/block3_conv1_W:0",
+			BiasName:        "/block3_conv1/block3_conv1_b:0",
+			FixedWeights:    fixedWeights,
 		}),
 		Block(m, BlockOpts{
 			Channels:        3,
@@ -114,9 +112,9 @@ func VGG16(m *deepzen.Model, opts Opts) deepzen.Layer {
 			WithBias:        opts.WithBias,
 			BiasInit:        opts.BiasInit,
 			WeightsInit:     opts.WeightsInit,
-			loader:          loader,
-			weightsName:     "/block1_conv1/block1_conv1_W_1:0",
-			biasName:        "/block1_conv1/block1_conv1_b_1:0",
+			WeightsName:     "/block3_conv2/block3_conv2_W:0",
+			BiasName:        "/block3_conv2/block3_conv2_b:0",
+			FixedWeights:    fixedWeights,
 		}),
 		Block(m, BlockOpts{
 			Channels:        3,
@@ -128,9 +126,9 @@ func VGG16(m *deepzen.Model, opts Opts) deepzen.Layer {
 			BiasInit:        opts.BiasInit,
 			WeightsInit:     opts.WeightsInit,
 			WithPooling:     true,
-			loader:          loader,
-			weightsName:     "/block1_conv1/block1_conv1_W_1:0",
-			biasName:        "/block1_conv1/block1_conv1_b_1:0",
+			WeightsName:     "/block3_conv3/block3_conv3_W:0",
+			BiasName:        "/block3_conv3/block3_conv3_b:0",
+			FixedWeights:    fixedWeights,
 		}),
 		Block(m, BlockOpts{
 			Channels:        3,
@@ -141,9 +139,9 @@ func VGG16(m *deepzen.Model, opts Opts) deepzen.Layer {
 			WithBias:        opts.WithBias,
 			BiasInit:        opts.BiasInit,
 			WeightsInit:     opts.WeightsInit,
-			loader:          loader,
-			weightsName:     "/block1_conv1/block1_conv1_W_1:0",
-			biasName:        "/block1_conv1/block1_conv1_b_1:0",
+			WeightsName:     "/block4_conv1/block4_conv1_W:0",
+			BiasName:        "/block4_conv1/block4_conv1_b:0",
+			FixedWeights:    fixedWeights,
 		}),
 		Block(m, BlockOpts{
 			Channels:        3,
@@ -154,49 +152,9 @@ func VGG16(m *deepzen.Model, opts Opts) deepzen.Layer {
 			WithBias:        opts.WithBias,
 			BiasInit:        opts.BiasInit,
 			WeightsInit:     opts.WeightsInit,
-			loader:          loader,
-			weightsName:     "/block1_conv1/block1_conv1_W_1:0",
-			biasName:        "/block1_conv1/block1_conv1_b_1:0",
-		}),
-		Block(m, BlockOpts{
-			Channels:        3,
-			InputDimension:  512,
-			OutputDimension: 512,
-			ActivationFn:    gorgonia.Rectify,
-			Dropout:         0.0,
-			WithBias:        opts.WithBias,
-			BiasInit:        opts.BiasInit,
-			WeightsInit:     opts.WeightsInit,
-			WithPooling:     true,
-			loader:          loader,
-			weightsName:     "/block1_conv1/block1_conv1_W_1:0",
-			biasName:        "/block1_conv1/block1_conv1_b_1:0",
-		}),
-		Block(m, BlockOpts{
-			Channels:        3,
-			InputDimension:  512,
-			OutputDimension: 512,
-			ActivationFn:    gorgonia.Rectify,
-			Dropout:         0.0,
-			WithBias:        opts.WithBias,
-			BiasInit:        opts.BiasInit,
-			WeightsInit:     opts.WeightsInit,
-			loader:          loader,
-			weightsName:     "/block1_conv1/block1_conv1_W_1:0",
-			biasName:        "/block1_conv1/block1_conv1_b_1:0",
-		}),
-		Block(m, BlockOpts{
-			Channels:        3,
-			InputDimension:  512,
-			OutputDimension: 512,
-			ActivationFn:    gorgonia.Rectify,
-			Dropout:         0.0,
-			WithBias:        opts.WithBias,
-			BiasInit:        opts.BiasInit,
-			WeightsInit:     opts.WeightsInit,
-			loader:          loader,
-			weightsName:     "/block1_conv1/block1_conv1_W_1:0",
-			biasName:        "/block1_conv1/block1_conv1_b_1:0",
+			WeightsName:     "/block4_conv2/block4_conv2_W:0",
+			BiasName:        "/block4_conv2/block4_conv2_b:0",
+			FixedWeights:    fixedWeights,
 		}),
 		Block(m, BlockOpts{
 			Channels:        3,
@@ -208,9 +166,49 @@ func VGG16(m *deepzen.Model, opts Opts) deepzen.Layer {
 			BiasInit:        opts.BiasInit,
 			WeightsInit:     opts.WeightsInit,
 			WithPooling:     true,
-			loader:          loader,
-			weightsName:     "/block1_conv1/block1_conv1_W_1:0",
-			biasName:        "/block1_conv1/block1_conv1_b_1:0",
+			WeightsName:     "/block4_conv3/block4_conv3_W:0",
+			BiasName:        "/block4_conv3/block4_conv3_b:0",
+			FixedWeights:    fixedWeights,
+		}),
+		Block(m, BlockOpts{
+			Channels:        3,
+			InputDimension:  512,
+			OutputDimension: 512,
+			ActivationFn:    gorgonia.Rectify,
+			Dropout:         0.0,
+			WithBias:        opts.WithBias,
+			BiasInit:        opts.BiasInit,
+			WeightsInit:     opts.WeightsInit,
+			WeightsName:     "/block5_conv1/block5_conv1_W:0",
+			BiasName:        "/block5_conv1/block5_conv1_b:0",
+			FixedWeights:    fixedWeights,
+		}),
+		Block(m, BlockOpts{
+			Channels:        3,
+			InputDimension:  512,
+			OutputDimension: 512,
+			ActivationFn:    gorgonia.Rectify,
+			Dropout:         0.0,
+			WithBias:        opts.WithBias,
+			BiasInit:        opts.BiasInit,
+			WeightsInit:     opts.WeightsInit,
+			WeightsName:     "/block5_conv2/block5_conv2_W:0",
+			BiasName:        "/block5_conv2/block5_conv2_b:0",
+			FixedWeights:    fixedWeights,
+		}),
+		Block(m, BlockOpts{
+			Channels:        3,
+			InputDimension:  512,
+			OutputDimension: 512,
+			ActivationFn:    gorgonia.Rectify,
+			Dropout:         0.0,
+			WithBias:        opts.WithBias,
+			BiasInit:        opts.BiasInit,
+			WeightsInit:     opts.WeightsInit,
+			WithPooling:     true,
+			WeightsName:     "/block5_conv3/block5_conv3_W:0",
+			BiasName:        "/block5_conv3/block5_conv3_b:0",
+			FixedWeights:    fixedWeights,
 		}),
 	}
 
@@ -224,6 +222,9 @@ func VGG16(m *deepzen.Model, opts Opts) deepzen.Layer {
 				Dropout:         0.0,
 				WeightsInit:     opts.WeightsInit,
 				BiasInit:        opts.BiasInit,
+				WeightsName:     "/fc1/fc1_W:0",
+				BiasName:        "/fc1/fc1_b:0",
+				FixedWeights:    fixedWeights,
 			}),
 			deepzen.FC(m, deepzen.FCOpts{
 				InputDimension:  4096,
@@ -233,15 +234,21 @@ func VGG16(m *deepzen.Model, opts Opts) deepzen.Layer {
 				Dropout:         0.0,
 				WeightsInit:     opts.WeightsInit,
 				BiasInit:        opts.BiasInit,
+				WeightsName:     "/fc2/fc2_W:0",
+				BiasName:        "/fc2/fc2_b:0",
+				FixedWeights:    fixedWeights,
 			}),
 			deepzen.FC(m, deepzen.FCOpts{
 				InputDimension:  4096,
 				OutputDimension: 1000,
 				WithBias:        opts.WithBias,
-				Activation:      gorgonia.Rectify,
+				Activation:      deepzen.Softmax,
 				Dropout:         0.0,
 				WeightsInit:     opts.WeightsInit,
 				BiasInit:        opts.BiasInit,
+				WeightsName:     "/predictions/predictions_W:0",
+				BiasName:        "/predictions/predictions_b:0",
+				FixedWeights:    fixedWeights,
 			}),
 		)
 	}

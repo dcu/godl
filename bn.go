@@ -47,10 +47,10 @@ func BN(nn *Model, opts BNOpts) Layer {
 
 	lt := AddLayer("BN")
 
-	scale := nn.AddLearnable(lt, "scale", tensor.Shape{1, opts.InputDimension}, NewNodeOpts{
+	scale := nn.AddLearnable(lt, "scale", tensor.Shape{1, opts.InputDimension}, NewWeightsOpts{
 		InitFN: opts.ScaleInit,
 	})
-	bias := nn.AddBias(lt, tensor.Shape{1, opts.InputDimension}, NewNodeOpts{
+	bias := nn.AddBias(lt, tensor.Shape{1, opts.InputDimension}, NewWeightsOpts{
 		InitFN: opts.BiasInit,
 	})
 

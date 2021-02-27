@@ -17,7 +17,7 @@ func Embedding(m *Model, embeddingSize int, embeddingDim int, opts EmbeddingOpts
 		opts.WeightsInit = gorgonia.Gaussian(0.0, 1.0)
 	}
 
-	w := m.AddWeights(lt, tensor.Shape{embeddingSize, embeddingDim}, NewNodeOpts{
+	w := m.AddWeights(lt, tensor.Shape{embeddingSize, embeddingDim}, NewWeightsOpts{
 		InitFN: opts.WeightsInit,
 	})
 
