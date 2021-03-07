@@ -125,7 +125,9 @@ func (m *Model) Train(layer Layer, trainX, trainY, validateX, validateY tensor.T
 		BatchSize: opts.BatchSize,
 	})
 
-	x := gorgonia.NewTensor(m.g, tensor.Float32, trainX.Shape().Dims(), gorgonia.WithShape(opts.BatchSize, trainX.Shape()[1]), gorgonia.WithName("x"))
+	xShape := append(tensor.Shape{opts.BatchSize}, trainX.Shape()[1:]...)
+
+	x := gorgonia.NewTensor(m.g, tensor.Float32, trainX.Shape().Dims(), gorgonia.WithShape(xShape...))
 	y := gorgonia.NewMatrix(m.g, tensor.Float32, gorgonia.WithShape(opts.BatchSize, trainY.Shape()[1]), gorgonia.WithName("y"))
 
 	result, err := layer(x)

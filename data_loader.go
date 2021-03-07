@@ -8,17 +8,18 @@ import (
 	"gorgonia.org/tensor/native"
 )
 
-// DataLoaderOpts are the options for the data loader
 type DataLoaderOpts struct {
 	Shuffle   bool
 	BatchSize int
+	Drop      bool
 }
 
 func (o *DataLoaderOpts) setDefaults() {
-	MustBeGreatherThan(LayerType("DataLoader"), "BatchSize", o.BatchSize, 0)
+	if o.BatchSize <= 0 {
+		panic("batch size must be greater than 0")
+	}
 }
 
-// DataLoader loads the data in batches on every iteration/epoch. It has features like shuffling the data
 type DataLoader struct {
 	x    tensor.Tensor
 	y    tensor.Tensor
@@ -37,50 +38,56 @@ func NewDataLoader(x tensor.Tensor, y tensor.Tensor, opts DataLoaderOpts) *DataL
 	var err error
 
 	numExamples := x.Shape()[0]
-	missingRows := opts.BatchSize - (numExamples % opts.BatchSize)
 
-	rowsX := make([]tensor.Tensor, missingRows)
-	rowsY := make([]tensor.Tensor, missingRows)
+	if !opts.Drop {
+		missingRows := opts.BatchSize - (numExamples % opts.BatchSize)
 
-	for i := 0; i < missingRows; i++ {
-		row := rand.Intn(numExamples)
+		rowsX := make([]tensor.Tensor, missingRows)
+		rowsY := make([]tensor.Tensor, missingRows)
 
-		xS, err := x.Slice(gorgonia.S(row))
+		for i := 0; i < missingRows; i++ {
+			row := rand.Intn(numExamples)
+
+			xS, err := x.Slice(gorgonia.S(row))
+			if err != nil {
+				panic(err)
+			}
+
+			newXShape := append(tensor.Shape{1}, x.Shape()[1:]...)
+			err = xS.Reshape(newXShape...)
+			if err != nil {
+				panic(err)
+			}
+
+			rowsX[i] = xS
+
+			yS, err := y.Slice(gorgonia.S(row))
+			if err != nil {
+				panic(err)
+			}
+
+			newYShape := append(tensor.Shape{1}, y.Shape()[1:]...)
+			err = yS.Reshape(newYShape...)
+			if err != nil {
+				panic(err)
+			}
+
+			rowsY[i] = yS
+		}
+
+		x, err = tensor.Concat(0, x, rowsX...)
 		if err != nil {
 			panic(err)
 		}
 
-		err = xS.Reshape(1, x.Shape()[1])
+		y, err = tensor.Concat(0, y, rowsY...)
 		if err != nil {
 			panic(err)
 		}
 
-		rowsX[i] = xS
-
-		yS, err := y.Slice(gorgonia.S(row))
-		if err != nil {
-			panic(err)
-		}
-
-		err = yS.Reshape(1, y.Shape()[1])
-		if err != nil {
-			panic(err)
-		}
-
-		rowsY[i] = yS
+		numExamples += missingRows
 	}
 
-	x, err = tensor.Concat(0, x, rowsX...)
-	if err != nil {
-		panic(err)
-	}
-
-	y, err = tensor.Concat(0, y, rowsY...)
-	if err != nil {
-		panic(err)
-	}
-
-	numExamples += missingRows
 	batches := numExamples / opts.BatchSize
 
 	dl := &DataLoader{
@@ -89,8 +96,10 @@ func NewDataLoader(x tensor.Tensor, y tensor.Tensor, opts DataLoaderOpts) *DataL
 		opts:          opts,
 		Rows:          numExamples,
 		Batches:       batches,
-		FeaturesShape: tensor.Shape(x.Shape()[1:]),
+		FeaturesShape: tensor.Shape(x.Shape()[1:]).Clone(),
 	}
+
+	dl.Reset()
 
 	return dl
 }
@@ -118,12 +127,33 @@ func (dl *DataLoader) Reset() {
 	}
 }
 
-// Shuffle shuffles the data in the loader
+func (dl *DataLoader) toMatrix(t tensor.Tensor) tensor.Shape {
+	prevShape := t.Shape().Clone()
+
+	err := t.Reshape(append(tensor.Shape{prevShape[0]}, tensor.Shape(prevShape[1:]).TotalSize())...)
+	if err != nil {
+		panic(err)
+	}
+
+	return prevShape
+}
+
+// Shuffle shuffles the data
 func (dl *DataLoader) Shuffle() error {
+	oldXShape := dl.toMatrix(dl.x)
+	defer func() {
+		_ = dl.x.Reshape(oldXShape...)
+	}()
+
 	iterX, err := native.MatrixF32(dl.x.(*tensor.Dense))
 	if err != nil {
 		return err
 	}
+
+	oldYShape := dl.toMatrix(dl.y)
+	defer func() {
+		_ = dl.y.Reshape(oldYShape...)
+	}()
 
 	iterY, err := native.MatrixF32(dl.y.(*tensor.Dense))
 	if err != nil {
@@ -174,7 +204,7 @@ func (dl *DataLoader) Next() (tensor.Tensor, tensor.Tensor) {
 		panic(err)
 	}
 
-	dl.CurrentBatch = (dl.CurrentBatch + 1) % dl.Batches
+	dl.CurrentBatch++
 
 	return xVal, yVal
 }

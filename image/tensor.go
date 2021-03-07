@@ -1,10 +1,18 @@
 package image
 
 import (
+	"fmt"
 	"image"
 	"image/color"
+	"io/fs"
+	"path/filepath"
+	"regexp"
 
 	"gorgonia.org/tensor"
+)
+
+var (
+	imgRegexp = regexp.MustCompile(`\.(png|jpg|jpeg)$`)
 )
 
 type TensorMode string
@@ -19,6 +27,46 @@ const (
 type ToTensorOpts struct {
 	// TensorMode is the mode to weight the pixels. The default one is Caffe
 	TensorMode TensorMode
+}
+
+// ToTensorFromDirectory loads all images in a directory
+func ToTensorFromDirectory(dirPath string, loadOpts LoadOpts, tensorOpts ToTensorOpts) (tensor.Tensor, error) {
+	if len(loadOpts.TargetSize) != 2 {
+		return nil, fmt.Errorf("TargetSize must be defined")
+	}
+
+	backing := []float32{}
+	imagesCount := 0
+
+	err := filepath.WalkDir(dirPath, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if !imgRegexp.MatchString(path) {
+			return nil
+		}
+
+		img, err := Load(path, loadOpts)
+		if err != nil {
+			return err
+		}
+
+		weights := imageToWeights(img, tensorOpts)
+		backing = append(backing, weights...)
+		imagesCount++
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return tensor.New(
+		tensor.Of(tensor.Float32),
+		tensor.WithShape(imagesCount, 3, int(loadOpts.TargetSize[0]), int(loadOpts.TargetSize[1])), // count, channels, width, height
+		tensor.WithBacking(backing),
+	), nil
 }
 
 // ToTensor converts the given image to a tensor
