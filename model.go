@@ -54,6 +54,8 @@ type Model struct {
 	learnables gorgonia.Nodes
 	watchables []watchable
 
+	Training bool
+
 	Storage *storage.Storage
 }
 
@@ -101,6 +103,7 @@ func (m *Model) Learnables() gorgonia.Nodes {
 // Train trains the model with the given data
 func (m *Model) Train(layer Layer, trainX, trainY, validateX, validateY tensor.Tensor, opts TrainOpts) error {
 	opts.setDefaults()
+	m.Training = true
 
 	if opts.DevMode {
 		warn("Start training in dev mode")

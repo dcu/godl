@@ -13,8 +13,6 @@ type GBNOpts struct {
 	VirtualBatchSize int
 	OutputDimension  int
 
-	Inferring bool
-
 	ScaleInit, BiasInit gorgonia.InitWFn
 }
 
@@ -42,10 +40,9 @@ func GBN(nn *Model, opts GBNOpts) Layer {
 
 	MustBeGreatherThan(lt, "OutputDimesion", opts.OutputDimension, 0)
 
-	bn := BN(nn, BNOpts{
+	bn := BatchNorm(nn, BatchNormOpts{
 		Momentum:       opts.Momentum,
 		Epsilon:        opts.Epsilon,
-		Inferring:      opts.Inferring,
 		ScaleInit:      opts.ScaleInit,
 		BiasInit:       opts.BiasInit,
 		InputDimension: opts.OutputDimension,

@@ -48,7 +48,6 @@ func AttentiveTransformer(nn *deepzen.Model, opts AttentiveTransformerOpts) deep
 		Epsilon:          opts.Epsilon,
 		VirtualBatchSize: opts.VirtualBatchSize,
 		OutputDimension:  opts.OutputDimension,
-		Inferring:        opts.Inferring,
 		ScaleInit:        opts.ScaleInit,
 		BiasInit:         opts.BiasInit,
 	})

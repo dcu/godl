@@ -67,7 +67,6 @@ func TestTabNet(t *testing.T) {
 				Gamma:              tcase.gamma,
 				InputDimension:     a.Shape()[0],
 				BatchSize:          a.Shape()[0],
-				Inferring:          false,
 				WeightsInit:        initDummyWeights,
 				ScaleInit:          gorgonia.Ones(),
 				BiasInit:           gorgonia.Zeroes(),

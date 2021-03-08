@@ -1,7 +1,6 @@
 package deepzen
 
 import (
-	"io/ioutil"
 	"log"
 	"testing"
 
@@ -10,7 +9,7 @@ import (
 	"gorgonia.org/tensor"
 )
 
-func TestBN(t *testing.T) {
+func TestBatchNorm1d(t *testing.T) {
 	testCases := []struct {
 		desc               string
 		y                  tensor.Tensor
@@ -42,7 +41,7 @@ func TestBN(t *testing.T) {
 			c := require.New(t)
 
 			m := NewModel()
-			bn := BN(m, BNOpts{
+			bn := BatchNorm(m, BatchNormOpts{
 				InputDimension: tC.input.Shape()[1],
 			})
 
@@ -59,8 +58,6 @@ func TestBN(t *testing.T) {
 
 			_, err = gorgonia.Grad(cost, l...)
 			c.NoError(err)
-
-			_ = ioutil.WriteFile("bn.dot", []byte(m.g.ToDot()), 0644)
 
 			vm := gorgonia.NewTapeMachine(m.g,
 				gorgonia.BindDualValues(l...),

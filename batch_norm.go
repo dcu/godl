@@ -7,17 +7,16 @@ import (
 	"gorgonia.org/tensor"
 )
 
-// BNOpts are the options to configure a batch normalization
-type BNOpts struct {
+// BatchNormOpts are the options to configure a batch normalization
+type BatchNormOpts struct {
 	Momentum            float32
 	Epsilon             float32
-	Inferring           bool
 	ScaleInit, BiasInit gorgonia.InitWFn
 
 	InputDimension int
 }
 
-func (o *BNOpts) setDefaults() {
+func (o *BatchNormOpts) setDefaults() {
 	if o.InputDimension == 0 {
 		panic("output size for BN can't be 0")
 	}
@@ -41,8 +40,8 @@ func (o *BNOpts) setDefaults() {
 	}
 }
 
-// BN runs a batch normalization on the input x
-func BN(nn *Model, opts BNOpts) Layer {
+// BatchNorm runs a batch normalization on the input x
+func BatchNorm(nn *Model, opts BatchNormOpts) Layer {
 	opts.setDefaults()
 
 	lt := AddLayer("BN")
@@ -61,12 +60,17 @@ func BN(nn *Model, opts BNOpts) Layer {
 
 		x := nodes[0]
 
-		ret, _, _, bnop, err := gorgonia.BatchNorm1d(x, scale, bias, float64(opts.Momentum), float64(opts.Epsilon))
+		bnFunc := gorgonia.BatchNorm1d
+		if x.Dims() == 4 {
+			bnFunc = gorgonia.BatchNorm
+		}
+
+		ret, _, _, bnop, err := bnFunc(x, scale, bias, float64(opts.Momentum), float64(opts.Epsilon))
 		if err != nil {
 			return Result{}, fmt.Errorf("BatchNorm1d: %w", err)
 		}
 
-		if opts.Inferring {
+		if !nn.Training {
 			bnop.SetTesting()
 		} else {
 			bnop.SetTraining()

@@ -29,7 +29,6 @@ type TabNetOpts struct {
 	Momentum                         float32
 	Epsilon                          float32
 	VirtualBatchSize                 int
-	Inferring                        bool
 	WeightsInit, ScaleInit, BiasInit gorgonia.InitWFn
 }
 
@@ -75,10 +74,9 @@ func (o *TabNetOpts) setDefaults() {
 func TabNet(nn *deepzen.Model, opts TabNetOpts) deepzen.Layer {
 	opts.setDefaults()
 
-	bnLayer := deepzen.BN(nn, deepzen.BNOpts{
+	bnLayer := deepzen.BatchNorm(nn, deepzen.BatchNormOpts{
 		ScaleInit:      opts.ScaleInit,
 		BiasInit:       opts.BiasInit,
-		Inferring:      opts.Inferring,
 		InputDimension: opts.InputDimension,
 		Momentum:       0.01,
 	})
@@ -134,7 +132,6 @@ func TabNet(nn *deepzen.Model, opts TabNetOpts) deepzen.Layer {
 				WeightsInit:        opts.WeightsInit,
 				ScaleInit:          opts.ScaleInit,
 				BiasInit:           opts.BiasInit,
-				Inferring:          opts.Inferring,
 				InputDimension:     opts.BatchSize,
 				OutputDimension:    opts.InputDimension,
 				MaskFunction:       opts.MaskFunction,

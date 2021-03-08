@@ -22,7 +22,6 @@ type DecisionStepOpts struct {
 	Momentum                         float32
 	Epsilon                          float32
 	VirtualBatchSize                 int
-	Inferring                        bool
 	WeightsInit, ScaleInit, BiasInit gorgonia.InitWFn
 }
 
@@ -72,7 +71,6 @@ func NewDecisionStep(nn *deepzen.Model, opts DecisionStepOpts) *DecisionStep {
 		OutputDimension:   opts.AttentionLayerDim + opts.PredictionLayerDim,
 		IndependentBlocks: opts.IndependentBlocks,
 		WeightsInit:       opts.WeightsInit,
-		Inferring:         opts.Inferring,
 		WithBias:          opts.WithBias,
 		Momentum:          opts.Momentum,
 	})
@@ -83,7 +81,6 @@ func NewDecisionStep(nn *deepzen.Model, opts DecisionStepOpts) *DecisionStep {
 		Momentum:         opts.Momentum,
 		Epsilon:          opts.Epsilon,
 		VirtualBatchSize: opts.VirtualBatchSize,
-		Inferring:        opts.Inferring,
 		ScaleInit:        opts.ScaleInit,
 		BiasInit:         opts.BiasInit,
 		WeightsInit:      opts.WeightsInit,

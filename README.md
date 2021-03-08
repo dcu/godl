@@ -27,6 +27,7 @@ The following items are in the current roadmap, some of them need to be implemen
 - [ ] CTC Losses  
 - [ ] GroupNorm  
 - [ ] LayerNorm  
+- [ ] Face Detection
 
 ### Future
 
