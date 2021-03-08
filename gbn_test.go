@@ -43,8 +43,10 @@ func TestGBN(t *testing.T) {
 		t.Run(tcase.desc, func(t *testing.T) {
 			c := require.New(t)
 
-			g := gorgonia.NewGraph()
-			tn := &Model{g: g}
+			tn := NewModel()
+			tn.Training = true
+			g := tn.ExprGraph()
+
 			input := gorgonia.NewTensor(g, tensor.Float32, 2, gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithName("GBNInput"), gorgonia.WithValue(tcase.input))
 
 			x, err := GBN(tn, GBNOpts{

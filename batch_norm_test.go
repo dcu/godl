@@ -9,7 +9,7 @@ import (
 	"gorgonia.org/tensor"
 )
 
-func TestBatchNorm1d(t *testing.T) {
+func TestBatchNorm(t *testing.T) {
 	testCases := []struct {
 		desc               string
 		y                  tensor.Tensor
@@ -19,14 +19,8 @@ func TestBatchNorm1d(t *testing.T) {
 		expectedScaleGrad  tensor.Tensor
 		expectedBiasGrad   tensor.Tensor
 	}{
-		// {
-		// 	desc:           "Example 1",
-		// 	y:              tensor.New(tensor.WithShape(2, 2), tensor.WithBacking([]float32{0.5, 0.05, 0.05, 0.5})),
-		// 	input:          tensor.New(tensor.WithShape(2, 2), tensor.WithBacking([]float32{0.1, 0.01, 0.03, 0.3})),
-		// 	expectedOutput: tensor.New(tensor.WithShape(2, 2), tensor.WithBacking([]float32{0.25, 0.25, 0.25, 0.25})),
-		// },
 		{
-			desc:               "Example 2",
+			desc:               "Example 1",
 			y:                  tensor.New(tensor.WithShape(2, 2), tensor.WithBacking([]float32{0.5, 0.05, 0.05, 0.5})),
 			input:              tensor.New(tensor.WithShape(2, 2), tensor.WithBacking([]float32{0.3, 0.03, 0.07, 0.7})),
 			expectedOutput:     tensor.New(tensor.WithShape(2, 2), tensor.WithBacking([]float32{0.99962217, -0.9999554, -0.9996221, 0.99995553})),
@@ -41,6 +35,8 @@ func TestBatchNorm1d(t *testing.T) {
 			c := require.New(t)
 
 			m := NewModel()
+			m.Training = true
+
 			bn := BatchNorm(m, BatchNormOpts{
 				InputDimension: tC.input.Shape()[1],
 			})

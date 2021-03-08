@@ -46,8 +46,9 @@ func TestGLU(t *testing.T) {
 		t.Run(tcase.desc, func(t *testing.T) {
 			c := require.New(t)
 
-			g := gorgonia.NewGraph()
-			tn := &Model{g: g}
+			tn := NewModel()
+			tn.Training = true
+			g := tn.ExprGraph()
 
 			input := gorgonia.NewTensor(g, tensor.Float32, tcase.input.Shape().Dims(), gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithName("input"), gorgonia.WithValue(tcase.input))
 
