@@ -44,10 +44,10 @@ func NewRegressor(inputDim int, catDims []int, catIdxs []int, catEmbDim []int, o
 
 	tabNetInputDim := inputDim + embedDimSum - len(catEmbDim)
 	tn := TabNet(nn, TabNetOpts{
-		OutputDimension:    1,
+		OutputSize:         1,
 		BatchSize:          opts.BatchSize,
 		VirtualBatchSize:   opts.VirtualBatchSize,
-		InputDimension:     tabNetInputDim,
+		InputSize:          tabNetInputDim,
 		MaskFunction:       gorgonia.Sigmoid,
 		WithBias:           opts.WithBias,
 		WeightsInit:        opts.WeightsInit,

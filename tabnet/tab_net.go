@@ -11,9 +11,9 @@ import (
 
 // TabNetOpts contains parameters to configure the tab net algorithm
 type TabNetOpts struct {
-	OutputDimension int
-	InputDimension  int
-	BatchSize       int
+	OutputSize int
+	InputSize  int
+	BatchSize  int
 
 	SharedBlocks       int
 	IndependentBlocks  int
@@ -74,18 +74,18 @@ func (o *TabNetOpts) setDefaults() {
 func TabNet(nn *deepzen.Model, opts TabNetOpts) deepzen.Layer {
 	opts.setDefaults()
 
-	bnLayer := deepzen.BatchNorm(nn, deepzen.BatchNormOpts{
-		ScaleInit:      opts.ScaleInit,
-		BiasInit:       opts.BiasInit,
-		InputDimension: opts.InputDimension,
-		Momentum:       0.01,
+	bnLayer := deepzen.BatchNorm1d(nn, deepzen.BatchNormOpts{
+		ScaleInit: opts.ScaleInit,
+		BiasInit:  opts.BiasInit,
+		InputSize: opts.InputSize,
+		Momentum:  0.01,
 	})
 
 	shared := make([]deepzen.Layer, 0, opts.SharedBlocks)
 	outputDim := 2 * (opts.PredictionLayerDim + opts.AttentionLayerDim) // double the size so we can take half and half
 
 	{
-		fcInput := opts.InputDimension
+		fcInput := opts.InputSize
 		fcOutput := outputDim
 
 		for i := 0; i < opts.SharedBlocks; i++ {
@@ -113,7 +113,7 @@ func TabNet(nn *deepzen.Model, opts TabNetOpts) deepzen.Layer {
 		Shared:            shared,
 		VirtualBatchSize:  opts.VirtualBatchSize,
 		IndependentBlocks: opts.IndependentBlocks,
-		InputDimension:    opts.InputDimension,
+		InputDimension:    opts.InputSize,
 		OutputDimension:   opts.AttentionLayerDim + opts.PredictionLayerDim,
 		WeightsInit:       opts.WeightsInit,
 		WithBias:          opts.WithBias,
@@ -133,7 +133,7 @@ func TabNet(nn *deepzen.Model, opts TabNetOpts) deepzen.Layer {
 				ScaleInit:          opts.ScaleInit,
 				BiasInit:           opts.BiasInit,
 				InputDimension:     opts.BatchSize,
-				OutputDimension:    opts.InputDimension,
+				OutputDimension:    opts.InputSize,
 				MaskFunction:       opts.MaskFunction,
 				WithBias:           opts.WithBias,
 				Momentum:           opts.Momentum,
@@ -143,13 +143,13 @@ func TabNet(nn *deepzen.Model, opts TabNetOpts) deepzen.Layer {
 
 	weightsInit := opts.WeightsInit
 	if weightsInit == nil {
-		gain := math.Sqrt(float64(opts.PredictionLayerDim+opts.OutputDimension) / math.Sqrt(float64(4*opts.PredictionLayerDim)))
+		gain := math.Sqrt(float64(opts.PredictionLayerDim+opts.OutputSize) / math.Sqrt(float64(4*opts.PredictionLayerDim)))
 		weightsInit = gorgonia.GlorotN(gain)
 	}
 
 	finalMapping := deepzen.FC(nn, deepzen.FCOpts{
 		InputDimension:  opts.PredictionLayerDim,
-		OutputDimension: opts.OutputDimension,
+		OutputDimension: opts.OutputSize,
 		WeightsInit:     weightsInit,
 		WithBias:        opts.WithBias,
 	})
@@ -160,7 +160,7 @@ func TabNet(nn *deepzen.Model, opts TabNetOpts) deepzen.Layer {
 	tabNetLoss := gorgonia.NewScalar(nn.ExprGraph(), tensor.Float32, gorgonia.WithValue(float32(0.0)), gorgonia.WithName("TabNetLoss"))
 	stepsCount := gorgonia.NewScalar(nn.ExprGraph(), tensor.Float32, gorgonia.WithValue(float32(len(steps))), gorgonia.WithName("Steps"))
 
-	prior := gorgonia.NewTensor(nn.ExprGraph(), tensor.Float32, 2, gorgonia.WithShape(opts.BatchSize, opts.InputDimension), gorgonia.WithInit(gorgonia.Ones()), gorgonia.WithName("Prior"))
+	prior := gorgonia.NewTensor(nn.ExprGraph(), tensor.Float32, 2, gorgonia.WithShape(opts.BatchSize, opts.InputSize), gorgonia.WithInit(gorgonia.Ones()), gorgonia.WithName("Prior"))
 	out := gorgonia.NewTensor(nn.ExprGraph(), tensor.Float32, 2, gorgonia.WithShape(opts.BatchSize, opts.PredictionLayerDim), gorgonia.WithInit(gorgonia.Zeroes()), gorgonia.WithName("Output"))
 
 	return func(nodes ...*gorgonia.Node) (deepzen.Result, error) {

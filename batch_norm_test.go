@@ -29,6 +29,16 @@ func TestBatchNorm(t *testing.T) {
 			expectedScaleGrad: tensor.New(tensor.WithShape(1, 2), tensor.WithBacking([]float32{1.4901161e-08, 2.9802322e-08})),
 			expectedBiasGrad:  tensor.New(tensor.WithShape(1, 2), tensor.WithBacking([]float32{0.5, 0.5})),
 		},
+		{
+			desc:               "Example 2",
+			y:                  tensor.New(tensor.WithShape(2, 2, 1, 1), tensor.WithBacking([]float32{0.5, 0.05, 0.05, 0.5})),
+			input:              tensor.New(tensor.WithShape(2, 2, 1, 1), tensor.WithBacking([]float32{0.3, 0.03, 0.07, 0.7})),
+			expectedOutput:     tensor.New(tensor.WithShape(2, 2, 1, 1), tensor.WithBacking([]float32{0.99962217, -0.9999554, -0.9996221, 0.99995553})),
+			expectedOutputGrad: tensor.New(tensor.WithShape(2, 2, 1, 1), tensor.WithBacking([]float32{0.2500, 0.2500, 0.2500, 0.2500})),
+			// expectedScaleGrad:  tensor.New(tensor.WithShape(1, 2), tensor.WithBacking([]float32{1.6191e-08, 2.2240e-08})), // TODO: pytorch/tensorflow BN version
+			expectedScaleGrad: tensor.New(tensor.WithShape(1, 2), tensor.WithBacking([]float32{1.4901161e-08, 2.9802322e-08})),
+			expectedBiasGrad:  tensor.New(tensor.WithShape(1, 2), tensor.WithBacking([]float32{0.5, 0.5})),
+		},
 	}
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
@@ -37,12 +47,17 @@ func TestBatchNorm(t *testing.T) {
 			m := NewModel()
 			m.Training = true
 
-			bn := BatchNorm(m, BatchNormOpts{
-				InputDimension: tC.input.Shape()[1],
+			bnFunc := BatchNorm1d
+			if tC.input.Dims() == 4 {
+				bnFunc = BatchNorm2d
+			}
+
+			bn := bnFunc(m, BatchNormOpts{
+				InputSize: tC.input.Shape()[1],
 			})
 
-			x := gorgonia.NewTensor(m.g, tensor.Float32, 2, gorgonia.WithShape(tC.input.Shape()...), gorgonia.WithValue(tC.input), gorgonia.WithName("x"))
-			y := gorgonia.NewTensor(m.g, tensor.Float32, 2, gorgonia.WithShape(tC.y.Shape()...), gorgonia.WithValue(tC.y), gorgonia.WithName("y"))
+			x := gorgonia.NewTensor(m.g, tensor.Float32, tC.input.Shape().Dims(), gorgonia.WithShape(tC.input.Shape()...), gorgonia.WithValue(tC.input), gorgonia.WithName("x"))
+			y := gorgonia.NewTensor(m.g, tensor.Float32, tC.y.Shape().Dims(), gorgonia.WithShape(tC.y.Shape()...), gorgonia.WithValue(tC.y), gorgonia.WithName("y"))
 
 			result, err := bn(x)
 			c.NoError(err)

@@ -40,12 +40,12 @@ func GBN(nn *Model, opts GBNOpts) Layer {
 
 	MustBeGreatherThan(lt, "OutputDimesion", opts.OutputDimension, 0)
 
-	bn := BatchNorm(nn, BatchNormOpts{
-		Momentum:       opts.Momentum,
-		Epsilon:        opts.Epsilon,
-		ScaleInit:      opts.ScaleInit,
-		BiasInit:       opts.BiasInit,
-		InputDimension: opts.OutputDimension,
+	bn := BatchNorm1d(nn, BatchNormOpts{
+		Momentum:  opts.Momentum,
+		Epsilon:   opts.Epsilon,
+		ScaleInit: opts.ScaleInit,
+		BiasInit:  opts.BiasInit,
+		InputSize: opts.OutputDimension,
 	})
 
 	return func(inputs ...*gorgonia.Node) (Result, error) {

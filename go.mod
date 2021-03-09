@@ -2,7 +2,7 @@ module github.com/dcu/deepzen
 
 go 1.16
 
-// replace gorgonia.org/gorgonia => ../../../gorgonia.org/gorgonia
+replace gorgonia.org/gorgonia => ../../../gorgonia.org/gorgonia
 // replace gorgonia.org/tensor => ../../../gorgonia.org/tensor
 
 require (

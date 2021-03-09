@@ -13,11 +13,11 @@ type BatchNormOpts struct {
 	Epsilon             float32
 	ScaleInit, BiasInit gorgonia.InitWFn
 
-	InputDimension int
+	InputSize int
 }
 
 func (o *BatchNormOpts) setDefaults() {
-	if o.InputDimension == 0 {
+	if o.InputSize == 0 {
 		panic("output size for BN can't be 0")
 	}
 
@@ -40,18 +40,39 @@ func (o *BatchNormOpts) setDefaults() {
 	}
 }
 
-// BatchNorm runs a batch normalization on the input x
-func BatchNorm(nn *Model, opts BatchNormOpts) Layer {
+// BatchNorm1d defines the batch norm operation for tensors with shape (B, N)
+func BatchNorm1d(nn *Model, opts BatchNormOpts) Layer {
 	opts.setDefaults()
+	lt := AddLayer("BatchNorm1d")
 
-	lt := AddLayer("BN")
-
-	scale := nn.AddLearnable(lt, "scale", tensor.Shape{1, opts.InputDimension}, NewWeightsOpts{
+	scale := nn.AddLearnable(lt, "scale", tensor.Shape{1, opts.InputSize}, NewWeightsOpts{
 		InitFN: opts.ScaleInit,
 	})
-	bias := nn.AddBias(lt, tensor.Shape{1, opts.InputDimension}, NewWeightsOpts{
+	bias := nn.AddBias(lt, tensor.Shape{1, opts.InputSize}, NewWeightsOpts{
 		InitFN: opts.BiasInit,
 	})
+
+	return batchNorm(nn, lt, scale, bias, opts)
+}
+
+// BatchNorm2d defines the batch norm operation for tensors with shape (B, C, W, H)
+func BatchNorm2d(nn *Model, opts BatchNormOpts) Layer {
+	opts.setDefaults()
+	lt := AddLayer("BatchNorm2d")
+
+	scale := nn.AddLearnable(lt, "scale", tensor.Shape{1, opts.InputSize, 1, 1}, NewWeightsOpts{
+		InitFN: opts.ScaleInit,
+	})
+	bias := nn.AddBias(lt, tensor.Shape{1, opts.InputSize, 1, 1}, NewWeightsOpts{
+		InitFN: opts.BiasInit,
+	})
+
+	return batchNorm(nn, lt, scale, bias, opts)
+}
+
+// batchNorm runs a batch normalization on the input x
+func batchNorm(nn *Model, lt LayerType, scale, bias *gorgonia.Node, opts BatchNormOpts) Layer {
+	opts.setDefaults()
 
 	return func(nodes ...*gorgonia.Node) (Result, error) {
 		if err := nn.CheckArity(lt, nodes, 1); err != nil {
@@ -60,14 +81,9 @@ func BatchNorm(nn *Model, opts BatchNormOpts) Layer {
 
 		x := nodes[0]
 
-		bnFunc := gorgonia.BatchNorm1d
-		if x.Dims() == 4 {
-			bnFunc = gorgonia.BatchNorm
-		}
-
-		ret, _, _, bnop, err := bnFunc(x, scale, bias, float64(opts.Momentum), float64(opts.Epsilon))
+		ret, _, _, bnop, err := gorgonia.BatchNorm(x, scale, bias, float64(opts.Momentum), float64(opts.Epsilon))
 		if err != nil {
-			return Result{}, fmt.Errorf("BatchNorm1d: %w", err)
+			return Result{}, fmt.Errorf("%v: %w", lt, err)
 		}
 
 		if !nn.Training {
