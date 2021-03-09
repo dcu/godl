@@ -5,6 +5,7 @@ import (
 	"gorgonia.org/gorgonia"
 )
 
+// Opts are the options for VGG
 type Opts struct {
 	WithBias              bool
 	WeightsInit, BiasInit gorgonia.InitWFn
@@ -44,7 +45,6 @@ func VGG16Layer(m *deepzen.Model, opts Opts) deepzen.Layer {
 
 	layers := []deepzen.Layer{
 		Block(m, BlockOpts{
-			Channels:        3,
 			InputDimension:  3,
 			OutputDimension: 64,
 			ActivationFn:    gorgonia.Rectify,
@@ -57,7 +57,6 @@ func VGG16Layer(m *deepzen.Model, opts Opts) deepzen.Layer {
 			FixedWeights:    fixedWeights,
 		}),
 		Block(m, BlockOpts{
-			Channels:        3,
 			InputDimension:  64,
 			OutputDimension: 64,
 			ActivationFn:    gorgonia.Rectify,
@@ -71,7 +70,6 @@ func VGG16Layer(m *deepzen.Model, opts Opts) deepzen.Layer {
 			FixedWeights:    fixedWeights,
 		}),
 		Block(m, BlockOpts{
-			Channels:        3,
 			InputDimension:  64,
 			OutputDimension: 128,
 			ActivationFn:    gorgonia.Rectify,
@@ -84,7 +82,6 @@ func VGG16Layer(m *deepzen.Model, opts Opts) deepzen.Layer {
 			FixedWeights:    fixedWeights,
 		}),
 		Block(m, BlockOpts{
-			Channels:        3,
 			InputDimension:  128,
 			OutputDimension: 128,
 			ActivationFn:    gorgonia.Rectify,
@@ -98,7 +95,6 @@ func VGG16Layer(m *deepzen.Model, opts Opts) deepzen.Layer {
 			FixedWeights:    fixedWeights,
 		}),
 		Block(m, BlockOpts{
-			Channels:        3,
 			InputDimension:  128,
 			OutputDimension: 256,
 			ActivationFn:    gorgonia.Rectify,
@@ -111,7 +107,6 @@ func VGG16Layer(m *deepzen.Model, opts Opts) deepzen.Layer {
 			FixedWeights:    fixedWeights,
 		}),
 		Block(m, BlockOpts{
-			Channels:        3,
 			InputDimension:  256,
 			OutputDimension: 256,
 			ActivationFn:    gorgonia.Rectify,
@@ -124,7 +119,6 @@ func VGG16Layer(m *deepzen.Model, opts Opts) deepzen.Layer {
 			FixedWeights:    fixedWeights,
 		}),
 		Block(m, BlockOpts{
-			Channels:        3,
 			InputDimension:  256,
 			OutputDimension: 256,
 			ActivationFn:    gorgonia.Rectify,
@@ -138,7 +132,6 @@ func VGG16Layer(m *deepzen.Model, opts Opts) deepzen.Layer {
 			FixedWeights:    fixedWeights,
 		}),
 		Block(m, BlockOpts{
-			Channels:        3,
 			InputDimension:  256,
 			OutputDimension: 512,
 			ActivationFn:    gorgonia.Rectify,
@@ -151,7 +144,6 @@ func VGG16Layer(m *deepzen.Model, opts Opts) deepzen.Layer {
 			FixedWeights:    fixedWeights,
 		}),
 		Block(m, BlockOpts{
-			Channels:        3,
 			InputDimension:  512,
 			OutputDimension: 512,
 			ActivationFn:    gorgonia.Rectify,
@@ -164,7 +156,6 @@ func VGG16Layer(m *deepzen.Model, opts Opts) deepzen.Layer {
 			FixedWeights:    fixedWeights,
 		}),
 		Block(m, BlockOpts{
-			Channels:        3,
 			InputDimension:  512,
 			OutputDimension: 512,
 			ActivationFn:    gorgonia.Rectify,
@@ -178,7 +169,6 @@ func VGG16Layer(m *deepzen.Model, opts Opts) deepzen.Layer {
 			FixedWeights:    fixedWeights,
 		}),
 		Block(m, BlockOpts{
-			Channels:        3,
 			InputDimension:  512,
 			OutputDimension: 512,
 			ActivationFn:    gorgonia.Rectify,
@@ -191,7 +181,6 @@ func VGG16Layer(m *deepzen.Model, opts Opts) deepzen.Layer {
 			FixedWeights:    fixedWeights,
 		}),
 		Block(m, BlockOpts{
-			Channels:        3,
 			InputDimension:  512,
 			OutputDimension: 512,
 			ActivationFn:    gorgonia.Rectify,
@@ -204,7 +193,6 @@ func VGG16Layer(m *deepzen.Model, opts Opts) deepzen.Layer {
 			FixedWeights:    fixedWeights,
 		}),
 		Block(m, BlockOpts{
-			Channels:        3,
 			InputDimension:  512,
 			OutputDimension: 512,
 			ActivationFn:    gorgonia.Rectify,

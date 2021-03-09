@@ -10,13 +10,12 @@ import (
 
 // BlockOpts are the options for a VGG Block
 type BlockOpts struct {
-	Channels        int
 	InputDimension  int
 	OutputDimension int
 
 	ActivationFn deepzen.ActivationFn
 	Dropout      float64
-	Kernel       tensor.Shape
+	KernelSize   tensor.Shape
 	Pad          []int
 	Stride       []int
 	Dilation     []int
@@ -33,8 +32,8 @@ func (o *BlockOpts) setDefaults() {
 		o.ActivationFn = gorgonia.Rectify
 	}
 
-	if o.Kernel == nil {
-		o.Kernel = tensor.Shape{3, 3}
+	if o.KernelSize == nil {
+		o.KernelSize = tensor.Shape{3, 3}
 	}
 
 	if o.Pad == nil {
@@ -50,12 +49,12 @@ func (o *BlockOpts) setDefaults() {
 	}
 
 	if o.WeightsInit == nil {
-		k := math.Sqrt(1 / float64(o.OutputDimension*o.Kernel[0]*o.Kernel[1]))
+		k := math.Sqrt(1 / float64(o.OutputDimension*o.KernelSize[0]*o.KernelSize[1]))
 		o.WeightsInit = gorgonia.Uniform(-k, k)
 	}
 
 	if o.BiasInit == nil {
-		k := math.Sqrt(1 / float64(o.OutputDimension*o.Kernel[0]*o.Kernel[1]))
+		k := math.Sqrt(1 / float64(o.OutputDimension*o.KernelSize[0]*o.KernelSize[1]))
 		o.WeightsInit = gorgonia.Uniform(-k, k)
 	}
 }
@@ -66,7 +65,7 @@ func Block(m *deepzen.Model, opts BlockOpts) deepzen.Layer {
 
 	lt := deepzen.AddLayer("vgg.Block")
 
-	w := m.AddWeights(lt, tensor.Shape{opts.OutputDimension, opts.InputDimension, opts.Channels, opts.Channels}, deepzen.NewWeightsOpts{
+	w := m.AddWeights(lt, tensor.Shape{opts.OutputDimension, opts.InputDimension, opts.KernelSize[0], opts.KernelSize[0]}, deepzen.NewWeightsOpts{
 		InitFN:     opts.WeightsInit,
 		UniqueName: opts.WeightsName,
 		Fixed:      opts.FixedWeights,
@@ -87,7 +86,7 @@ func Block(m *deepzen.Model, opts BlockOpts) deepzen.Layer {
 		}
 
 		x := inputs[0]
-		x = gorgonia.Must(gorgonia.Conv2d(x, w, opts.Kernel, opts.Pad, opts.Stride, opts.Dilation))
+		x = gorgonia.Must(gorgonia.Conv2d(x, w, opts.KernelSize, opts.Pad, opts.Stride, opts.Dilation))
 
 		if bias != nil {
 			x = gorgonia.Must(gorgonia.BroadcastAdd(x, bias, nil, []byte{0, 2, 3}))
