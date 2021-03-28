@@ -1,20 +1,20 @@
 package tabnet
 
 import (
-	"github.com/dcu/deepzen"
+	"github.com/dcu/godl"
 	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
 )
 
 type Regressor struct {
-	model *deepzen.Model
-	layer deepzen.Layer
+	model *godl.Model
+	layer godl.Layer
 }
 
 type RegressorOpts struct {
 	BatchSize        int
 	VirtualBatchSize int
-	MaskFunction     deepzen.ActivationFn
+	MaskFunction     godl.ActivationFn
 	WithBias         bool
 
 	SharedBlocks       int
@@ -31,9 +31,9 @@ type RegressorOpts struct {
 }
 
 func NewRegressor(inputDim int, catDims []int, catIdxs []int, catEmbDim []int, opts RegressorOpts) *Regressor {
-	nn := deepzen.NewModel()
+	nn := godl.NewModel()
 
-	embedder := deepzen.EmbeddingGenerator(nn, inputDim, catDims, catIdxs, catEmbDim, deepzen.EmbeddingOpts{
+	embedder := godl.EmbeddingGenerator(nn, inputDim, catDims, catIdxs, catEmbDim, godl.EmbeddingOpts{
 		WeightsInit: opts.WeightsInit,
 	})
 
@@ -63,7 +63,7 @@ func NewRegressor(inputDim int, catDims []int, catIdxs []int, catEmbDim []int, o
 		Epsilon:            opts.Epsilon,
 	})
 
-	layer := deepzen.Sequential(nn, embedder, tn)
+	layer := godl.Sequential(nn, embedder, tn)
 
 	return &Regressor{
 		model: nn,
@@ -71,15 +71,15 @@ func NewRegressor(inputDim int, catDims []int, catIdxs []int, catEmbDim []int, o
 	}
 }
 
-func (r *Regressor) Model() *deepzen.Model {
+func (r *Regressor) Model() *godl.Model {
 	return r.model
 }
 
-func (r *Regressor) Train(trainX, trainY, validateX, validateY tensor.Tensor, opts deepzen.TrainOpts) error {
+func (r *Regressor) Train(trainX, trainY, validateX, validateY tensor.Tensor, opts godl.TrainOpts) error {
 	if opts.CostFn == nil {
 		lambdaSparse := gorgonia.NewConstant(float32(1e-3))
 		opts.CostFn = func(output *gorgonia.Node, innerLoss *gorgonia.Node, y *gorgonia.Node) *gorgonia.Node {
-			cost := deepzen.MSELoss(output, y, deepzen.MSELossOpts{})
+			cost := godl.MSELoss(output, y, godl.MSELossOpts{})
 
 			// r.model.Watch("output", gorgonia.Must(gorgonia.Sum(output)))
 			// r.model.Watch("loss", cost)

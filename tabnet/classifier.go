@@ -1,20 +1,20 @@
 package tabnet
 
 import (
-	"github.com/dcu/deepzen"
+	"github.com/dcu/godl"
 	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
 )
 
 type Classifier struct {
-	model *deepzen.Model
-	layer deepzen.Layer
+	model *godl.Model
+	layer godl.Layer
 }
 
 type ClassifierOpts struct {
 	BatchSize        int
 	VirtualBatchSize int
-	MaskFunction     deepzen.ActivationFn
+	MaskFunction     godl.ActivationFn
 	WithBias         bool
 
 	SharedBlocks       int
@@ -31,9 +31,9 @@ type ClassifierOpts struct {
 }
 
 func NewClassifier(inputDim int, catDims []int, catIdxs []int, catEmbDim []int, opts ClassifierOpts) *Classifier {
-	nn := deepzen.NewModel()
+	nn := godl.NewModel()
 
-	embedder := deepzen.EmbeddingGenerator(nn, inputDim, catDims, catIdxs, catEmbDim, deepzen.EmbeddingOpts{
+	embedder := godl.EmbeddingGenerator(nn, inputDim, catDims, catIdxs, catEmbDim, godl.EmbeddingOpts{
 		WeightsInit: opts.WeightsInit,
 	})
 
@@ -63,7 +63,7 @@ func NewClassifier(inputDim int, catDims []int, catIdxs []int, catEmbDim []int, 
 		Epsilon:            opts.Epsilon,
 	})
 
-	layer := deepzen.Sequential(nn, embedder, tn)
+	layer := godl.Sequential(nn, embedder, tn)
 
 	return &Classifier{
 		model: nn,
@@ -71,15 +71,15 @@ func NewClassifier(inputDim int, catDims []int, catIdxs []int, catEmbDim []int, 
 	}
 }
 
-func (r *Classifier) Model() *deepzen.Model {
+func (r *Classifier) Model() *godl.Model {
 	return r.model
 }
 
-func (r *Classifier) Train(trainX, trainY, validateX, validateY tensor.Tensor, opts deepzen.TrainOpts) error {
+func (r *Classifier) Train(trainX, trainY, validateX, validateY tensor.Tensor, opts godl.TrainOpts) error {
 	if opts.CostFn == nil {
 		lambdaSparse := gorgonia.NewConstant(float32(1e-3))
 		opts.CostFn = func(output *gorgonia.Node, innerLoss *gorgonia.Node, y *gorgonia.Node) *gorgonia.Node {
-			cost := deepzen.CrossEntropyLoss(output, y, deepzen.CrossEntropyLossOpt{})
+			cost := godl.CrossEntropyLoss(output, y, godl.CrossEntropyLossOpt{})
 			cost = gorgonia.Must(gorgonia.Sub(cost, gorgonia.Must(gorgonia.Mul(lambdaSparse, innerLoss))))
 
 			return cost

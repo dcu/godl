@@ -3,7 +3,7 @@ package vgg
 import (
 	"math"
 
-	"github.com/dcu/deepzen"
+	"github.com/dcu/godl"
 	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
 )
@@ -13,7 +13,7 @@ type BlockOpts struct {
 	InputDimension  int
 	OutputDimension int
 
-	ActivationFn deepzen.ActivationFn
+	ActivationFn godl.ActivationFn
 	Dropout      float64
 	KernelSize   tensor.Shape
 	Pad          []int
@@ -60,12 +60,12 @@ func (o *BlockOpts) setDefaults() {
 }
 
 // Block is a VGG block composed of conv2d+maxpool with optional dropout and activation function
-func Block(m *deepzen.Model, opts BlockOpts) deepzen.Layer {
+func Block(m *godl.Model, opts BlockOpts) godl.Layer {
 	opts.setDefaults()
 
-	lt := deepzen.AddLayer("vgg.Block")
+	lt := godl.AddLayer("vgg.Block")
 
-	w := m.AddWeights(lt, tensor.Shape{opts.OutputDimension, opts.InputDimension, opts.KernelSize[0], opts.KernelSize[0]}, deepzen.NewWeightsOpts{
+	w := m.AddWeights(lt, tensor.Shape{opts.OutputDimension, opts.InputDimension, opts.KernelSize[0], opts.KernelSize[0]}, godl.NewWeightsOpts{
 		InitFN:     opts.WeightsInit,
 		UniqueName: opts.WeightsName,
 		Fixed:      opts.FixedWeights,
@@ -73,16 +73,16 @@ func Block(m *deepzen.Model, opts BlockOpts) deepzen.Layer {
 
 	var bias *gorgonia.Node
 	if opts.WithBias {
-		bias = m.AddBias(lt, tensor.Shape{1, opts.OutputDimension, 1, 1}, deepzen.NewWeightsOpts{
+		bias = m.AddBias(lt, tensor.Shape{1, opts.OutputDimension, 1, 1}, godl.NewWeightsOpts{
 			InitFN:     opts.BiasInit,
 			UniqueName: opts.BiasName,
 			Fixed:      opts.FixedWeights,
 		})
 	}
 
-	return func(inputs ...*gorgonia.Node) (deepzen.Result, error) {
+	return func(inputs ...*gorgonia.Node) (godl.Result, error) {
 		if err := m.CheckArity(lt, inputs, 1); err != nil {
-			return deepzen.Result{}, err
+			return godl.Result{}, err
 		}
 
 		x := inputs[0]
@@ -104,7 +104,7 @@ func Block(m *deepzen.Model, opts BlockOpts) deepzen.Layer {
 			x = gorgonia.Must(gorgonia.Dropout(x, opts.Dropout))
 		}
 
-		return deepzen.Result{
+		return godl.Result{
 			Output: x,
 		}, nil
 	}

@@ -1,4 +1,4 @@
-package deepzen
+package godl
 
 import (
 	"fmt"
@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/dcu/deepzen/storage"
+	"github.com/dcu/godl/storage"
 	"github.com/fatih/color"
 	"gonum.org/v1/plot/vg"
 	"gorgonia.org/gorgonia"

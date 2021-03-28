@@ -3,7 +3,7 @@ package tabnet
 import (
 	"testing"
 
-	"github.com/dcu/deepzen"
+	"github.com/dcu/godl"
 	"github.com/stretchr/testify/require"
 	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
@@ -48,7 +48,7 @@ func TestTabNet(t *testing.T) {
 		t.Run(tcase.desc, func(t *testing.T) {
 			c := require.New(t)
 
-			tn := deepzen.NewModel()
+			tn := godl.NewModel()
 			g := tn.ExprGraph()
 
 			x := gorgonia.NewTensor(g, tensor.Float32, 2, gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithName("Input"), gorgonia.WithValue(tcase.input))

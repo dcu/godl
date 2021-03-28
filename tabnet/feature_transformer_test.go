@@ -3,7 +3,7 @@ package tabnet
 import (
 	"testing"
 
-	"github.com/dcu/deepzen"
+	"github.com/dcu/godl"
 	"github.com/stretchr/testify/require"
 	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
@@ -53,16 +53,16 @@ func TestFeatureTransformer(t *testing.T) {
 		t.Run(tcase.desc, func(t *testing.T) {
 			c := require.New(t)
 
-			tn := deepzen.NewModel()
+			tn := godl.NewModel()
 			g := tn.ExprGraph()
 
 			input := gorgonia.NewTensor(g, tensor.Float32, tcase.input.Dims(), gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithName("input"), gorgonia.WithValue(tcase.input))
 
-			shared := make([]deepzen.Layer, tcase.sharedBlocks)
+			shared := make([]godl.Layer, tcase.sharedBlocks)
 			fcInput := input.Shape()[1]
 			fcOutput := 2 * (8 + 8)
 			for i := 0; i < tcase.sharedBlocks; i++ {
-				shared[i] = deepzen.FC(tn, deepzen.FCOpts{
+				shared[i] = godl.FC(tn, godl.FCOpts{
 					OutputDimension: fcOutput, // double the size so we can take half and half
 					WeightsInit:     initDummyWeights,
 					InputDimension:  fcInput,

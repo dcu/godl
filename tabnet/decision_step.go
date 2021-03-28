@@ -1,12 +1,12 @@
 package tabnet
 
 import (
-	"github.com/dcu/deepzen"
+	"github.com/dcu/godl"
 	"gorgonia.org/gorgonia"
 )
 
 type DecisionStepOpts struct {
-	Shared []deepzen.Layer
+	Shared []godl.Layer
 
 	IndependentBlocks int
 
@@ -16,7 +16,7 @@ type DecisionStepOpts struct {
 	InputDimension  int
 	OutputDimension int
 
-	MaskFunction deepzen.ActivationFn
+	MaskFunction godl.ActivationFn
 
 	WithBias                         bool
 	Momentum                         float32
@@ -26,15 +26,15 @@ type DecisionStepOpts struct {
 }
 
 type DecisionStep struct {
-	Name                 deepzen.LayerType
-	FeatureTransformer   deepzen.Layer
-	AttentiveTransformer deepzen.Layer
+	Name                 godl.LayerType
+	FeatureTransformer   godl.Layer
+	AttentiveTransformer godl.Layer
 }
 
 func (step DecisionStep) CalculateMask(xAttentiveLayer, prior, epsilon *gorgonia.Node) (*gorgonia.Node, *gorgonia.Node, error) {
 	result, err := step.AttentiveTransformer(xAttentiveLayer, prior)
 	if err != nil {
-		return nil, nil, deepzen.ErrorF(step.Name, "attentive transformer: %w", err)
+		return nil, nil, godl.ErrorF(step.Name, "attentive transformer: %w", err)
 	}
 
 	mask := result.Output
@@ -54,11 +54,11 @@ func (step DecisionStep) CalculateMask(xAttentiveLayer, prior, epsilon *gorgonia
 	return mask, stepLoss, nil
 }
 
-func NewDecisionStep(nn *deepzen.Model, opts DecisionStepOpts) *DecisionStep {
-	lt := deepzen.AddLayer("DecisionStep")
+func NewDecisionStep(nn *godl.Model, opts DecisionStepOpts) *DecisionStep {
+	lt := godl.AddLayer("DecisionStep")
 
-	deepzen.MustBeGreatherThan(lt, "InputDimension", opts.InputDimension, 0)
-	deepzen.MustBeGreatherThan(lt, "OutputDimension", opts.OutputDimension, 0)
+	godl.MustBeGreatherThan(lt, "InputDimension", opts.InputDimension, 0)
+	godl.MustBeGreatherThan(lt, "OutputDimension", opts.OutputDimension, 0)
 
 	ds := &DecisionStep{
 		Name: lt,

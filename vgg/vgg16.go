@@ -1,7 +1,7 @@
 package vgg
 
 import (
-	"github.com/dcu/deepzen"
+	"github.com/dcu/godl"
 	"gorgonia.org/gorgonia"
 )
 
@@ -17,15 +17,15 @@ type Opts struct {
 
 // VGG16 is a convolutional neural network for classification and object detection
 // The input must be a 224x224 RGB image
-func VGG16(opts Opts) func(m *deepzen.Model) deepzen.Layer {
-	return func(m *deepzen.Model) deepzen.Layer {
+func VGG16(opts Opts) func(m *godl.Model) godl.Layer {
+	return func(m *godl.Model) godl.Layer {
 		return VGG16Layer(m, opts)
 	}
 }
 
 // VGG16Layer returns the layer for the VGG16 network
-func VGG16Layer(m *deepzen.Model, opts Opts) deepzen.Layer {
-	lt := deepzen.AddLayer("vgg.VGG16")
+func VGG16Layer(m *godl.Model, opts Opts) godl.Layer {
+	lt := godl.AddLayer("vgg.VGG16")
 	fixedWeights := false
 
 	if opts.PreTrained {
@@ -43,7 +43,7 @@ func VGG16Layer(m *deepzen.Model, opts Opts) deepzen.Layer {
 		opts.WithBias = true
 	}
 
-	layers := []deepzen.Layer{
+	layers := []godl.Layer{
 		Block(m, BlockOpts{
 			InputDimension:  3,
 			OutputDimension: 64,
@@ -209,7 +209,7 @@ func VGG16Layer(m *deepzen.Model, opts Opts) deepzen.Layer {
 
 	if !opts.OnlyFeatureExtraction {
 		layers = append(layers,
-			deepzen.FC(m, deepzen.FCOpts{
+			godl.FC(m, godl.FCOpts{
 				InputDimension:  25088,
 				OutputDimension: 4096,
 				WithBias:        opts.WithBias,
@@ -221,7 +221,7 @@ func VGG16Layer(m *deepzen.Model, opts Opts) deepzen.Layer {
 				BiasName:        "/fc1/fc1_b:0",
 				FixedWeights:    fixedWeights,
 			}),
-			deepzen.FC(m, deepzen.FCOpts{
+			godl.FC(m, godl.FCOpts{
 				InputDimension:  4096,
 				OutputDimension: 4096,
 				WithBias:        opts.WithBias,
@@ -233,11 +233,11 @@ func VGG16Layer(m *deepzen.Model, opts Opts) deepzen.Layer {
 				BiasName:        "/fc2/fc2_b:0",
 				FixedWeights:    fixedWeights,
 			}),
-			deepzen.FC(m, deepzen.FCOpts{
+			godl.FC(m, godl.FCOpts{
 				InputDimension:  4096,
 				OutputDimension: 1000,
 				WithBias:        opts.WithBias,
-				Activation:      deepzen.Softmax,
+				Activation:      godl.Softmax,
 				Dropout:         0.0,
 				WeightsInit:     opts.WeightsInit,
 				BiasInit:        opts.BiasInit,
@@ -248,11 +248,11 @@ func VGG16Layer(m *deepzen.Model, opts Opts) deepzen.Layer {
 		)
 	}
 
-	seq := deepzen.Sequential(m, layers...)
+	seq := godl.Sequential(m, layers...)
 
-	return func(inputs ...*gorgonia.Node) (deepzen.Result, error) {
+	return func(inputs ...*gorgonia.Node) (godl.Result, error) {
 		if err := m.CheckArity(lt, inputs, 1); err != nil {
-			return deepzen.Result{}, err
+			return godl.Result{}, err
 		}
 
 		x := inputs[0]

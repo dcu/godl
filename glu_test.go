@@ -1,4 +1,4 @@
-package deepzen
+package godl
 
 import (
 	"testing"

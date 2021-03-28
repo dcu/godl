@@ -3,14 +3,14 @@ package tabnet
 import (
 	"testing"
 
-	"github.com/dcu/deepzen"
+	"github.com/dcu/godl"
 	"github.com/stretchr/testify/require"
 	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
 )
 
 func TestDecisionStep(t *testing.T) {
-	tn := deepzen.NewModel()
+	tn := godl.NewModel()
 	g := tn.ExprGraph()
 
 	testCases := []struct {

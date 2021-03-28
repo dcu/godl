@@ -1,7 +1,7 @@
-# DeepZen
+# GoDL
 
-DeepZen is a deep learning framework for Go written on top of Gorgonia.
-DeepZen is to Gorgonia what Keras is to TensorFlow.
+godl is Go Deep Learning framework written on top of Gorgonia.
+godl is to Gorgonia what Keras is to TensorFlow.
 
 ## API Stability
 The API is not stable and can change at any moment.

@@ -1,4 +1,4 @@
-module github.com/dcu/deepzen
+module github.com/dcu/godl
 
 go 1.16
 

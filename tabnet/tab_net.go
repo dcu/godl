@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/dcu/deepzen"
+	"github.com/dcu/godl"
 	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
 )
@@ -21,7 +21,7 @@ type TabNetOpts struct {
 	PredictionLayerDim int
 	AttentionLayerDim  int
 
-	MaskFunction deepzen.ActivationFn
+	MaskFunction godl.ActivationFn
 
 	WithBias bool
 
@@ -71,17 +71,17 @@ func (o *TabNetOpts) setDefaults() {
 }
 
 // TabNet implements the tab net architecture
-func TabNet(nn *deepzen.Model, opts TabNetOpts) deepzen.Layer {
+func TabNet(nn *godl.Model, opts TabNetOpts) godl.Layer {
 	opts.setDefaults()
 
-	bnLayer := deepzen.BatchNorm1d(nn, deepzen.BatchNormOpts{
+	bnLayer := godl.BatchNorm1d(nn, godl.BatchNormOpts{
 		ScaleInit: opts.ScaleInit,
 		BiasInit:  opts.BiasInit,
 		InputSize: opts.InputSize,
 		Momentum:  0.01,
 	})
 
-	shared := make([]deepzen.Layer, 0, opts.SharedBlocks)
+	shared := make([]godl.Layer, 0, opts.SharedBlocks)
 	outputDim := 2 * (opts.PredictionLayerDim + opts.AttentionLayerDim) // double the size so we can take half and half
 
 	{
@@ -97,7 +97,7 @@ func TabNet(nn *deepzen.Model, opts TabNetOpts) deepzen.Layer {
 				sharedWeightsInit = gorgonia.GlorotN(gain)
 			}
 
-			shared = append(shared, deepzen.FC(nn, deepzen.FCOpts{
+			shared = append(shared, godl.FC(nn, godl.FCOpts{
 				InputDimension:  fcInput,
 				OutputDimension: fcOutput,
 				WeightsInit:     sharedWeightsInit,
@@ -147,7 +147,7 @@ func TabNet(nn *deepzen.Model, opts TabNetOpts) deepzen.Layer {
 		weightsInit = gorgonia.GlorotN(gain)
 	}
 
-	finalMapping := deepzen.FC(nn, deepzen.FCOpts{
+	finalMapping := godl.FC(nn, godl.FCOpts{
 		InputDimension:  opts.PredictionLayerDim,
 		OutputDimension: opts.OutputSize,
 		WeightsInit:     weightsInit,
@@ -163,28 +163,28 @@ func TabNet(nn *deepzen.Model, opts TabNetOpts) deepzen.Layer {
 	prior := gorgonia.NewTensor(nn.ExprGraph(), tensor.Float32, 2, gorgonia.WithShape(opts.BatchSize, opts.InputSize), gorgonia.WithInit(gorgonia.Ones()), gorgonia.WithName("Prior"))
 	out := gorgonia.NewTensor(nn.ExprGraph(), tensor.Float32, 2, gorgonia.WithShape(opts.BatchSize, opts.PredictionLayerDim), gorgonia.WithInit(gorgonia.Zeroes()), gorgonia.WithName("Output"))
 
-	return func(nodes ...*gorgonia.Node) (deepzen.Result, error) {
+	return func(nodes ...*gorgonia.Node) (godl.Result, error) {
 		x := nodes[0]
 
 		bn, err := bnLayer(x)
 		if err != nil {
-			return deepzen.Result{}, fmt.Errorf("applying initial batch norm %v: %w", x.Shape(), err)
+			return godl.Result{}, fmt.Errorf("applying initial batch norm %v: %w", x.Shape(), err)
 		}
 
 		ft, err := initialSplitter(bn.Output)
 		if err != nil {
-			return deepzen.Result{}, fmt.Errorf("applying initial splitter %v: %w", bn.Output.Shape(), err)
+			return godl.Result{}, fmt.Errorf("applying initial splitter %v: %w", bn.Output.Shape(), err)
 		}
 
 		xAttentiveLayer, err := gorgonia.Slice(ft.Output, nil, gorgonia.S(opts.PredictionLayerDim, ft.Shape()[1]))
 		if err != nil {
-			return deepzen.Result{}, fmt.Errorf("slicing %v: %w", ft.Shape(), err)
+			return godl.Result{}, fmt.Errorf("slicing %v: %w", ft.Shape(), err)
 		}
 
 		for _, step := range steps {
 			mask, stepLoss, err := step.CalculateMask(xAttentiveLayer, prior, epsilon)
 			if err != nil {
-				return deepzen.Result{}, err
+				return godl.Result{}, err
 			}
 
 			// accum losses
@@ -194,38 +194,38 @@ func TabNet(nn *deepzen.Model, opts TabNetOpts) deepzen.Layer {
 			{
 				prior, err = gorgonia.HadamardProd(gorgonia.Must(gorgonia.Sub(gamma, mask)), prior)
 				if err != nil {
-					return deepzen.Result{}, fmt.Errorf("updating prior: %w", err)
+					return godl.Result{}, fmt.Errorf("updating prior: %w", err)
 				}
 			}
 
 			maskedX, err := gorgonia.HadamardProd(mask, bn.Output)
 			if err != nil {
-				return deepzen.Result{}, err
+				return godl.Result{}, err
 			}
 
 			ds, err := step.FeatureTransformer(maskedX)
 			if err != nil {
-				return deepzen.Result{}, err
+				return godl.Result{}, err
 			}
 
 			firstPart, err := gorgonia.Slice(ds.Output, nil, gorgonia.S(0, opts.PredictionLayerDim))
 			if err != nil {
-				return deepzen.Result{}, err
+				return godl.Result{}, err
 			}
 
 			relu, err := gorgonia.Rectify(firstPart)
 			if err != nil {
-				return deepzen.Result{}, err
+				return godl.Result{}, err
 			}
 
 			out, err = gorgonia.Add(out, relu)
 			if err != nil {
-				return deepzen.Result{}, err
+				return godl.Result{}, err
 			}
 
 			xAttentiveLayer, err = gorgonia.Slice(ds.Output, nil, gorgonia.S(opts.PredictionLayerDim, ds.Shape()[1]))
 			if err != nil {
-				return deepzen.Result{}, err
+				return godl.Result{}, err
 			}
 		}
 
@@ -233,7 +233,7 @@ func TabNet(nn *deepzen.Model, opts TabNetOpts) deepzen.Layer {
 
 		result, err := finalMapping(out)
 		if err != nil {
-			return deepzen.Result{}, fmt.Errorf("TabNet: applying final FC layer to %v: %w", out.Shape(), err)
+			return godl.Result{}, fmt.Errorf("TabNet: applying final FC layer to %v: %w", out.Shape(), err)
 		}
 
 		result.Loss = tabNetLoss

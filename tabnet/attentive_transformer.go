@@ -3,7 +3,7 @@ package tabnet
 import (
 	"math"
 
-	"github.com/dcu/deepzen"
+	"github.com/dcu/godl"
 	"gorgonia.org/gorgonia"
 )
 
@@ -14,14 +14,14 @@ type AttentiveTransformerOpts struct {
 	Epsilon                          float32
 	VirtualBatchSize                 int
 	Inferring                        bool
-	Activation                       deepzen.ActivationFn
+	Activation                       godl.ActivationFn
 	WithBias                         bool
 	WeightsInit, ScaleInit, BiasInit gorgonia.InitWFn
 }
 
 func (o *AttentiveTransformerOpts) setDefaults() {
 	if o.Activation == nil {
-		o.Activation = deepzen.Sparsemax
+		o.Activation = godl.Sparsemax
 	}
 
 	if o.WeightsInit == nil {
@@ -31,19 +31,19 @@ func (o *AttentiveTransformerOpts) setDefaults() {
 }
 
 // AttentiveTransformer implements an attetion transformer layer
-func AttentiveTransformer(nn *deepzen.Model, opts AttentiveTransformerOpts) deepzen.Layer {
-	lt := deepzen.AddLayer("AttentiveTransformer")
+func AttentiveTransformer(nn *godl.Model, opts AttentiveTransformerOpts) godl.Layer {
+	lt := godl.AddLayer("AttentiveTransformer")
 
 	opts.setDefaults()
 
-	fcLayer := deepzen.FC(nn, deepzen.FCOpts{
+	fcLayer := godl.FC(nn, godl.FCOpts{
 		InputDimension:  opts.InputDimension,
 		OutputDimension: opts.OutputDimension,
 		WeightsInit:     opts.WeightsInit,
 		WithBias:        opts.WithBias,
 	})
 
-	gbnLayer := deepzen.GBN(nn, deepzen.GBNOpts{
+	gbnLayer := godl.GBN(nn, godl.GBNOpts{
 		Momentum:         opts.Momentum,
 		Epsilon:          opts.Epsilon,
 		VirtualBatchSize: opts.VirtualBatchSize,
@@ -52,9 +52,9 @@ func AttentiveTransformer(nn *deepzen.Model, opts AttentiveTransformerOpts) deep
 		BiasInit:         opts.BiasInit,
 	})
 
-	return func(nodes ...*gorgonia.Node) (deepzen.Result, error) {
+	return func(nodes ...*gorgonia.Node) (godl.Result, error) {
 		if err := nn.CheckArity(lt, nodes, 2); err != nil {
-			return deepzen.Result{}, err
+			return godl.Result{}, err
 		}
 
 		x := nodes[0]
@@ -62,24 +62,24 @@ func AttentiveTransformer(nn *deepzen.Model, opts AttentiveTransformerOpts) deep
 
 		fc, err := fcLayer(x)
 		if err != nil {
-			return deepzen.Result{}, deepzen.ErrorF(lt, "fc%v failed failed: %w", x.Shape(), err)
+			return godl.Result{}, godl.ErrorF(lt, "fc%v failed failed: %w", x.Shape(), err)
 		}
 
 		bn, err := gbnLayer(fc.Output)
 		if err != nil {
-			return deepzen.Result{}, deepzen.ErrorF(lt, "gbn%v failed: %w", fc.Shape(), err)
+			return godl.Result{}, godl.ErrorF(lt, "gbn%v failed: %w", fc.Shape(), err)
 		}
 
 		mul, err := gorgonia.HadamardProd(bn.Output, prior)
 		if err != nil {
-			return deepzen.Result{}, deepzen.ErrorF(lt, "hadamardProd(%v, %v) failed: %w", bn.Shape(), prior.Shape(), err)
+			return godl.Result{}, godl.ErrorF(lt, "hadamardProd(%v, %v) failed: %w", bn.Shape(), prior.Shape(), err)
 		}
 
 		sm, err := opts.Activation(mul)
 		if err != nil {
-			return deepzen.Result{}, deepzen.ErrorF(lt, "fn(%v) failed: %w", mul.Shape(), err)
+			return godl.Result{}, godl.ErrorF(lt, "fn(%v) failed: %w", mul.Shape(), err)
 		}
 
-		return deepzen.Result{Output: sm}, nil
+		return godl.Result{Output: sm}, nil
 	}
 }

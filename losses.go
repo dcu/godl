@@ -1,4 +1,4 @@
-package deepzen
+package godl
 
 import (
 	"gorgonia.org/gorgonia"

@@ -5,9 +5,9 @@ import (
 	"log"
 	"os"
 
-	"github.com/dcu/deepzen/image"
-	"github.com/dcu/deepzen/imagenet"
-	"github.com/dcu/deepzen/vgg"
+	"github.com/dcu/godl/image"
+	"github.com/dcu/godl/imagenet"
+	"github.com/dcu/godl/vgg"
 	"github.com/fatih/color"
 )
 

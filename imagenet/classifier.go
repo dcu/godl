@@ -4,23 +4,23 @@ import (
 	"image"
 	"sync"
 
-	"github.com/dcu/deepzen"
-	dzimg "github.com/dcu/deepzen/image"
+	"github.com/dcu/godl"
+	dzimg "github.com/dcu/godl/image"
 	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
 )
 
 // Classifier is an imagenet classifier
 type Classifier struct {
-	m *deepzen.Model
+	m *godl.Model
 	x *gorgonia.Node
 
 	output gorgonia.Value
 	mutex  sync.Mutex
 }
 
-func NewClassifier(builder func(m *deepzen.Model) deepzen.Layer, width, height int) *Classifier {
-	m := deepzen.NewModel()
+func NewClassifier(builder func(m *godl.Model) godl.Layer, width, height int) *Classifier {
+	m := godl.NewModel()
 	layer := builder(m)
 	x := gorgonia.NewTensor(m.ExprGraph(), tensor.Float32, 4, gorgonia.WithShape(1, 3, width, height), gorgonia.WithName("x"))
 
@@ -39,7 +39,7 @@ func NewClassifier(builder func(m *deepzen.Model) deepzen.Layer, width, height i
 	return c
 }
 
-func (c *Classifier) Model() *deepzen.Model {
+func (c *Classifier) Model() *godl.Model {
 	return c.m
 }
 
