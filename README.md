@@ -1,6 +1,6 @@
 # GoDL
 
-godl is Go Deep Learning framework written on top of Gorgonia.
+godl is **Go** **D**eep **L**earning framework written on top of Gorgonia.  
 godl is to Gorgonia what Keras is to TensorFlow.
 
 ## API Stability
@@ -16,20 +16,48 @@ The following items are in the current roadmap, some of them need to be implemen
 - [x] Base storage (save/load)  
 - [ ] CLI to scaffold a project  
 - [x] Embeddings  
+- [ ] Publish pre-trained weights
+
+### Losses
+- [x] Cross Entropy
+- [x] MSE
+- [ ] CTC Losses 
+
+### Pooling
+- [x] MaxPool
+- [ ] AvgPool
+- [ ] GlobalMaxPool
+- [ ] GlobalAvgPool
+
+### Normalization
+- [x] Batch Norm
+- [x] Ghost Batch Nrom
+- [ ] GroupNorm  
+- [ ] LayerNorm  
+
+### Recurrent Layers
 - [x] LSTM  
-- [ ] Bi-LSTM  
+- [ ] Bidirectional  
+- [ ] GRU
+- [ ] ConvLSTM2D
+
+### Reshaping
+- [ ] ZeroPadding
+- [ ] UpSampling
+
+### Convolutional
+- [ ] Conv2D
+- [ ] DepthWiseConv2D
+
+### Applications
 - [x] TabNet  
 - [x] VGG16  
 - [ ] VGG19  
 - [ ] ResNet50  
-- [ ] ResNet101  
+- [ ] ResNet101 
+- [ ] VGGFace 
 - [ ] YOLO  
-- [ ] CTC Losses  
-- [ ] GroupNorm  
-- [ ] LayerNorm  
-- [ ] Face Detection
 
 ### Future
-
 - [ ] Support ONNX  
 - [ ] Support hdf5 files  
