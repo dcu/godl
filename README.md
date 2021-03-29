@@ -46,7 +46,7 @@ The following items are in the current roadmap, some of them need to be implemen
 - [ ] UpSampling
 
 ### Convolutional
-- [ ] Conv2D
+- [x] Conv2D
 - [ ] DepthWiseConv2D
 
 ### Applications
@@ -55,7 +55,7 @@ The following items are in the current roadmap, some of them need to be implemen
 - [ ] VGG19  
 - [ ] ResNet50  
 - [ ] ResNet101 
-- [ ] VGGFace 
+- [x] VGGFace 
 - [ ] YOLO  
 
 ### Future
