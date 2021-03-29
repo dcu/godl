@@ -2,8 +2,7 @@ module github.com/dcu/godl
 
 go 1.16
 
-replace gorgonia.org/gorgonia => ../../../gorgonia.org/gorgonia
-
+// replace gorgonia.org/gorgonia => ../../../gorgonia.org/gorgonia
 // replace gorgonia.org/tensor => ../../../gorgonia.org/tensor
 
 require (
@@ -25,7 +24,7 @@ require (
 	gonum.org/v1/plot v0.9.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
-	gorgonia.org/gorgonia v0.9.18-0.20210327231538-284667d447bf
+	gorgonia.org/gorgonia v0.9.18-0.20210329002147-d77dcd9135e9
 	gorgonia.org/qol v0.0.0-20210328233931-ddcfc12ae8eb
-	gorgonia.org/tensor v0.9.19
+	gorgonia.org/tensor v0.9.20
 )

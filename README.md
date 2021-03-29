@@ -25,13 +25,13 @@ The following items are in the current roadmap, some of them need to be implemen
 
 ### Pooling
 - [x] MaxPool
-- [ ] AvgPool
+- [x] AvgPool
 - [ ] GlobalMaxPool
-- [ ] GlobalAvgPool
+- [x] GlobalAvgPool
 
 ### Normalization
 - [x] Batch Norm
-- [x] Ghost Batch Nrom
+- [x] Ghost Batch Norm
 - [ ] GroupNorm  
 - [ ] LayerNorm  
 
