@@ -1,4 +1,4 @@
-package facenet
+package vggface2
 
 import (
 	"github.com/dcu/godl"
@@ -22,14 +22,14 @@ func (opts *Opts) setDefaults() {
 	}
 }
 
-func FaceNet(opts Opts) func(m *godl.Model) godl.Layer {
+func VGGFace2(opts Opts) func(m *godl.Model) godl.Layer {
 	return func(m *godl.Model) godl.Layer {
-		return FaceNetLayer(m, opts)
+		return VGGFace2Layer(m, opts)
 	}
 }
 
-func FaceNetLayer(m *godl.Model, opts Opts) godl.Layer {
-	lt := godl.AddLayer("FaceNet")
+func VGGFace2Layer(m *godl.Model, opts Opts) godl.Layer {
+	lt := godl.AddLayer("VGGFace2")
 
 	blocks := []godl.Layer{
 		// Stage 2
@@ -145,6 +145,8 @@ func FaceNetLayer(m *godl.Model, opts Opts) godl.Layer {
 		blocks = append(blocks, godl.FC(m, godl.FCOpts{
 			InputDimension:  0, // FIXME
 			OutputDimension: opts.Classes,
+			WeightsName:     "classifier/kernel",
+			BiasName:        "classifier/bias",
 		}))
 	} else {
 		// TODO: give option to apply global max pool2d
@@ -165,11 +167,15 @@ func FaceNetLayer(m *godl.Model, opts Opts) godl.Layer {
 			OutputDimension: 3,
 			KernelSize:      tensor.Shape{7, 7},
 			Pad:             []int{0, 0},
+			WeightsName:     "/conv1/7x7_s2/gamma",
+			BiasName:        "/conv1/7x7_s2/beta",
 		})(x)
 		handleErr(err)
 
 		result, err = godl.BatchNorm2d(m, godl.BatchNormOpts{
 			InputSize: result.Output.Shape()[0],
+			ScaleName: "/conv1/7x7_s2/bn/gamma",
+			BiasName:  "/conv1/7x7_s2/bn/beta",
 		})(result.Output)
 
 		x = gorgonia.Must(gorgonia.Rectify(result.Output))

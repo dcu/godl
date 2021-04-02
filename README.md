@@ -55,7 +55,7 @@ The following items are in the current roadmap, some of them need to be implemen
 - [ ] VGG19  
 - [ ] ResNet50  
 - [ ] ResNet101 
-- [x] VGGFace 
+- [ ] VGGFace2
 - [ ] YOLO  
 
 ### Future

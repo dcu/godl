@@ -13,6 +13,8 @@ type BatchNormOpts struct {
 	Epsilon             float32
 	ScaleInit, BiasInit gorgonia.InitWFn
 
+	ScaleName, BiasName string
+
 	InputSize int
 }
 
@@ -46,10 +48,12 @@ func BatchNorm1d(nn *Model, opts BatchNormOpts) Layer {
 	lt := AddLayer("BatchNorm1d")
 
 	scale := nn.AddLearnable(lt, "scale", tensor.Shape{1, opts.InputSize}, NewWeightsOpts{
-		InitFN: opts.ScaleInit,
+		UniqueName: opts.ScaleName,
+		InitFN:     opts.ScaleInit,
 	})
 	bias := nn.AddBias(lt, tensor.Shape{1, opts.InputSize}, NewWeightsOpts{
-		InitFN: opts.BiasInit,
+		UniqueName: opts.BiasName,
+		InitFN:     opts.BiasInit,
 	})
 
 	return batchNorm(nn, lt, scale, bias, opts)
@@ -61,10 +65,12 @@ func BatchNorm2d(nn *Model, opts BatchNormOpts) Layer {
 	lt := AddLayer("BatchNorm2d")
 
 	scale := nn.AddLearnable(lt, "scale", tensor.Shape{1, opts.InputSize, 1, 1}, NewWeightsOpts{
-		InitFN: opts.ScaleInit,
+		UniqueName: opts.ScaleName,
+		InitFN:     opts.ScaleInit,
 	})
 	bias := nn.AddBias(lt, tensor.Shape{1, opts.InputSize, 1, 1}, NewWeightsOpts{
-		InitFN: opts.BiasInit,
+		UniqueName: opts.BiasName,
+		InitFN:     opts.BiasInit,
 	})
 
 	return batchNorm(nn, lt, scale, bias, opts)
