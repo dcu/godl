@@ -34,8 +34,9 @@ type TrainOpts struct {
 	// Solver defines the solver to use. It uses gorgonia.AdamSolver by default if none is passed
 	Solver gorgonia.Solver
 
-	CostObserver func(epoch int, totalEpoch, batch int, totalBatch int, cost float32)
-	CostFn       func(output *gorgonia.Node, loss *gorgonia.Node, y *gorgonia.Node) *gorgonia.Node
+	CostObserver       func(epoch int, totalEpoch, batch int, totalBatch int, cost float32)
+	ValidationObserver func()
+	CostFn             func(output *gorgonia.Node, accumLoss *gorgonia.Node, target *gorgonia.Node) *gorgonia.Node
 }
 
 func (o *TrainOpts) setDefaults() {
@@ -45,6 +46,10 @@ func (o *TrainOpts) setDefaults() {
 
 	if o.BatchSize == 0 {
 		o.BatchSize = 1024
+	}
+
+	if o.CostFn == nil {
+		panic("CostFN must be set")
 	}
 }
 

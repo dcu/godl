@@ -57,6 +57,7 @@ The following items are in the current roadmap, some of them need to be implemen
 - [ ] ResNet101 
 - [ ] VGGFace2
 - [ ] YOLO  
+- [ ] BERT
 
 ### Future
 - [ ] Support ONNX  

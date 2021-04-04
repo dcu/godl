@@ -61,3 +61,62 @@ func TestMSELoss(t *testing.T) {
 		})
 	}
 }
+
+func TestCrossEntropyLoss(t *testing.T) {
+	testCases := []struct {
+		desc         string
+		reduction    Reduction
+		output       tensor.Tensor
+		target       tensor.Tensor
+		expectedLoss float32
+	}{
+		{
+			desc:      "Example 1",
+			reduction: ReductionSum,
+			output: tensor.New(
+				tensor.WithShape(2),
+				tensor.WithBacking([]float32{0.5, 0.1}),
+			),
+			target: tensor.New(
+				tensor.WithShape(2),
+				tensor.WithBacking([]float32{1, 0}),
+			),
+			expectedLoss: 0.6931472,
+		},
+		{
+			desc:      "Example 2",
+			reduction: ReductionMean,
+			output: tensor.New(
+				tensor.WithShape(2, 2),
+				tensor.WithBacking([]float32{0.5, 0.2, 0.5, 0.7}),
+			),
+			target: tensor.New(
+				tensor.WithShape(2, 2),
+				tensor.WithBacking([]float32{0.1, 0.2, 0.3, 0.9}),
+			),
+			expectedLoss: 0.2300385,
+		},
+	}
+	for _, tC := range testCases {
+		t.Run(tC.desc, func(t *testing.T) {
+			c := require.New(t)
+
+			g := gorgonia.NewGraph()
+
+			outputNode := gorgonia.NewTensor(g, tensor.Float32, tC.output.Shape().Dims(), gorgonia.WithShape(tC.output.Shape()...), gorgonia.WithValue(tC.output), gorgonia.WithName("output"))
+			targetNode := gorgonia.NewTensor(g, tensor.Float32, tC.target.Shape().Dims(), gorgonia.WithShape(tC.target.Shape()...), gorgonia.WithValue(tC.target), gorgonia.WithName("target"))
+
+			loss := CrossEntropyLoss(outputNode, targetNode, CrossEntropyLossOpt{
+				Reduction: tC.reduction,
+			})
+
+			var lossV gorgonia.Value
+			gorgonia.Read(loss, &lossV)
+
+			vm := gorgonia.NewTapeMachine(g)
+			c.NoError(vm.RunAll())
+
+			c.Equal(tC.expectedLoss, lossV.Data())
+		})
+	}
+}
