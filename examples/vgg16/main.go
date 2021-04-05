@@ -5,8 +5,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/dcu/godl/image"
 	"github.com/dcu/godl/imagenet"
+	"github.com/dcu/godl/imageutils"
 	"github.com/dcu/godl/vgg"
 	"github.com/fatih/color"
 )
@@ -25,7 +25,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	img, err := image.Load(flag.Args()[0], image.LoadOpts{
+	img, err := imageutils.Load(flag.Args()[0], imageutils.LoadOpts{
 		TargetSize: []uint{224, 224},
 	})
 	handleErr(err)

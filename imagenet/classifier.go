@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/dcu/godl"
-	dzimg "github.com/dcu/godl/image"
+	"github.com/dcu/godl/imageutils"
 	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
 )
@@ -47,7 +47,7 @@ func (c *Classifier) Predict(img image.Image) (string, float32, error) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
-	input := dzimg.ToTensor(img, dzimg.ToTensorOpts{})
+	input := imageutils.ToTensor(img, imageutils.ToTensorOpts{})
 
 	err := gorgonia.Let(c.x, input)
 	if err != nil {
