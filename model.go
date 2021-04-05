@@ -28,14 +28,17 @@ type TrainOpts struct {
 	Epochs    int
 	BatchSize int
 
-	DevMode               bool
+	// DevMode detects common issues like exploding and vanishing gradients at the cost of performance
+	DevMode bool
+
+	// WithLearnablesHeatmap writes images representing heatmaps for the weights. Use it to debug.
 	WithLearnablesHeatmap bool
 
 	// Solver defines the solver to use. It uses gorgonia.AdamSolver by default if none is passed
 	Solver gorgonia.Solver
 
 	CostObserver       func(epoch int, totalEpoch, batch int, totalBatch int, cost float32)
-	ValidationObserver func()
+	ValidationObserver func(totalBatches int, predVal, targetVal tensor.Tensor, cost float32)
 	CostFn             func(output *gorgonia.Node, accumLoss *gorgonia.Node, target *gorgonia.Node) *gorgonia.Node
 }
 
@@ -260,8 +263,6 @@ func (m *Model) validate(x, y *gorgonia.Node, costVal, predVal gorgonia.Value, v
 
 	defer vm.Close()
 
-	correct := 0
-
 	for b := 0; b < batches; b++ {
 		start := b * opts.BatchSize
 		end := start + opts.BatchSize
@@ -309,33 +310,10 @@ func (m *Model) validate(x, y *gorgonia.Node, costVal, predVal gorgonia.Value, v
 			color.Yellow(" Validation cost %v\n", costVal)
 		}
 
-		pred := predVal.Data().([]float32)
-
-		for j := 0; j < opts.BatchSize; j++ {
-			targetVal, err := yVal.Slice(gorgonia.S(j))
-			if err != nil {
-				panic(err)
-			}
-
-			target := targetVal.Data().(float32)
-
-			if target == 1 {
-				if pred[j] >= 0.5 {
-					correct++
-				}
-			} else {
-				if pred[j] < 0.5 {
-					correct++
-				}
-			}
-		}
-
 		vm.Reset()
 	}
 
-	accuracy := float64(correct) / float64(numExamples)
-
-	log.Printf("accuracy: %0.3f%%", accuracy*100)
+	opts.ValidationObserver(batches, predVal.(tensor.Tensor), validateY, costVal.Data().(float32))
 
 	return nil
 }

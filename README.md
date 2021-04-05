@@ -16,11 +16,13 @@ The following items are in the current roadmap, some of them need to be implemen
 - [x] Base storage (save/load)  
 - [ ] CLI to scaffold a project  
 - [x] Embeddings  
-- [ ] Publish pre-trained weights
+- [x] Dense/Linear/FC
 
 ### Losses
 - [x] Cross Entropy
 - [x] MSE
+- [ ] BCE
+- [ ] BinaryXent
 - [ ] CTC Losses 
 
 ### Pooling
@@ -52,10 +54,10 @@ The following items are in the current roadmap, some of them need to be implemen
 ### Applications
 - [x] TabNet  
 - [x] VGG16  
+- [ ] VGGFace2 (in progress)
 - [ ] VGG19  
 - [ ] ResNet50  
 - [ ] ResNet101 
-- [ ] VGGFace2
 - [ ] YOLO  
 - [ ] BERT
 
