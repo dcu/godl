@@ -37,6 +37,9 @@ type TrainOpts struct {
 	// Solver defines the solver to use. It uses gorgonia.AdamSolver by default if none is passed
 	Solver gorgonia.Solver
 
+	// ValidateEvery indicates the number of epochs to run before running a validation. Defaults 1 (every epoch)
+	ValidateEvery int
+
 	CostObserver       func(epoch int, totalEpoch, batch int, totalBatch int, cost float32)
 	ValidationObserver func(totalBatches int, predVal, targetVal tensor.Tensor, cost float32)
 	CostFn             func(output *gorgonia.Node, accumLoss *gorgonia.Node, target *gorgonia.Node) *gorgonia.Node
@@ -49,6 +52,10 @@ func (o *TrainOpts) setDefaults() {
 
 	if o.BatchSize == 0 {
 		o.BatchSize = 1024
+	}
+
+	if o.ValidateEvery == 0 {
+		o.ValidateEvery = 1
 	}
 
 	if o.CostFn == nil {
@@ -112,6 +119,10 @@ func (m *Model) Learnables() gorgonia.Nodes {
 func (m *Model) Train(layer Layer, trainX, trainY, validateX, validateY tensor.Tensor, opts TrainOpts) error {
 	opts.setDefaults()
 	m.Training = true
+
+	defer func() {
+		m.Training = false
+	}()
 
 	if opts.DevMode {
 		warn("Start training in dev mode")
@@ -232,9 +243,16 @@ func (m *Model) Train(layer Layer, trainX, trainY, validateX, validateY tensor.T
 		} else {
 			fmt.Printf(" Epoch %d | cost %v (%v)\n", i, costVal, time.Since(startTime))
 		}
+
+		if i%opts.ValidateEvery == 0 {
+			err := m.validate(x, y, costVal, predVal, validateX, validateY, opts)
+			if err != nil {
+				color.Red("Failed to run validation on epoch %v: %v", i, err)
+			}
+		}
 	}
 
-	return m.validate(x, y, costVal, predVal, validateX, validateY, opts)
+	return nil
 }
 
 // Run runs the virtual machine in prediction mode
@@ -252,7 +270,7 @@ func (m *Model) Run() error {
 func (m *Model) validate(x, y *gorgonia.Node, costVal, predVal gorgonia.Value, validateX, validateY tensor.Tensor, opts TrainOpts) error {
 	opts.setDefaults()
 
-	numExamples, features := validateX.Shape()[0], validateX.Shape()[1]
+	numExamples := validateX.Shape()[0]
 	batches := numExamples / opts.BatchSize
 
 	vm := gorgonia.NewTapeMachine(m.g)
@@ -281,11 +299,6 @@ func (m *Model) validate(x, y *gorgonia.Node, costVal, predVal gorgonia.Value, v
 		}
 
 		yVal, err := validateY.Slice(gorgonia.S(start, end))
-		if err != nil {
-			return err
-		}
-
-		err = xVal.(*tensor.Dense).Reshape(opts.BatchSize, features)
 		if err != nil {
 			return err
 		}

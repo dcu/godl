@@ -52,7 +52,7 @@ func ToTensorFromDirectory(dirPath string, loadOpts LoadOpts, tensorOpts ToTenso
 			return err
 		}
 
-		weights := imageToWeights(img, tensorOpts)
+		weights := ToArray(img, tensorOpts)
 		backing = append(backing, weights...)
 		imagesCount++
 
@@ -76,11 +76,12 @@ func ToTensor(img image.Image, opts ToTensorOpts) tensor.Tensor {
 	return tensor.New(
 		tensor.Of(tensor.Float32),
 		tensor.WithShape(1, 3, bounds.Max.X, bounds.Max.Y), // batchSize, channels, width, height
-		tensor.WithBacking(imageToWeights(img, opts)),
+		tensor.WithBacking(ToArray(img, opts)),
 	)
 }
 
-func imageToWeights(img image.Image, opts ToTensorOpts) []float32 {
+// ToArray converts the image in a []float32
+func ToArray(img image.Image, opts ToTensorOpts) []float32 {
 	bounds := img.Bounds()
 	width, height := bounds.Max.X, bounds.Max.Y
 

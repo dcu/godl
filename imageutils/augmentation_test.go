@@ -36,8 +36,9 @@ func TestAugmentation(t *testing.T) {
 			c := require.New(t)
 
 			a := NewAugmenter(tC.filters...)
-			result := a.ApplyN(img, 10)
+			result, err := a.ApplyN(img, 10)
 
+			c.NoError(err)
 			c.Len(result, 10)
 
 			for i, r := range result {
