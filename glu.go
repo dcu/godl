@@ -14,7 +14,6 @@ type GLUOpts struct {
 	ActivationFn     ActivationFn
 	FC               Layer
 	WeightsInit      gorgonia.InitWFn
-	Inferring        bool
 	WithBias         bool
 	Momentum         float32
 }
@@ -41,8 +40,8 @@ func GLU(nn *Model, opts GLUOpts) Layer {
 
 	if opts.FC == nil {
 		opts.FC = FC(nn, FCOpts{
-			OutputDimension: opts.OutputDimension * 2,
 			InputDimension:  opts.InputDimension,
+			OutputDimension: opts.OutputDimension * 2,
 			WeightsInit:     opts.WeightsInit,
 			WithBias:        opts.WithBias,
 		})

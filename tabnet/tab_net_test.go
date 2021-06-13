@@ -49,6 +49,8 @@ func TestTabNet(t *testing.T) {
 			c := require.New(t)
 
 			tn := godl.NewModel()
+			tn.Training = true
+
 			g := tn.ExprGraph()
 
 			x := gorgonia.NewTensor(g, tensor.Float32, 2, gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithName("Input"), gorgonia.WithValue(tcase.input))

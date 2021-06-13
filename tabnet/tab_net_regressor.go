@@ -1,14 +1,20 @@
 package tabnet
 
 import (
+	"log"
+
 	"github.com/dcu/godl"
 	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
 )
 
 type Regressor struct {
-	model *godl.Model
-	layer godl.Layer
+	opts       RegressorOpts
+	trainModel *godl.Model
+	trainLayer godl.Layer
+
+	evalModel *godl.Model
+	evalLayer godl.Layer
 }
 
 type RegressorOpts struct {
@@ -30,8 +36,9 @@ type RegressorOpts struct {
 	WeightsInit, ScaleInit, BiasInit gorgonia.InitWFn
 }
 
-func NewRegressor(inputDim int, catDims []int, catIdxs []int, catEmbDim []int, opts RegressorOpts) *Regressor {
+func newModel(training bool, batchSize int, inputDim int, catDims []int, catIdxs []int, catEmbDim []int, opts RegressorOpts) (*godl.Model, godl.Layer) {
 	nn := godl.NewModel()
+	nn.Training = training
 
 	embedder := godl.EmbeddingGenerator(nn, inputDim, catDims, catIdxs, catEmbDim, godl.EmbeddingOpts{
 		WeightsInit: opts.WeightsInit,
@@ -45,7 +52,7 @@ func NewRegressor(inputDim int, catDims []int, catIdxs []int, catEmbDim []int, o
 	tabNetInputDim := inputDim + embedDimSum - len(catEmbDim)
 	tn := TabNet(nn, TabNetOpts{
 		OutputSize:         1,
-		BatchSize:          opts.BatchSize,
+		BatchSize:          batchSize,
 		VirtualBatchSize:   opts.VirtualBatchSize,
 		InputSize:          tabNetInputDim,
 		MaskFunction:       gorgonia.Sigmoid,
@@ -65,14 +72,20 @@ func NewRegressor(inputDim int, catDims []int, catIdxs []int, catEmbDim []int, o
 
 	layer := godl.Sequential(nn, embedder, tn)
 
-	return &Regressor{
-		model: nn,
-		layer: layer,
-	}
+	return nn, layer
 }
 
-func (r *Regressor) Model() *godl.Model {
-	return r.model
+func NewRegressor(inputDim int, catDims []int, catIdxs []int, catEmbDim []int, opts RegressorOpts) *Regressor {
+	train, trainLayer := newModel(true, opts.BatchSize, inputDim, catDims, catIdxs, catEmbDim, opts)
+	eval, evalLayer := newModel(true, opts.BatchSize, inputDim, catDims, catIdxs, catEmbDim, opts)
+
+	return &Regressor{
+		opts:       opts,
+		trainModel: train,
+		trainLayer: trainLayer,
+		evalModel:  eval,
+		evalLayer:  evalLayer,
+	}
 }
 
 func (r *Regressor) Train(trainX, trainY, validateX, validateY tensor.Tensor, opts godl.TrainOpts) error {
@@ -96,5 +109,53 @@ func (r *Regressor) Train(trainX, trainY, validateX, validateY tensor.Tensor, op
 		// opts.Solver = gorgonia.NewRMSPropSolver(gorgonia.WithBatchSize(float64(opts.BatchSize)), gorgonia.WithLearnRate(0.02))
 	}
 
-	return r.model.Train(r.layer, trainX, trainY, validateX, validateY, opts)
+	return r.trainModel.Train(r.trainLayer, trainX, trainY, validateX, validateY, opts)
+}
+
+// FIXME: this shouldn't receive Y
+func (r *Regressor) Solve(x tensor.Tensor, y tensor.Tensor) (tensor.Tensor, error) {
+	predictor, err := r.evalModel.Predictor(r.evalLayer, godl.PredictOpts{
+		InputShape: tensor.Shape{r.opts.BatchSize, x.Shape()[1]},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	yPos := 0
+	correct := 0.0
+
+	godl.InBatches(x, r.opts.BatchSize, func(v tensor.Tensor) {
+		val, err := predictor(v)
+		if err != nil {
+			panic(err)
+		}
+
+		t := val.(tensor.Tensor)
+
+		log.Printf("output: %v", t.Shape())
+
+		for _, o := range t.Data().([]float32) {
+			yVal, err := y.At(yPos, 0)
+			if err != nil {
+				panic(err)
+			}
+
+			// log.Printf("%v == %v", yVal, o)
+			if yVal.(float32) == 1 {
+				if o > 0.5 {
+					correct++
+				}
+			} else {
+				if o <= 0.5 {
+					correct++
+				}
+			}
+
+			yPos++
+		}
+	})
+
+	log.Printf("r=%v", correct/float64(yPos))
+
+	return nil, nil
 }

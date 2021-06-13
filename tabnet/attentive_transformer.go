@@ -13,7 +13,6 @@ type AttentiveTransformerOpts struct {
 	Momentum                         float32
 	Epsilon                          float32
 	VirtualBatchSize                 int
-	Inferring                        bool
 	Activation                       godl.ActivationFn
 	WithBias                         bool
 	WeightsInit, ScaleInit, BiasInit gorgonia.InitWFn

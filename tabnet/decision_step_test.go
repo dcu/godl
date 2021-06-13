@@ -10,12 +10,9 @@ import (
 )
 
 func TestDecisionStep(t *testing.T) {
-	tn := godl.NewModel()
-	g := tn.ExprGraph()
-
 	testCases := []struct {
 		desc              string
-		input             *gorgonia.Node
+		input             tensor.Tensor
 		vbs               int
 		independentBlocks int
 		output            int
@@ -26,12 +23,10 @@ func TestDecisionStep(t *testing.T) {
 	}{
 		{
 			desc: "Example 1",
-			input: gorgonia.NewTensor(g, tensor.Float32, 2, gorgonia.WithShape(4, 7), gorgonia.WithName("input"), gorgonia.WithValue(
-				tensor.New(
-					tensor.WithShape(4, 7),
-					tensor.WithBacking([]float32{0.4, 1.4, 2.4, 3.4, 4.4, 5.4, 6.4, 7.4, 0.4, 1.4, 2.4, 3.4, 4.4, 5.4, 6.4, 7.4, 8.4, 9.4, 0.4, 1.4, 2.4, 3.4, 4.4, 5.4, 6.4, 7.4, 0.4, 1.4}),
-				),
-			)),
+			input: tensor.New(
+				tensor.WithShape(4, 7),
+				tensor.WithBacking([]float32{0.4, 1.4, 2.4, 3.4, 4.4, 5.4, 6.4, 7.4, 0.4, 1.4, 2.4, 3.4, 4.4, 5.4, 6.4, 7.4, 8.4, 9.4, 0.4, 1.4, 2.4, 3.4, 4.4, 5.4, 6.4, 7.4, 0.4, 1.4}),
+			),
 			vbs:               2,
 			independentBlocks: 3,
 			expectedShape:     tensor.Shape{4, 7},
@@ -42,10 +37,17 @@ func TestDecisionStep(t *testing.T) {
 
 	for _, tcase := range testCases {
 		t.Run(tcase.desc, func(t *testing.T) {
+			tn := godl.NewModel()
+			tn.Training = true
+
+			g := tn.ExprGraph()
+
 			c := require.New(t)
 
-			a := gorgonia.NewTensor(g, gorgonia.Float32, tcase.input.Dims(), gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithInit(gorgonia.Ones()))
-			priors := gorgonia.NewTensor(g, gorgonia.Float32, tcase.input.Dims(), gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithInit(gorgonia.Ones()))
+			input := gorgonia.NewTensor(g, tensor.Float32, 2, gorgonia.WithShape(4, 7), gorgonia.WithName("input"), gorgonia.WithValue(tcase.input))
+
+			a := gorgonia.NewTensor(g, gorgonia.Float32, input.Dims(), gorgonia.WithShape(input.Shape()...), gorgonia.WithInit(gorgonia.Ones()))
+			priors := gorgonia.NewTensor(g, gorgonia.Float32, input.Dims(), gorgonia.WithShape(input.Shape()...), gorgonia.WithInit(gorgonia.Ones()))
 			step := NewDecisionStep(tn, DecisionStepOpts{
 				VirtualBatchSize:   tcase.vbs,
 				Shared:             nil,
@@ -67,7 +69,7 @@ func TestDecisionStep(t *testing.T) {
 				c.NoError(err)
 			}
 
-			ds, err := step.FeatureTransformer(tcase.input)
+			ds, err := step.FeatureTransformer(input)
 			c.NoError(err)
 
 			if tcase.expectedErr != "" {

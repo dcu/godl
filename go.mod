@@ -2,14 +2,14 @@ module github.com/dcu/godl
 
 go 1.16
 
-// replace gorgonia.org/gorgonia => ../../../gorgonia.org/gorgonia
-// replace gorgonia.org/tensor => ../../../gorgonia.org/tensor
+replace gorgonia.org/gorgonia => ../../../gorgonia.org/gorgonia
+
+replace gorgonia.org/tensor => ../../../gorgonia.org/tensor
 
 require (
 	github.com/anthonynsimon/bild v0.13.0
 	github.com/apache/arrow/go/arrow v0.0.0-20210328172718-2661fc31648b // indirect
 	github.com/awalterschulze/gographviz v2.0.3+incompatible // indirect
-	github.com/cheggaaa/pb v1.0.29
 	github.com/cheggaaa/pb/v3 v3.0.7
 	github.com/dcu/resize v0.0.0-20201120200444-0e5185b92511
 	github.com/fatih/color v1.10.0

@@ -223,7 +223,6 @@ func main() {
 	}
 
 	trainX, trainY := p.TrainingTensors()
-
 	validateX, validateY := p.ValidateTensors()
 
 	log.Printf("train x: %v train y: %v", trainX.Shape(), trainY.Shape())
@@ -242,7 +241,7 @@ func main() {
 		trainX.Shape()[1], catDims, catIdxs, catEmbDim, tabnet.RegressorOpts{
 			BatchSize:        batchSize,
 			VirtualBatchSize: virtualBatchSize,
-			MaskFunction:     godl.Sigmoid,
+			MaskFunction:     godl.Sparsemax,
 			// PredictionLayerDim: 8,
 			// AttentionLayerDim:  8,
 			WithBias: false,
@@ -252,8 +251,11 @@ func main() {
 	err := regressor.Train(trainX, trainY, validateX, validateY, godl.TrainOpts{
 		BatchSize: batchSize,
 		Epochs:    5,
-		DevMode:   false,
+		DevMode:   true,
 		// WithLearnablesHeatmap: true,
 	})
+	handleErr(err)
+
+	_, err = regressor.Solve(validateX, validateY)
 	handleErr(err)
 }

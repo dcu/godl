@@ -54,9 +54,11 @@ func TestFeatureTransformer(t *testing.T) {
 			c := require.New(t)
 
 			tn := godl.NewModel()
+			tn.Training = true
+
 			g := tn.ExprGraph()
 
-			input := gorgonia.NewTensor(g, tensor.Float32, tcase.input.Dims(), gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithName("input"), gorgonia.WithValue(tcase.input))
+			input := gorgonia.NewTensor(g, tensor.Float32, tcase.input.Dims(), gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithName("input"+tcase.desc), gorgonia.WithValue(tcase.input))
 
 			shared := make([]godl.Layer, tcase.sharedBlocks)
 			fcInput := input.Shape()[1]
@@ -92,6 +94,8 @@ func TestFeatureTransformer(t *testing.T) {
 
 			vm := gorgonia.NewTapeMachine(g)
 			c.NoError(vm.RunAll())
+
+			tn.PrintWatchables()
 
 			c.Equal(tcase.expectedShape, x.Shape())
 			c.Equal(tcase.expectedOutput, x.Value().Data().([]float32))

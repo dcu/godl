@@ -13,7 +13,6 @@ import (
 	"github.com/fatih/color"
 	"gonum.org/v1/plot/vg"
 	"gorgonia.org/gorgonia"
-	"gorgonia.org/gorgonia/encoding/dot"
 	"gorgonia.org/qol/plot"
 	"gorgonia.org/tensor"
 )
@@ -84,16 +83,13 @@ func NewModel() *Model {
 	}
 }
 
-// ToSVG creates a SVG representation of the node
-func (m *Model) ToSVG(path string) error {
-	b, err := dot.Marshal(m.g)
-	if err != nil {
-		return err
-	}
+// WriteSVG creates a SVG representation of the node
+func (m *Model) WriteSVG(path string) error {
+	b := m.g.ToDot()
 
 	fileName := "graph.dot"
 
-	err = ioutil.WriteFile(fileName, b, 0644)
+	err := ioutil.WriteFile(fileName, []byte(b), 0644)
 	if err != nil {
 		return err
 	}
@@ -149,7 +145,7 @@ func (m *Model) Train(layer Layer, trainX, trainY, validateX, validateY tensor.T
 
 	xShape := append(tensor.Shape{opts.BatchSize}, trainX.Shape()[1:]...)
 
-	x := gorgonia.NewTensor(m.g, tensor.Float32, trainX.Shape().Dims(), gorgonia.WithShape(xShape...))
+	x := gorgonia.NewTensor(m.g, tensor.Float32, trainX.Shape().Dims(), gorgonia.WithShape(xShape...), gorgonia.WithName("x"))
 	y := gorgonia.NewMatrix(m.g, tensor.Float32, gorgonia.WithShape(opts.BatchSize, trainY.Shape()[1]), gorgonia.WithName("y"))
 
 	result, err := layer(x)
@@ -227,7 +223,7 @@ func (m *Model) Train(layer Layer, trainX, trainY, validateX, validateY tensor.T
 			if opts.CostObserver != nil {
 				opts.CostObserver(i, opts.Epochs, dl.CurrentBatch, dl.Batches, costVal.Data().(float32))
 			} else {
-				color.Yellow(" Epoch %d %d | cost %v\n", i, dl.CurrentBatch, costVal)
+				// color.Yellow(" Epoch %d %d | cost %v (%v)\n", i, dl.CurrentBatch, costVal, time.Since(startTime))
 			}
 
 			m.PrintWatchables()
@@ -237,18 +233,13 @@ func (m *Model) Train(layer Layer, trainX, trainY, validateX, validateY tensor.T
 
 		dl.Reset()
 
-		_ = startTime
-		if opts.CostObserver != nil {
-			opts.CostObserver(i+1, opts.Epochs, dl.Batches, dl.Batches, costVal.Data().(float32))
-		} else {
-			fmt.Printf(" Epoch %d | cost %v (%v)\n", i, costVal, time.Since(startTime))
-		}
-
 		if i%opts.ValidateEvery == 0 {
 			err := m.validate(x, y, costVal, predVal, validateX, validateY, opts)
 			if err != nil {
 				color.Red("Failed to run validation on epoch %v: %v", i, err)
 			}
+
+			color.Yellow(" Epoch %d | cost %v (%v)\n", i, costVal, time.Since(startTime))
 		}
 	}
 
@@ -256,8 +247,8 @@ func (m *Model) Train(layer Layer, trainX, trainY, validateX, validateY tensor.T
 }
 
 // Run runs the virtual machine in prediction mode
-func (m *Model) Run() error {
-	vm := gorgonia.NewTapeMachine(m.g)
+func (m *Model) Run(vmOpts ...gorgonia.VMOpt) error {
+	vm := gorgonia.NewTapeMachine(m.g, vmOpts...)
 
 	err := vm.RunAll()
 	if err != nil {
@@ -317,18 +308,69 @@ func (m *Model) validate(x, y *gorgonia.Node, costVal, predVal gorgonia.Value, v
 			fatal("Failed batch %d. Error: %v", b, err)
 		}
 
-		if opts.CostObserver != nil {
-			opts.CostObserver(1, 1, b+1, batches, costVal.Data().(float32))
-		} else {
-			color.Yellow(" Validation cost %v\n", costVal)
-		}
-
 		vm.Reset()
 	}
 
-	opts.ValidationObserver(batches, predVal.(tensor.Tensor), validateY, costVal.Data().(float32))
+	if opts.ValidationObserver != nil {
+		opts.ValidationObserver(batches, predVal.(tensor.Tensor), validateY, costVal.Data().(float32))
+	}
 
 	return nil
+}
+
+type PredictOpts struct {
+	InputShape tensor.Shape
+	DevMode    bool
+}
+
+type Predictor func(x tensor.Tensor) (gorgonia.Value, error)
+
+func (o *PredictOpts) setDefaults() {
+	if o.InputShape == nil {
+		panic("InputShape is required")
+	}
+}
+
+func (m *Model) Predictor(layer Layer, opts PredictOpts) (Predictor, error) {
+	opts.setDefaults()
+
+	x := gorgonia.NewTensor(
+		m.g,
+		tensor.Float32,
+		opts.InputShape.Dims(),
+		gorgonia.WithName("input"),
+		gorgonia.WithShape(opts.InputShape...),
+	)
+
+	result, err := layer(x)
+	if err != nil {
+		return nil, fmt.Errorf("error running layer: %w", err)
+	}
+
+	vmOpts := []gorgonia.VMOpt{}
+
+	if opts.DevMode {
+		vmOpts = append(
+			vmOpts,
+			gorgonia.TraceExec(),
+			gorgonia.WithInfWatch(),
+			gorgonia.WithNaNWatch(),
+		)
+	}
+
+	var predVal gorgonia.Value
+
+	gorgonia.Read(result.Output, &predVal)
+
+	return func(input tensor.Tensor) (gorgonia.Value, error) {
+		gorgonia.Let(x, input)
+
+		if err := m.Run(vmOpts...); err != nil {
+			return nil, fmt.Errorf("failed to run prediction: %w", err)
+		}
+
+		return predVal, nil
+	}, nil
 }
 
 func (m Model) saveHeatmaps(epoch, batch, batchSize, features int) {

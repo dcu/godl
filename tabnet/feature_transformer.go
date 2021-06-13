@@ -14,7 +14,6 @@ type FeatureTransformerOpts struct {
 	IndependentBlocks int
 	InputDimension    int
 	OutputDimension   int
-	Inferring         bool
 	WithBias          bool
 	Momentum          float32
 
@@ -28,6 +27,10 @@ func (o *FeatureTransformerOpts) setDefaults() {
 
 	if o.OutputDimension == 0 {
 		panic("output dimension can't be nil")
+	}
+
+	if o.Momentum == 0 {
+		o.Momentum = 0.01
 	}
 }
 
@@ -56,7 +59,6 @@ func FeatureTransformer(nn *godl.Model, opts FeatureTransformerOpts) godl.Layer 
 			VirtualBatchSize: opts.VirtualBatchSize,
 			FC:               fcLayer,
 			WeightsInit:      weightsInit,
-			Inferring:        opts.Inferring,
 			WithBias:         opts.WithBias,
 			Momentum:         opts.Momentum,
 		}))
@@ -81,7 +83,6 @@ func FeatureTransformer(nn *godl.Model, opts FeatureTransformerOpts) godl.Layer 
 			OutputDimension:  gluOutput,
 			VirtualBatchSize: opts.VirtualBatchSize,
 			WeightsInit:      weightsInit,
-			Inferring:        opts.Inferring,
 			WithBias:         opts.WithBias,
 			Momentum:         opts.Momentum,
 		}))
