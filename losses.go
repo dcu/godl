@@ -51,8 +51,8 @@ func CrossEntropyLoss(output *gorgonia.Node, target *gorgonia.Node, opts CrossEn
 	return gorgonia.Must(opts.Reduction.Func()(cost))
 }
 
-// CategoricalCrossEntropy is softmax + cce
-func CategoricalCrossEntropy(output *gorgonia.Node, target *gorgonia.Node, opts CrossEntropyLossOpt) *gorgonia.Node {
+// CategoricalCrossEntropyLoss is softmax + cce
+func CategoricalCrossEntropyLoss(output *gorgonia.Node, target *gorgonia.Node, opts CrossEntropyLossOpt) *gorgonia.Node {
 	output = gorgonia.Must(Softmax(output))
 
 	return CrossEntropyLoss(output, target, opts)

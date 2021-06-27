@@ -79,7 +79,7 @@ func (r *Classifier) Train(trainX, trainY, validateX, validateY tensor.Tensor, o
 	if opts.CostFn == nil {
 		lambdaSparse := gorgonia.NewConstant(float32(1e-3))
 		opts.CostFn = func(output *gorgonia.Node, innerLoss *gorgonia.Node, y *gorgonia.Node) *gorgonia.Node {
-			cost := godl.CrossEntropyLoss(output, y, godl.CrossEntropyLossOpt{})
+			cost := godl.CategoricalCrossEntropyLoss(output, y, godl.CrossEntropyLossOpt{})
 			cost = gorgonia.Must(gorgonia.Sub(cost, gorgonia.Must(gorgonia.Mul(lambdaSparse, innerLoss))))
 
 			return cost
@@ -90,5 +90,5 @@ func (r *Classifier) Train(trainX, trainY, validateX, validateY tensor.Tensor, o
 		opts.Solver = gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(opts.BatchSize)), gorgonia.WithLearnRate(0.02), gorgonia.WithClip(1.0))
 	}
 
-	return r.model.Train(r.layer, trainX, trainY, validateX, validateY, opts)
+	return godl.Train(r.model, r.layer, trainX, trainY, validateX, validateY, opts)
 }

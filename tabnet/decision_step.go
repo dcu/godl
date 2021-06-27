@@ -76,7 +76,7 @@ func NewDecisionStep(nn *godl.Model, opts DecisionStepOpts) *DecisionStep {
 	})
 
 	ds.AttentiveTransformer = AttentiveTransformer(nn, AttentiveTransformerOpts{
-		InputDimension:   opts.PredictionLayerDim,
+		InputDimension:   opts.AttentionLayerDim, // or prediction?
 		OutputDimension:  opts.OutputDimension,
 		Momentum:         opts.Momentum,
 		Epsilon:          opts.Epsilon,

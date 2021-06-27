@@ -87,15 +87,9 @@ func batchNorm(nn *Model, lt LayerType, scale, bias *gorgonia.Node, opts BatchNo
 
 		x := nodes[0]
 
-		ret, _, _, bnop, err := gorgonia.BatchNorm(x, scale, bias, float64(opts.Momentum), float64(opts.Epsilon))
+		ret, _, _, _, err := gorgonia.BatchNorm(x, scale, bias, float64(opts.Momentum), float64(opts.Epsilon))
 		if err != nil {
 			return Result{}, fmt.Errorf("%v: %w", lt, err)
-		}
-
-		if !nn.Training {
-			bnop.SetTesting()
-		} else {
-			bnop.SetTraining()
 		}
 
 		return Result{Output: ret}, nil

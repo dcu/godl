@@ -18,6 +18,8 @@ func TestAttentiveTransformer(t *testing.T) {
 		expectedShape  tensor.Shape
 		expectedErr    string
 		expectedOutput []float32
+		expectedGrad   []float32
+		expectedCost   float32
 	}{
 		{
 			desc: "Example 1",
@@ -29,6 +31,8 @@ func TestAttentiveTransformer(t *testing.T) {
 			output:         2,
 			expectedShape:  tensor.Shape{6, 2},
 			expectedOutput: []float32{0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5},
+			expectedGrad:   []float32{0.083333336, 0.083333336, 0.083333336, 0.083333336, 0.083333336, 0.083333336, 0.083333336, 0.083333336, 0.083333336, 0.083333336, 0.083333336, 0.083333336},
+			expectedCost:   0.5,
 		},
 	}
 
@@ -48,7 +52,7 @@ func TestAttentiveTransformer(t *testing.T) {
 				WeightsInit:      initDummyWeights,
 			})(input, priors)
 
-			x := result.Output
+			y := result.Output
 
 			if tcase.expectedErr != "" {
 				c.Error(err)
@@ -59,11 +63,21 @@ func TestAttentiveTransformer(t *testing.T) {
 				c.NoError(err)
 			}
 
-			vm := gorgonia.NewTapeMachine(g)
+			cost := gorgonia.Must(gorgonia.Mean(y))
+			_, err = gorgonia.Grad(cost, input)
+			c.NoError(err)
+
+			vm := gorgonia.NewTapeMachine(g, gorgonia.BindDualValues(tn.Learnables()...))
 			c.NoError(vm.RunAll())
 
-			c.Equal(tcase.expectedShape, x.Shape())
-			c.Equal(tcase.expectedOutput, x.Value().Data().([]float32))
+			c.Equal(tcase.expectedShape, y.Shape())
+			c.Equal(tcase.expectedOutput, y.Value().Data().([]float32))
+
+			yGrad, err := y.Grad()
+			c.NoError(err)
+
+			c.Equal(tcase.expectedGrad, yGrad.Data())
+			c.Equal(tcase.expectedCost, cost.Value().Data())
 		})
 	}
 }

@@ -137,6 +137,7 @@ func TabNet(nn *godl.Model, opts TabNetOpts) godl.Layer {
 				MaskFunction:       opts.MaskFunction,
 				WithBias:           opts.WithBias,
 				Momentum:           opts.Momentum,
+				Epsilon:            opts.Epsilon,
 			},
 		))
 	}
@@ -181,14 +182,21 @@ func TabNet(nn *godl.Model, opts TabNetOpts) godl.Layer {
 			return godl.Result{}, fmt.Errorf("slicing %v: %w", ft.Shape(), err)
 		}
 
-		for _, step := range steps {
+		for i, step := range steps {
 			mask, stepLoss, err := step.CalculateMask(xAttentiveLayer, prior, epsilon)
 			if err != nil {
 				return godl.Result{}, err
 			}
 
+			_ = i
+			// nn.Watch(fmt.Sprintf("step %v: prior", i), prior)
+			// nn.Watch(fmt.Sprintf("step %v: mask", i), mask)
+			// nn.Watch(fmt.Sprintf("step %v: loss", i), stepLoss)
+
 			// accum losses
 			tabNetLoss = gorgonia.Must(gorgonia.Add(tabNetLoss, stepLoss))
+
+			// nn.Watch(fmt.Sprintf("step %v: accum loss", i), tabNetLoss)
 
 			// Update prior
 			{

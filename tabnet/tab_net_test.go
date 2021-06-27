@@ -24,6 +24,9 @@ func TestTabNet(t *testing.T) {
 		expectedShape     tensor.Shape
 		expectedErr       string
 		expectedOutput    []float32
+		expectedGrad      []float32
+		expectedCost      float32
+		expectedAcumLoss  float32
 	}{
 		{
 			desc: "Example 1",
@@ -41,6 +44,9 @@ func TestTabNet(t *testing.T) {
 			attentive:         64,
 			expectedShape:     tensor.Shape{4, 12},
 			expectedOutput:    []float32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062},
+			expectedGrad:      []float32{0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334},
+			expectedCost:      223.90314,
+			expectedAcumLoss:  -1.3862944,
 		},
 	}
 
@@ -53,7 +59,7 @@ func TestTabNet(t *testing.T) {
 
 			g := tn.ExprGraph()
 
-			x := gorgonia.NewTensor(g, tensor.Float32, 2, gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithName("Input"), gorgonia.WithValue(tcase.input))
+			y := gorgonia.NewTensor(g, tensor.Float32, 2, gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithName("Input"), gorgonia.WithValue(tcase.input))
 
 			a := gorgonia.NewTensor(g, tensor.Float32, tcase.input.Dims(), gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithInit(gorgonia.Ones()), gorgonia.WithName("AttentiveX"))
 			priors := gorgonia.NewTensor(g, tensor.Float32, tcase.input.Dims(), gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithInit(gorgonia.Ones()), gorgonia.WithName("Priors"))
@@ -72,9 +78,10 @@ func TestTabNet(t *testing.T) {
 				WeightsInit:        initDummyWeights,
 				ScaleInit:          gorgonia.Ones(),
 				BiasInit:           gorgonia.Zeroes(),
-			})(x, a, priors)
+				Epsilon:            1e-10,
+			})(y, a, priors)
 
-			x = result.Output
+			y = result.Output
 
 			if tcase.expectedErr != "" {
 				c.Error(err)
@@ -86,6 +93,10 @@ func TestTabNet(t *testing.T) {
 				c.NoError(err)
 			}
 
+			cost := gorgonia.Must(gorgonia.Mean(y))
+			_, err = gorgonia.Grad(cost, tn.Learnables()...)
+			c.NoError(err)
+
 			vm := gorgonia.NewTapeMachine(g,
 				gorgonia.BindDualValues(tn.Learnables()...),
 				gorgonia.WithLogger(testLogger),
@@ -94,10 +105,18 @@ func TestTabNet(t *testing.T) {
 			)
 			c.NoError(vm.RunAll())
 
+			tn.PrintWatchables()
 			// fmt.Printf("%v\n", g.String())
 
-			c.Equal(tcase.expectedShape, x.Shape())
-			c.Equal(tcase.expectedOutput, x.Value().Data().([]float32))
+			c.Equal(tcase.expectedShape, y.Shape())
+			c.Equal(tcase.expectedOutput, y.Value().Data().([]float32))
+
+			yGrad, err := y.Grad()
+			c.NoError(err)
+
+			c.Equal(tcase.expectedGrad, yGrad.Data())
+			c.Equal(tcase.expectedCost, cost.Value().Data())
+			c.Equal(tcase.expectedAcumLoss, result.Loss.Value().Data())
 		})
 	}
 }

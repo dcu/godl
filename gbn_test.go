@@ -16,6 +16,8 @@ func TestGBN(t *testing.T) {
 		expectedShape  tensor.Shape
 		expectedErr    string
 		expectedOutput []float32
+		expectedGrad   []float32
+		expectedCost   float32
 	}{
 		{
 			desc: "Example 1",
@@ -25,7 +27,9 @@ func TestGBN(t *testing.T) {
 			),
 			vbs:            5,
 			expectedShape:  tensor.Shape{10, 1},
-			expectedOutput: []float32{-1.41421, -0.7071051, 0, 0.707105, 1.41421, -1.4142102, -0.7071051, 0, 0.7071048, 1.41421},
+			expectedOutput: []float32{-1.41421, -0.70710504, 0, 0.707105, 1.41421, -1.4142102, -0.7071051, 0, 0.70710474, 1.4142098},
+			expectedGrad:   []float32{0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1},
+			expectedCost:   -9.536743e-08,
 		},
 		{
 			desc: "Example 2",
@@ -36,6 +40,8 @@ func TestGBN(t *testing.T) {
 			vbs:            5,
 			expectedShape:  tensor.Shape{5, 2},
 			expectedOutput: []float32{-1.4142127, 1.4142127, -0.70710635, 0.70710635, 0, 0, 0.70710635, -0.70710635, 1.4142126, -1.4142126},
+			expectedGrad:   []float32{0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1},
+			expectedCost:   0,
 		},
 	}
 
@@ -49,7 +55,7 @@ func TestGBN(t *testing.T) {
 
 			input := gorgonia.NewTensor(g, tensor.Float32, 2, gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithName("GBNInput"), gorgonia.WithValue(tcase.input))
 
-			x, err := GBN(tn, GBNOpts{
+			y, err := GBN(tn, GBNOpts{
 				VirtualBatchSize: tcase.vbs,
 				OutputDimension:  tcase.input.Shape()[1],
 			})(input)
@@ -60,9 +66,13 @@ func TestGBN(t *testing.T) {
 
 				return
 			}
-
 			c.NoError(err)
-			c.Equal(tcase.expectedShape, x.Shape())
+
+			cost := gorgonia.Must(gorgonia.Mean(y.Output))
+			_, err = gorgonia.Grad(cost, input)
+			c.NoError(err)
+
+			c.Equal(tcase.expectedShape, y.Shape())
 
 			vm := gorgonia.NewTapeMachine(tn.g,
 				gorgonia.WithLogger(testLogger),
@@ -72,7 +82,12 @@ func TestGBN(t *testing.T) {
 			)
 			c.NoError(vm.RunAll())
 
-			c.Equal(tcase.expectedOutput, x.Value().Data().([]float32))
+			yGrad, err := y.Output.Grad()
+			c.NoError(err)
+
+			c.Equal(tcase.expectedOutput, y.Value().Data().([]float32))
+			c.Equal(tcase.expectedCost, cost.Value().Data())
+			c.Equal(tcase.expectedGrad, yGrad.Data())
 		})
 	}
 }

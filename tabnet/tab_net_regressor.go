@@ -106,10 +106,9 @@ func (r *Regressor) Train(trainX, trainY, validateX, validateY tensor.Tensor, op
 
 	if opts.Solver == nil {
 		opts.Solver = gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(opts.BatchSize)), gorgonia.WithLearnRate(0.02), gorgonia.WithClip(1.0))
-		// opts.Solver = gorgonia.NewRMSPropSolver(gorgonia.WithBatchSize(float64(opts.BatchSize)), gorgonia.WithLearnRate(0.02))
 	}
 
-	return r.trainModel.Train(r.trainLayer, trainX, trainY, validateX, validateY, opts)
+	return godl.Train(r.trainModel, r.trainLayer, trainX, trainY, validateX, validateY, opts)
 }
 
 // FIXME: this shouldn't receive Y
