@@ -244,16 +244,17 @@ func main() {
 			MaskFunction:       godl.Sparsemax,
 			PredictionLayerDim: 8,
 			AttentionLayerDim:  8,
-			Gamma:              1.2,
+			Gamma:              1.3,
 			DecisionSteps:      3,
 			IndependentBlocks:  2,
+			Momentum:           0.02,
 			WithBias:           false,
 		},
 	)
 
 	err := regressor.Train(trainX, trainY, validateX, validateY, godl.TrainOpts{
 		BatchSize: batchSize,
-		Epochs:    5,
+		Epochs:    15,
 		DevMode:   false,
 		// WithLearnablesHeatmap: true,
 	})

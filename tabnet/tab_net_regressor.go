@@ -9,12 +9,9 @@ import (
 )
 
 type Regressor struct {
-	opts       RegressorOpts
-	trainModel *godl.Model
-	trainLayer godl.Layer
-
-	evalModel *godl.Model
-	evalLayer godl.Layer
+	opts  RegressorOpts
+	model *godl.Model
+	layer godl.Layer
 }
 
 type RegressorOpts struct {
@@ -77,14 +74,11 @@ func newModel(training bool, batchSize int, inputDim int, catDims []int, catIdxs
 
 func NewRegressor(inputDim int, catDims []int, catIdxs []int, catEmbDim []int, opts RegressorOpts) *Regressor {
 	train, trainLayer := newModel(true, opts.BatchSize, inputDim, catDims, catIdxs, catEmbDim, opts)
-	eval, evalLayer := newModel(true, opts.BatchSize, inputDim, catDims, catIdxs, catEmbDim, opts)
 
 	return &Regressor{
-		opts:       opts,
-		trainModel: train,
-		trainLayer: trainLayer,
-		evalModel:  eval,
-		evalLayer:  evalLayer,
+		opts:  opts,
+		model: train,
+		layer: trainLayer,
 	}
 }
 
@@ -105,15 +99,16 @@ func (r *Regressor) Train(trainX, trainY, validateX, validateY tensor.Tensor, op
 	}
 
 	if opts.Solver == nil {
-		opts.Solver = gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(opts.BatchSize)), gorgonia.WithLearnRate(0.02), gorgonia.WithClip(1.0))
+		// opts.Solver = gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(opts.BatchSize)), gorgonia.WithLearnRate(0.001), gorgonia.WithClip(1.0))
+		opts.Solver = gorgonia.NewRMSPropSolver(gorgonia.WithBatchSize(float64(opts.BatchSize)), gorgonia.WithLearnRate(1e-3))
 	}
 
-	return godl.Train(r.trainModel, r.trainLayer, trainX, trainY, validateX, validateY, opts)
+	return godl.Train(r.model, r.layer, trainX, trainY, validateX, validateY, opts)
 }
 
 // FIXME: this shouldn't receive Y
 func (r *Regressor) Solve(x tensor.Tensor, y tensor.Tensor) (tensor.Tensor, error) {
-	predictor, err := r.evalModel.Predictor(r.evalLayer, godl.PredictOpts{
+	predictor, err := r.model.Predictor(r.layer, godl.PredictOpts{
 		InputShape: tensor.Shape{r.opts.BatchSize, x.Shape()[1]},
 	})
 	if err != nil {

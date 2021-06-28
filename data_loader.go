@@ -39,7 +39,7 @@ func NewDataLoader(x tensor.Tensor, y tensor.Tensor, opts DataLoaderOpts) *DataL
 
 	numExamples := x.Shape()[0]
 
-	if !opts.Drop {
+	if !opts.Drop && numExamples%opts.BatchSize > 0 {
 		missingRows := opts.BatchSize - (numExamples % opts.BatchSize)
 
 		rowsX := make([]tensor.Tensor, missingRows)
@@ -106,7 +106,7 @@ func NewDataLoader(x tensor.Tensor, y tensor.Tensor, opts DataLoaderOpts) *DataL
 
 // HasNext returns true if there's more batches to fetch
 func (dl DataLoader) HasNext() bool {
-	start := (dl.CurrentBatch + 1) * dl.opts.BatchSize
+	start := (dl.CurrentBatch) * dl.opts.BatchSize
 
 	if start >= dl.Rows {
 		return false
