@@ -99,8 +99,7 @@ func (r *Regressor) Train(trainX, trainY, validateX, validateY tensor.Tensor, op
 	}
 
 	if opts.Solver == nil {
-		// opts.Solver = gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(opts.BatchSize)), gorgonia.WithLearnRate(0.001), gorgonia.WithClip(1.0))
-		opts.Solver = gorgonia.NewRMSPropSolver(gorgonia.WithBatchSize(float64(opts.BatchSize)), gorgonia.WithLearnRate(1e-3))
+		opts.Solver = gorgonia.NewAdamSolver(gorgonia.WithLearnRate(0.02))
 	}
 
 	return godl.Train(r.model, r.layer, trainX, trainY, validateX, validateY, opts)
