@@ -20,6 +20,7 @@ require (
 	github.com/leesper/go_rng v0.0.0-20190531154944-a612b043e353 // indirect
 	github.com/mattn/go-runewidth v0.0.10 // indirect
 	github.com/mum4k/termdash v0.14.0
+	github.com/olekukonko/tablewriter v0.0.5
 	github.com/oliamb/cutter v0.2.2
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/stretchr/testify v1.6.1
