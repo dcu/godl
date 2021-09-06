@@ -2,6 +2,7 @@ package godl
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/olekukonko/tablewriter"
@@ -79,7 +80,7 @@ func Validate(m *Model, x, y *gorgonia.Node, costVal, predVal gorgonia.Value, va
 	numExamples := validateX.Shape()[0]
 	batches := numExamples / opts.BatchSize
 
-	vm := gorgonia.NewTapeMachine(m.g)
+	vm := gorgonia.NewTapeMachine(m.g) //, gorgonia.EvalMode())
 	defer vm.Close()
 
 	confMat := ConfusionMatrix{}
@@ -122,11 +123,29 @@ func Validate(m *Model, x, y *gorgonia.Node, costVal, predVal gorgonia.Value, va
 
 		for j := 0; j < predVal.Shape()[0]; j++ {
 			yRowT, _ := yVal.Slice(gorgonia.S(j, j+1))
-			yRow := yRowT.Data().([]float32)
+			var yRow []float32
+
+			switch v := yRowT.Data().(type) {
+			case []float32:
+				yRow = v
+			case float32:
+				yRow = []float32{v}
+			default:
+				log.Panicf("type %T not supported", v)
+			}
 
 			// get prediction
 			predRowT, _ := predVal.(tensor.Tensor).Slice(gorgonia.S(j, j+1))
-			predRow := predRowT.Data().([]float32)
+			var predRow []float32
+
+			switch v := predRowT.Data().(type) {
+			case []float32:
+				predRow = v
+			case float32:
+				predRow = []float32{v}
+			default:
+				log.Panicf("type %T not supported", v)
+			}
 
 			mt := opts.MatchTypeFor(predRow, yRow)
 			confMat[mt]++

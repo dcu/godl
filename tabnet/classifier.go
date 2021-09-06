@@ -43,7 +43,7 @@ func NewClassifier(inputDim int, catDims []int, catIdxs []int, catEmbDim []int, 
 	}
 
 	tabNetInputDim := inputDim + embedDimSum - len(catEmbDim)
-	tn := TabNet(nn, TabNetOpts{
+	tn := TabNetNoEmbeddings(nn, TabNetNoEmbeddingsOpts{
 		OutputSize:         1,
 		BatchSize:          opts.BatchSize,
 		VirtualBatchSize:   opts.VirtualBatchSize,

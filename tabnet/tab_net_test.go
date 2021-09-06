@@ -1,6 +1,7 @@
 package tabnet
 
 import (
+	"log"
 	"testing"
 
 	"github.com/dcu/godl"
@@ -9,7 +10,7 @@ import (
 	"gorgonia.org/tensor"
 )
 
-func TestTabNet(t *testing.T) {
+func TestTabNetEmbeddings(t *testing.T) {
 	testCases := []struct {
 		desc              string
 		input             tensor.Tensor
@@ -32,7 +33,7 @@ func TestTabNet(t *testing.T) {
 			desc: "Example 1",
 			input: tensor.New(
 				tensor.WithShape(4, 4),
-				tensor.WithBacking([]float32{0.4, 1.4, 2.4, 3.4, 4.4, 5.4, 6.4, 7.4, 8.4, 9.4, 10.4, 11.4, 12.4, 13.4, 14.4, 15.4}),
+				tensor.WithBacking([]float32{0.4, 1.4, 2.4, 0, 4.4, 5.4, 6.4, 1, 8.4, 9.4, 10.4, 2, 12.4, 13.4, 14.4, 3}),
 			),
 			vbs:               2,
 			output:            12,
@@ -43,10 +44,10 @@ func TestTabNet(t *testing.T) {
 			prediction:        64,
 			attentive:         64,
 			expectedShape:     tensor.Shape{4, 12},
-			expectedOutput:    []float32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062, 447.8062},
+			expectedOutput:    []float32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 447.8012, 447.8012, 447.8012, 447.8012, 447.8012, 447.8012, 447.8012, 447.8012, 447.8012, 447.8012, 447.8012, 447.8012, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 447.8012, 447.8012, 447.8012, 447.8012, 447.8012, 447.8012, 447.8012, 447.8012, 447.8012, 447.8012, 447.8012, 447.8012},
 			expectedGrad:      []float32{0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334, 0.020833334},
-			expectedCost:      223.90314,
-			expectedAcumLoss:  -1.3862944,
+			expectedCost:      223.90057,
+			expectedAcumLoss:  -1.609438,
 		},
 	}
 
@@ -59,7 +60,7 @@ func TestTabNet(t *testing.T) {
 
 			g := tn.ExprGraph()
 
-			y := gorgonia.NewTensor(g, tensor.Float32, 2, gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithName("Input"), gorgonia.WithValue(tcase.input))
+			x := gorgonia.NewTensor(g, tensor.Float32, 2, gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithName("Input"), gorgonia.WithValue(tcase.input))
 
 			a := gorgonia.NewTensor(g, tensor.Float32, tcase.input.Dims(), gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithInit(gorgonia.Ones()), gorgonia.WithName("AttentiveX"))
 			priors := gorgonia.NewTensor(g, tensor.Float32, tcase.input.Dims(), gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithInit(gorgonia.Ones()), gorgonia.WithName("Priors"))
@@ -79,9 +80,12 @@ func TestTabNet(t *testing.T) {
 				ScaleInit:          gorgonia.Ones(),
 				BiasInit:           gorgonia.Zeroes(),
 				Epsilon:            1e-10,
-			})(y, a, priors)
+				CatIdxs:            []int{3},
+				CatDims:            []int{4},
+				CatEmbDim:          []int{2},
+			})(x, a, priors)
 
-			y = result.Output
+			y := result.Output
 
 			if tcase.expectedErr != "" {
 				c.Error(err)
@@ -117,6 +121,17 @@ func TestTabNet(t *testing.T) {
 			c.Equal(tcase.expectedGrad, yGrad.Data())
 			c.Equal(tcase.expectedCost, cost.Value().Data())
 			c.Equal(tcase.expectedAcumLoss, result.Loss.Value().Data())
+
+			w := tn.Learnables()[len(tn.Learnables())-1]
+			// wGrad, err := w.Grad()
+			// c.NoError(err)
+			// c.Equal([]float32{}, wGrad.Data(), w.Name())
+
+			optim := gorgonia.NewAdamSolver(gorgonia.WithLearnRate(0.02))
+			err = optim.Step([]gorgonia.ValueGrad{w})
+			c.NoError(err)
+
+			log.Printf("weight updated: %v\n\n\n", w.Value())
 		})
 	}
 }

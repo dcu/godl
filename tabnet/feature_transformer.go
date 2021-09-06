@@ -49,7 +49,7 @@ func FeatureTransformer(nn *godl.Model, opts FeatureTransformerOpts) godl.Layer 
 		weightsInit := opts.WeightsInit
 
 		if weightsInit == nil {
-			gain := math.Sqrt(float64(gluInput+gluOutput*2) / math.Sqrt(float64(gluInput)))
+			gain := math.Sqrt(float64(gluInput+gluOutput) / math.Sqrt(float64(gluInput)))
 			weightsInit = gorgonia.GlorotN(gain)
 		}
 

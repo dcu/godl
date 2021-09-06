@@ -35,24 +35,13 @@ type RegressorOpts struct {
 
 func newModel(training bool, batchSize int, inputDim int, catDims []int, catIdxs []int, catEmbDim []int, opts RegressorOpts) (*godl.Model, godl.Layer) {
 	nn := godl.NewModel()
-	nn.Training = training
 
-	embedder := godl.EmbeddingGenerator(nn, inputDim, catDims, catIdxs, catEmbDim, godl.EmbeddingOpts{
-		WeightsInit: opts.WeightsInit,
-	})
-
-	embedDimSum := 0
-	for _, v := range catEmbDim {
-		embedDimSum += v
-	}
-
-	tabNetInputDim := inputDim + embedDimSum - len(catEmbDim)
-	tn := TabNet(nn, TabNetOpts{
+	layer := TabNet(nn, TabNetOpts{
 		OutputSize:         1,
 		BatchSize:          batchSize,
 		VirtualBatchSize:   opts.VirtualBatchSize,
-		InputSize:          tabNetInputDim,
-		MaskFunction:       gorgonia.Sigmoid,
+		InputSize:          inputDim,
+		MaskFunction:       opts.MaskFunction,
 		WithBias:           opts.WithBias,
 		WeightsInit:        opts.WeightsInit,
 		ScaleInit:          opts.ScaleInit,
@@ -65,9 +54,10 @@ func newModel(training bool, batchSize int, inputDim int, catDims []int, catIdxs
 		Gamma:              opts.Gamma,
 		Momentum:           opts.Momentum,
 		Epsilon:            opts.Epsilon,
+		CatDims:            catDims,
+		CatIdxs:            catIdxs,
+		CatEmbDim:          catEmbDim,
 	})
-
-	layer := godl.Sequential(nn, embedder, tn)
 
 	return nn, layer
 }
@@ -84,7 +74,7 @@ func NewRegressor(inputDim int, catDims []int, catIdxs []int, catEmbDim []int, o
 
 func (r *Regressor) Train(trainX, trainY, validateX, validateY tensor.Tensor, opts godl.TrainOpts) error {
 	if opts.CostFn == nil {
-		lambdaSparse := gorgonia.NewConstant(float32(1e-3))
+		lambdaSparse := gorgonia.NewConstant(float32(1e-3), gorgonia.WithName("LambdaSparse"))
 		opts.CostFn = func(output *gorgonia.Node, innerLoss *gorgonia.Node, y *gorgonia.Node) *gorgonia.Node {
 			cost := godl.MSELoss(output, y, godl.MSELossOpts{})
 
@@ -92,14 +82,15 @@ func (r *Regressor) Train(trainX, trainY, validateX, validateY tensor.Tensor, op
 			// r.model.Watch("loss", cost)
 			// r.model.Watch("innerLoss", innerLoss)
 
-			cost = gorgonia.Must(gorgonia.Sub(cost, gorgonia.Must(gorgonia.Mul(lambdaSparse, innerLoss))))
+			tmpLoss := gorgonia.Must(gorgonia.Mul(innerLoss, lambdaSparse))
+			cost = gorgonia.Must(gorgonia.Sub(cost, tmpLoss))
 
 			return cost
 		}
 	}
 
 	if opts.Solver == nil {
-		opts.Solver = gorgonia.NewAdamSolver(gorgonia.WithLearnRate(0.02))
+		opts.Solver = gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(opts.BatchSize)), gorgonia.WithLearnRate(0.02))
 	}
 
 	return godl.Train(r.model, r.layer, trainX, trainY, validateX, validateY, opts)

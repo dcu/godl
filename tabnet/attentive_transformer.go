@@ -35,10 +35,16 @@ func AttentiveTransformer(nn *godl.Model, opts AttentiveTransformerOpts) godl.La
 
 	opts.setDefaults()
 
+	weightsInit := opts.WeightsInit
+	if weightsInit == nil {
+		gain := math.Sqrt(float64(opts.InputDimension+opts.OutputDimension) / math.Sqrt(float64(4*opts.InputDimension)))
+		weightsInit = gorgonia.GlorotN(gain)
+	}
+
 	fcLayer := godl.FC(nn, godl.FCOpts{
 		InputDimension:  opts.InputDimension,
 		OutputDimension: opts.OutputDimension,
-		WeightsInit:     opts.WeightsInit,
+		WeightsInit:     weightsInit,
 		WithBias:        opts.WithBias,
 	})
 
@@ -78,6 +84,8 @@ func AttentiveTransformer(nn *godl.Model, opts AttentiveTransformerOpts) godl.La
 		if err != nil {
 			return godl.Result{}, godl.ErrorF(lt, "fn(%v) failed: %w", mul.Shape(), err)
 		}
+
+		// nn.Watch("sparsemax", sm)
 
 		return godl.Result{Output: sm}, nil
 	}

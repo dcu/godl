@@ -247,6 +247,7 @@ func main() {
 			Gamma:              1.3,
 			DecisionSteps:      3,
 			IndependentBlocks:  2,
+			SharedBlocks:       2,
 			Momentum:           0.02,
 			WithBias:           false,
 		},
@@ -255,7 +256,26 @@ func main() {
 	err := regressor.Train(trainX, trainY, validateX, validateY, godl.TrainOpts{
 		BatchSize: batchSize,
 		Epochs:    15,
-		DevMode:   false,
+		DevMode:   true,
+		MatchTypeFor: func(predVal, targetVal []float32) godl.MatchType {
+			log.Printf("%v vs %v", predVal, targetVal)
+			if targetVal[0] == 1 {
+				if predVal[0] > 0.5 {
+					return godl.MatchTypeTruePositive
+				} else {
+					return godl.MatchTypeTrueNegative
+				}
+			} else {
+				if predVal[0] > 0.5 {
+					return godl.MatchTypeFalsePositive
+				} else {
+					return godl.MatchTypeFalseNegative
+				}
+			}
+		},
+		ValidationObserver: func(confMat godl.ConfusionMatrix, cost float32) {
+			fmt.Printf("%v\nCost: %0.4f", confMat, cost)
+		},
 		// WithLearnablesHeatmap: true,
 	})
 	handleErr(err)
