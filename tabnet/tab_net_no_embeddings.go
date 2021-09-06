@@ -191,16 +191,10 @@ func TabNetNoEmbeddings(nn *godl.Model, opts TabNetNoEmbeddingsOpts) godl.Layer 
 			if err != nil {
 				return godl.Result{}, err
 			}
-
 			_ = i
-			// nn.Watch(fmt.Sprintf("step %v: prior", i), prior)
-			// nn.Watch(fmt.Sprintf("step %v: mask", i), mask)
-			// nn.Watch(fmt.Sprintf("step %v: loss", i), stepLoss)
 
 			// accum losses
 			tabNetLoss = gorgonia.Must(gorgonia.Add(tabNetLoss, stepLoss))
-
-			// nn.Watch(fmt.Sprintf("step %v: accum loss", i), tabNetLoss)
 
 			// Update prior
 			{

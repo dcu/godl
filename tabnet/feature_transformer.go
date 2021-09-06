@@ -1,8 +1,6 @@
 package tabnet
 
 import (
-	"math"
-
 	"github.com/dcu/godl"
 	"gorgonia.org/gorgonia"
 )
@@ -40,55 +38,27 @@ func FeatureTransformer(nn *godl.Model, opts FeatureTransformerOpts) godl.Layer 
 
 	opts.setDefaults()
 
-	shared := make([]godl.Layer, 0, len(opts.Shared))
+	shared := GLUBlock(nn, GLUBlockOpts{
+		InputDimension:   opts.InputDimension,
+		OutputDimension:  opts.OutputDimension,
+		VirtualBatchSize: opts.VirtualBatchSize,
+		Size:             len(opts.Shared),
+		Shared:           opts.Shared,
+		WithBias:         opts.WithBias,
+		Momentum:         opts.Momentum,
+		WeightsInit:      opts.WeightsInit,
+	})
 
-	gluInput := opts.InputDimension
-	gluOutput := opts.OutputDimension
-
-	for _, fcLayer := range opts.Shared {
-		weightsInit := opts.WeightsInit
-
-		if weightsInit == nil {
-			gain := math.Sqrt(float64(gluInput+gluOutput) / math.Sqrt(float64(gluInput)))
-			weightsInit = gorgonia.GlorotN(gain)
-		}
-
-		shared = append(shared, godl.GLU(nn, godl.GLUOpts{
-			InputDimension:   gluInput,
-			OutputDimension:  gluOutput,
-			VirtualBatchSize: opts.VirtualBatchSize,
-			FC:               fcLayer,
-			WeightsInit:      weightsInit,
-			WithBias:         opts.WithBias,
-			Momentum:         opts.Momentum,
-		}))
-
-		gluInput = gluOutput
-	}
-
-	independentBlocks := opts.IndependentBlocks
-	gluOutput = opts.OutputDimension
-
-	independent := make([]godl.Layer, 0, len(opts.Shared))
-	for i := 0; i < independentBlocks; i++ {
-		weightsInit := opts.WeightsInit
-
-		if weightsInit == nil {
-			gain := math.Sqrt(float64(gluInput+gluOutput*2) / math.Sqrt(float64(gluInput)))
-			weightsInit = gorgonia.GlorotN(gain)
-		}
-
-		independent = append(independent, godl.GLU(nn, godl.GLUOpts{
-			InputDimension:   gluInput,
-			OutputDimension:  gluOutput,
-			VirtualBatchSize: opts.VirtualBatchSize,
-			WeightsInit:      weightsInit,
-			WithBias:         opts.WithBias,
-			Momentum:         opts.Momentum,
-		}))
-	}
-
-	scale := gorgonia.NewConstant(float32(math.Sqrt(0.5)), gorgonia.WithName("ft.scale"))
+	independent := GLUBlock(nn, GLUBlockOpts{
+		InputDimension:   opts.InputDimension,
+		OutputDimension:  opts.OutputDimension,
+		VirtualBatchSize: opts.VirtualBatchSize,
+		Size:             opts.IndependentBlocks,
+		Shared:           nil,
+		WithBias:         opts.WithBias,
+		Momentum:         opts.Momentum,
+		WeightsInit:      opts.WeightsInit,
+	})
 
 	return func(nodes ...*gorgonia.Node) (godl.Result, error) {
 		if err := nn.CheckArity(lt, nodes, 1); err != nil {
@@ -97,50 +67,11 @@ func FeatureTransformer(nn *godl.Model, opts FeatureTransformerOpts) godl.Layer 
 
 		x := nodes[0]
 
-		if len(shared) > 0 {
-			result, err := shared[0](x)
-			if err != nil {
-				return godl.Result{}, err
-			}
-
-			x = result.Output
-
-			for _, glu := range shared[1:] {
-				result, err := glu(x)
-				if err != nil {
-					return godl.Result{}, godl.ErrorF(lt, "executing shared GLU layer with %v: %w", x.Shape(), err)
-				}
-
-				xShape := x.Shape()
-				x, err = gorgonia.Add(x, result.Output)
-				if err != nil {
-					return godl.Result{}, godl.ErrorF(lt, "%v + %v: %w", xShape, result.Shape(), err)
-				}
-
-				x, err = gorgonia.Mul(x, scale)
-				if err != nil {
-					return godl.Result{}, err
-				}
-			}
+		res, err := shared(x)
+		if err != nil {
+			return godl.Result{}, err
 		}
 
-		for _, layer := range independent {
-			result, err := layer(x)
-			if err != nil {
-				return godl.Result{}, godl.ErrorF(lt, "executing independent GLU layer with %v: %w", x.Shape(), err)
-			}
-
-			x, err = gorgonia.Add(x, result.Output)
-			if err != nil {
-				return godl.Result{}, godl.ErrorF(lt, "add op: %w", err)
-			}
-
-			x, err = gorgonia.Mul(x, scale)
-			if err != nil {
-				return godl.Result{}, err
-			}
-		}
-
-		return godl.Result{Output: x}, nil
+		return independent(res.Output)
 	}
 }
