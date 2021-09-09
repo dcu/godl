@@ -122,26 +122,37 @@ func TabNetNoEmbeddings(nn *godl.Model, opts TabNetNoEmbeddingsOpts) godl.Layer 
 		Momentum:          opts.Momentum,
 	})
 
-	steps := make([]*DecisionStep, 0, opts.DecisionSteps)
+	featureTransformers := make([]godl.Layer, 0, opts.DecisionSteps)
+	attentiveTransformers := make([]godl.Layer, 0, opts.DecisionSteps)
+
 	for i := 0; i < opts.DecisionSteps; i++ {
-		steps = append(steps, NewDecisionStep(nn,
-			DecisionStepOpts{
-				Shared:             shared,
-				IndependentBlocks:  opts.IndependentBlocks,
-				VirtualBatchSize:   opts.VirtualBatchSize,
-				PredictionLayerDim: opts.PredictionLayerDim,
-				AttentionLayerDim:  opts.AttentionLayerDim,
-				WeightsInit:        opts.WeightsInit,
-				ScaleInit:          opts.ScaleInit,
-				BiasInit:           opts.BiasInit,
-				InputDimension:     opts.BatchSize,
-				OutputDimension:    opts.InputSize,
-				MaskFunction:       opts.MaskFunction,
-				WithBias:           opts.WithBias,
-				Momentum:           opts.Momentum,
-				Epsilon:            opts.Epsilon,
-			},
-		))
+		featureTransformer := FeatureTransformer(nn, FeatureTransformerOpts{
+			Shared:            shared,
+			VirtualBatchSize:  opts.VirtualBatchSize,
+			InputDimension:    opts.BatchSize,
+			OutputDimension:   opts.AttentionLayerDim + opts.PredictionLayerDim,
+			IndependentBlocks: opts.IndependentBlocks,
+			WeightsInit:       opts.WeightsInit,
+			WithBias:          opts.WithBias,
+			Momentum:          opts.Momentum,
+		})
+		featureTransformers = append(featureTransformers, featureTransformer)
+	}
+
+	for i := 0; i < opts.DecisionSteps; i++ {
+		attentiveTransformer := AttentiveTransformer(nn, AttentiveTransformerOpts{
+			InputDimension:   opts.AttentionLayerDim, // or prediction?
+			OutputDimension:  opts.InputSize,
+			Momentum:         opts.Momentum,
+			Epsilon:          opts.Epsilon,
+			VirtualBatchSize: opts.VirtualBatchSize,
+			ScaleInit:        opts.ScaleInit,
+			BiasInit:         opts.BiasInit,
+			WeightsInit:      opts.WeightsInit,
+			Activation:       opts.MaskFunction,
+			WithBias:         opts.WithBias,
+		})
+		attentiveTransformers = append(attentiveTransformers, attentiveTransformer)
 	}
 
 	weightsInit := opts.WeightsInit
@@ -163,7 +174,7 @@ func TabNetNoEmbeddings(nn *godl.Model, opts TabNetNoEmbeddingsOpts) godl.Layer 
 	epsilon := gorgonia.NewConstant(opts.Epsilon)
 
 	tabNetLoss := gorgonia.NewScalar(nn.ExprGraph(), tensor.Float32, gorgonia.WithValue(float32(0.0)), gorgonia.WithName("TabNetLoss"))
-	stepsCount := gorgonia.NewScalar(nn.ExprGraph(), tensor.Float32, gorgonia.WithValue(float32(len(steps))), gorgonia.WithName("Steps"))
+	stepsCount := gorgonia.NewScalar(nn.ExprGraph(), tensor.Float32, gorgonia.WithValue(float32(opts.DecisionSteps)), gorgonia.WithName("Steps"))
 
 	prior := gorgonia.NewTensor(nn.ExprGraph(), tensor.Float32, 2, gorgonia.WithShape(opts.BatchSize, opts.InputSize), gorgonia.WithInit(gorgonia.Ones()), gorgonia.WithName("Prior"))
 	out := gorgonia.NewTensor(nn.ExprGraph(), tensor.Float32, 2, gorgonia.WithShape(opts.BatchSize, opts.PredictionLayerDim), gorgonia.WithInit(gorgonia.Zeroes()), gorgonia.WithName("Output"))
@@ -186,12 +197,28 @@ func TabNetNoEmbeddings(nn *godl.Model, opts TabNetNoEmbeddingsOpts) godl.Layer 
 			return godl.Result{}, fmt.Errorf("slicing %v: %w", ft.Shape(), err)
 		}
 
-		for i, step := range steps {
-			mask, stepLoss, err := step.CalculateMask(xAttentiveLayer, prior, epsilon)
+		for i := 0; i < opts.DecisionSteps; i++ {
+			attentiveTransformer := attentiveTransformers[i]
+			featureTransformer := featureTransformers[i]
+
+			result, err := attentiveTransformer(xAttentiveLayer, prior)
 			if err != nil {
 				return godl.Result{}, err
 			}
-			_ = i
+
+			mask := result.Output
+
+			stepLoss := gorgonia.Must(gorgonia.Mean(
+				gorgonia.Must(gorgonia.Sum(
+					gorgonia.Must(gorgonia.HadamardProd(
+						mask,
+						gorgonia.Must(gorgonia.Log(
+							gorgonia.Must(gorgonia.Add(mask, epsilon)),
+						)),
+					)),
+					1,
+				)),
+			))
 
 			// accum losses
 			tabNetLoss = gorgonia.Must(gorgonia.Add(tabNetLoss, stepLoss))
@@ -209,7 +236,7 @@ func TabNetNoEmbeddings(nn *godl.Model, opts TabNetNoEmbeddingsOpts) godl.Layer 
 				return godl.Result{}, err
 			}
 
-			ds, err := step.FeatureTransformer(maskedX)
+			ds, err := featureTransformer(maskedX)
 			if err != nil {
 				return godl.Result{}, err
 			}

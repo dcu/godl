@@ -122,16 +122,33 @@ func TestTabNetEmbeddings(t *testing.T) {
 			c.Equal(tcase.expectedCost, cost.Value().Data())
 			c.Equal(tcase.expectedAcumLoss, result.Loss.Value().Data())
 
-			w := tn.Learnables()[len(tn.Learnables())-1]
-			// wGrad, err := w.Grad()
-			// c.NoError(err)
-			// c.Equal([]float32{}, wGrad.Data(), w.Name())
+			weightsByName := map[string]*gorgonia.Node{}
+
+			for _, n := range tn.Learnables() {
+				weightsByName[n.Name()] = n
+
+				wGrad, err := n.Grad()
+				c.NoError(err)
+				log.Printf("%s: %v", n.Name(), wGrad.Data().([]float32)[0:2])
+			}
+
+			{
+				w := weightsByName["BatchNorm1d_1.1.scale.1.5"]
+				wGrad, err := w.Grad()
+				c.NoError(err)
+				c.Equal([]float32{0.0024, 0.0024, 0.0024, 0.0000, 0.0000}, wGrad.Data(), w.Name())
+			}
 
 			optim := gorgonia.NewAdamSolver(gorgonia.WithLearnRate(0.02))
-			err = optim.Step([]gorgonia.ValueGrad{w})
+			err = optim.Step(gorgonia.NodesToValueGrads(tn.Learnables()))
 			c.NoError(err)
 
-			log.Printf("weight updated: %v\n\n\n", w.Value())
+			{
+				w := weightsByName["BatchNorm1d_1.1.scale.1.5"]
+				log.Printf("weight updated: %v\n\n\n", w.Value())
+				c.Equal([]float32{0.9800, 0.9800, 0.9800, 1.0000, 1.0000}, w.Value().Data(), w.Name())
+			}
+
 		})
 	}
 }
