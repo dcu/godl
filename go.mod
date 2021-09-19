@@ -11,6 +11,7 @@ require (
 	github.com/apache/arrow/go/arrow v0.0.0-20210328172718-2661fc31648b // indirect
 	github.com/awalterschulze/gographviz v2.0.3+incompatible // indirect
 	github.com/cheggaaa/pb/v3 v3.0.7
+	github.com/chewxy/hm v1.0.0
 	github.com/dcu/resize v0.0.0-20201120200444-0e5185b92511
 	github.com/fatih/color v1.10.0
 	github.com/fogleman/gg v1.3.0
