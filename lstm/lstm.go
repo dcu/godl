@@ -8,11 +8,21 @@ import (
 	"gorgonia.org/tensor"
 )
 
+type MergeMode string
+
+const (
+	MergeModeConcat  MergeMode = "concat"
+	MergeModeSum     MergeMode = "sum"
+	MergeModeAverage MergeMode = "avg"
+	MergeModeMul     MergeMode = "mul"
+)
+
 type LSTMOpts struct {
 	InputDimension int
 	HiddenSize     int
 	// Layers         int
 	Bidirectional bool
+	MergeMode     MergeMode
 
 	WithBias              bool
 	WeightsInit, BiasInit gorgonia.InitWFn
@@ -29,6 +39,10 @@ func (o *LSTMOpts) setDefaults() {
 	if o.Activation == nil {
 		o.Activation = godl.Tanh
 	}
+
+	if o.MergeMode == "" {
+		o.MergeMode = MergeModeConcat
+	}
 }
 
 func LSTM(m *godl.Model, opts LSTMOpts) godl.Layer {
@@ -41,6 +55,7 @@ func LSTM(m *godl.Model, opts LSTMOpts) godl.Layer {
 	}
 
 	weights := buildParamsList(paramsCount, m, lt, opts)
+	two := gorgonia.NewConstant(float32(2.0), gorgonia.WithName("two"))
 
 	return func(inputs ...*gorgonia.Node) (godl.Result, error) {
 		var (
@@ -85,14 +100,24 @@ func LSTM(m *godl.Model, opts LSTMOpts) godl.Layer {
 
 		backwardOutputReversed := gorgonia.Must(gorgonia.ApplyOp(OrderingOp{}, backwardOutput.Output))
 
-		output := gorgonia.Must(gorgonia.Concat(forwardOutput.Output.Dims()-1, forwardOutput.Output, backwardOutputReversed))
+		result := godl.Result{}
+
+		switch opts.MergeMode {
+		case MergeModeAverage:
+			result.Output = gorgonia.Must(gorgonia.Div(gorgonia.Must(gorgonia.Add(forwardOutput.Output, backwardOutputReversed)), two))
+		case MergeModeConcat:
+			result.Output = gorgonia.Must(gorgonia.Concat(forwardOutput.Output.Dims()-1, forwardOutput.Output, backwardOutputReversed))
+		case MergeModeMul:
+			result.Output = gorgonia.Must(gorgonia.HadamardProd(forwardOutput.Output, backwardOutputReversed))
+		case MergeModeSum:
+			result.Output = gorgonia.Must(gorgonia.Add(forwardOutput.Output, backwardOutputReversed))
+		}
+
 		hidden := gorgonia.Must(gorgonia.Concat(0, forwardOutput.Nodes[0], backwardOutput.Nodes[0]))
 		cell := gorgonia.Must(gorgonia.Concat(0, forwardOutput.Nodes[1], backwardOutput.Nodes[1]))
+		result.Nodes = gorgonia.Nodes{hidden, cell}
 
-		return godl.Result{
-			Output: output,
-			Nodes:  gorgonia.Nodes{hidden, cell},
-		}, nil
+		return result, nil
 	}
 }
 
