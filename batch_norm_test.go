@@ -17,25 +17,25 @@ func TestBatchNorm(t *testing.T) {
 		expectedOutputGrad tensor.Tensor
 		expectedScaleGrad  tensor.Tensor
 		expectedBiasGrad   tensor.Tensor
-		expectedCost       float32
+		expectedCost       float64
 	}{
 		{
 			desc:               "Example 1",
-			input:              tensor.New(tensor.WithShape(2, 2), tensor.WithBacking([]float32{0.3, 0.03, 0.07, 0.7})),
-			expectedOutput:     tensor.New(tensor.WithShape(2, 2), tensor.WithBacking([]float32{0.9996221, -0.9999554, -0.99962205, 0.9999555})),
-			expectedOutputGrad: tensor.New(tensor.WithShape(2, 2), tensor.WithBacking([]float32{0.2500, 0.2500, 0.2500, 0.2500})),
-			expectedScaleGrad:  tensor.New(tensor.WithShape(1, 2), tensor.WithBacking([]float32{1.4901161e-08, 1.4901161e-08})),
-			expectedBiasGrad:   tensor.New(tensor.WithShape(1, 2), tensor.WithBacking([]float32{0.5, 0.5})),
-			expectedCost:       float32(2.9802322e-08),
+			input:              tensor.New(tensor.WithShape(2, 2), tensor.WithBacking([]float64{0.3, 0.03, 0.07, 0.7})),
+			expectedOutput:     tensor.New(tensor.WithShape(2, 2), tensor.WithBacking([]float64{0.9996221424388056, -0.9999554496246411, -0.9996221424388058, 0.999955449624641})),
+			expectedOutputGrad: tensor.New(tensor.WithShape(2, 2), tensor.WithBacking([]float64{0.2500, 0.2500, 0.2500, 0.2500})),
+			expectedScaleGrad:  tensor.New(tensor.WithShape(1, 2), tensor.WithBacking([]float64{0, 0})),
+			expectedBiasGrad:   tensor.New(tensor.WithShape(1, 2), tensor.WithBacking([]float64{0.5, 0.5})),
+			expectedCost:       float64(-5.551115123125783e-17),
 		},
 		{
 			desc:               "Example 2",
-			input:              tensor.New(tensor.WithShape(2, 2, 1, 1), tensor.WithBacking([]float32{0.3, 0.03, 0.07, 0.7})),
-			expectedOutput:     tensor.New(tensor.WithShape(2, 2, 1, 1), tensor.WithBacking([]float32{0.9996221, -0.9999554, -0.99962205, 0.9999555})),
-			expectedOutputGrad: tensor.New(tensor.WithShape(2, 2, 1, 1), tensor.WithBacking([]float32{0.2500, 0.2500, 0.2500, 0.2500})),
-			expectedScaleGrad:  tensor.New(tensor.WithShape(1, 2), tensor.WithBacking([]float32{1.4901161e-08, 1.4901161e-08})),
-			expectedBiasGrad:   tensor.New(tensor.WithShape(1, 2), tensor.WithBacking([]float32{0.5, 0.5})),
-			expectedCost:       float32(2.9802322e-08),
+			input:              tensor.New(tensor.WithShape(2, 2, 1, 1), tensor.WithBacking([]float64{0.3, 0.03, 0.07, 0.7})),
+			expectedOutput:     tensor.New(tensor.WithShape(2, 2, 1, 1), tensor.WithBacking([]float64{0.9996221424388056, -0.9999554496246411, -0.9996221424388058, 0.999955449624641})),
+			expectedOutputGrad: tensor.New(tensor.WithShape(2, 2, 1, 1), tensor.WithBacking([]float64{0.2500, 0.2500, 0.2500, 0.2500})),
+			expectedScaleGrad:  tensor.New(tensor.WithShape(1, 2), tensor.WithBacking([]float64{0, 0})),
+			expectedBiasGrad:   tensor.New(tensor.WithShape(1, 2), tensor.WithBacking([]float64{0.5, 0.5})),
+			expectedCost:       float64(-5.551115123125783e-17),
 		},
 	}
 	for _, tC := range testCases {
@@ -56,7 +56,7 @@ func TestBatchNorm(t *testing.T) {
 				InputSize: tC.input.Shape()[1],
 			})
 
-			x := gorgonia.NewTensor(m.g, tensor.Float32, tC.input.Shape().Dims(), gorgonia.WithShape(tC.input.Shape()...), gorgonia.WithValue(tC.input), gorgonia.WithName("x"))
+			x := gorgonia.NewTensor(m.g, tensor.Float64, tC.input.Shape().Dims(), gorgonia.WithShape(tC.input.Shape()...), gorgonia.WithValue(tC.input), gorgonia.WithName("x"))
 
 			result, err := bn(x)
 			c.NoError(err)

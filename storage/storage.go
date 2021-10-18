@@ -10,7 +10,7 @@ import (
 
 // Storage is in charge of loading the weights from files
 type Storage struct {
-	cost       float32
+	cost       float64
 	learnables map[string]Weight
 }
 

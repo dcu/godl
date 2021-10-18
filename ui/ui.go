@@ -126,7 +126,7 @@ func (ui *UI) Start() {
 	}
 }
 
-func (ui *UI) UpdateCost(epoch, epochs int, batch, batches int, cost float32) {
+func (ui *UI) UpdateCost(epoch, epochs int, batch, batches int, cost float64) {
 	_ = ui.epochsBar.Percent(int(100 * (float64(epoch) / float64(epochs))))
 	_ = ui.batchesBar.Percent(int(100 * (float64(batch) / float64(batches))))
 

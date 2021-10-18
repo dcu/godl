@@ -15,33 +15,33 @@ func TestGBN(t *testing.T) {
 		vbs            int
 		expectedShape  tensor.Shape
 		expectedErr    string
-		expectedOutput []float32
-		expectedGrad   []float32
-		expectedCost   float32
+		expectedOutput []float64
+		expectedGrad   []float64
+		expectedCost   float64
 	}{
 		{
 			desc: "Example 1",
 			input: tensor.New(
 				tensor.WithShape(10, 1),
-				tensor.WithBacking([]float32{0.4, 1.4, 2.4, 3.4, 4.4, 5.4, 6.4, 7.4, 8.4, 9.4}),
+				tensor.WithBacking([]float64{0.4, 1.4, 2.4, 3.4, 4.4, 5.4, 6.4, 7.4, 8.4, 9.4}),
 			),
 			vbs:            5,
 			expectedShape:  tensor.Shape{10, 1},
-			expectedOutput: []float32{-1.41421, -0.70710504, 0, 0.707105, 1.41421, -1.4142102, -0.7071051, 0, 0.70710474, 1.4142098},
-			expectedGrad:   []float32{0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1},
-			expectedCost:   -9.536743e-08,
+			expectedOutput: []float64{-1.4142100268524473, -0.7071050134262237, -1.8394620353687656e-17, 0.7071050134262237, 1.4142100268524476, -1.4142100268524476, -0.7071050134262239, -2.5948842597279634e-16, 0.7071050134262234, 1.4142100268524471},
+			expectedGrad:   []float64{0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1},
+			expectedCost:   -1.3322676295501878e-16,
 		},
 		{
 			desc: "Example 2",
 			input: tensor.New(
 				tensor.WithShape(5, 2),
-				tensor.WithBacking([]float32{0.4, -1.4, 2.4, -3.4, 4.4, -5.4, 6.4, -7.4, 8.4, -9.4}),
+				tensor.WithBacking([]float64{0.4, -1.4, 2.4, -3.4, 4.4, -5.4, 6.4, -7.4, 8.4, -9.4}),
 			),
 			vbs:            5,
 			expectedShape:  tensor.Shape{5, 2},
-			expectedOutput: []float32{-1.4142127, 1.4142127, -0.70710635, 0.70710635, 0, 0, 0.70710635, -0.70710635, 1.4142126, -1.4142126},
-			expectedGrad:   []float32{0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1},
-			expectedCost:   0,
+			expectedOutput: []float64{-1.4142126784904472, 1.4142126784904474, -0.7071063392452236, 0.7071063392452238, 1.0340285769764954e-16, 6.313059599612395e-17, 0.7071063392452237, -0.7071063392452235, 1.4142126784904472, -1.4142126784904472},
+			expectedGrad:   []float64{0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1},
+			expectedCost:   8.881784197001253e-17,
 		},
 	}
 
@@ -53,7 +53,7 @@ func TestGBN(t *testing.T) {
 			tn.Training = true
 			g := tn.ExprGraph()
 
-			input := gorgonia.NewTensor(g, tensor.Float32, 2, gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithName("GBNInput"), gorgonia.WithValue(tcase.input))
+			input := gorgonia.NewTensor(g, tensor.Float64, 2, gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithName("GBNInput"), gorgonia.WithValue(tcase.input))
 
 			y, err := GBN(tn, GBNOpts{
 				VirtualBatchSize: tcase.vbs,
@@ -85,7 +85,7 @@ func TestGBN(t *testing.T) {
 			yGrad, err := y.Output.Grad()
 			c.NoError(err)
 
-			c.Equal(tcase.expectedOutput, y.Value().Data().([]float32))
+			c.Equal(tcase.expectedOutput, y.Value().Data().([]float64))
 			c.Equal(tcase.expectedCost, cost.Value().Data())
 			c.Equal(tcase.expectedGrad, yGrad.Data())
 		})

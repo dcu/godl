@@ -15,7 +15,7 @@ type GLUOpts struct {
 	FC               Layer
 	WeightsInit      gorgonia.InitWFn
 	WithBias         bool
-	Momentum         float32
+	Momentum         float64
 }
 
 // GLU implements a Gated Linear Unit Block

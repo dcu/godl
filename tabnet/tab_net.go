@@ -20,9 +20,9 @@ type TabNetOpts struct {
 
 	WithBias bool
 
-	Gamma                            float32
-	Momentum                         float32
-	Epsilon                          float32
+	Gamma                            float64
+	Momentum                         float64
+	Epsilon                          float64
 	VirtualBatchSize                 int
 	WeightsInit, ScaleInit, BiasInit gorgonia.InitWFn
 

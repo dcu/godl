@@ -27,7 +27,7 @@ func FC(nn *Model, opts FCOpts) Layer {
 
 	var (
 		bias *gorgonia.Node
-		w    = nn.AddWeights(lt, tensor.Shape{opts.InputDimension, opts.OutputDimension}, NewWeightsOpts{
+		w    = nn.AddWeights(lt, tensor.Shape{opts.OutputDimension, opts.InputDimension}, NewWeightsOpts{
 			InitFN:     opts.WeightsInit,
 			UniqueName: opts.WeightsName,
 			Fixed:      opts.FixedWeights,
@@ -58,7 +58,9 @@ func FC(nn *Model, opts FCOpts) Layer {
 			x = gorgonia.Must(gorgonia.Reshape(x, tensor.Shape{b, v}))
 		}
 
-		layer, err := gorgonia.Mul(x, w)
+		wT := gorgonia.Must(gorgonia.Transpose(w, 1, 0))
+
+		layer, err := gorgonia.Mul(x, wT)
 		if err != nil {
 			return Result{}, ErrorF(lt, "error applying mul %v x %v: %w ", x.Shape(), w.Shape(), err)
 		}

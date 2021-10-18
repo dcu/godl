@@ -59,13 +59,13 @@ func main() {
 		BatchSize:     64,
 		// WriteGraphFileTo: "graph.svg",
 		Solver: gorgonia.NewAdamSolver(gorgonia.WithLearnRate(0.0005)),
-		CostObserver: func(epoch, totalEpoch, batch, totalBatch int, cost float32) {
+		CostObserver: func(epoch, totalEpoch, batch, totalBatch int, cost float64) {
 			// log.Printf("batch=%d/%d epoch=%d/%d cost=%0.3f", batch, totalBatch, epoch, totalEpoch, cost)
 		},
-		MatchTypeFor: func(predVal, targetVal []float32) godl.MatchType {
+		MatchTypeFor: func(predVal, targetVal []float64) godl.MatchType {
 			var (
 				rowLabel int
-				yRowHigh float32
+				yRowHigh float64
 			)
 
 			for k := 0; k < 10; k++ {
@@ -80,7 +80,7 @@ func main() {
 
 			var (
 				rowGuess    int
-				predRowHigh float32
+				predRowHigh float64
 			)
 
 			for k := 0; k < 10; k++ {
@@ -99,7 +99,7 @@ func main() {
 
 			return godl.MatchTypeFalseNegative
 		},
-		ValidationObserver: func(confMat godl.ConfusionMatrix, cost float32) {
+		ValidationObserver: func(confMat godl.ConfusionMatrix, cost float64) {
 			fmt.Printf("%v\nCost: %0.4f", confMat, cost)
 		},
 		CostFn: func(output, accumLoss, target *gorgonia.Node) *gorgonia.Node {

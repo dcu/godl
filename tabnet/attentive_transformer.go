@@ -10,8 +10,8 @@ import (
 type AttentiveTransformerOpts struct {
 	InputDimension                   int
 	OutputDimension                  int
-	Momentum                         float32
-	Epsilon                          float32
+	Momentum                         float64
+	Epsilon                          float64
 	VirtualBatchSize                 int
 	Activation                       godl.ActivationFn
 	WithBias                         bool

@@ -98,7 +98,7 @@ func (m *Model) Predictor(layer Layer, opts PredictOpts) (Predictor, error) {
 
 	x := gorgonia.NewTensor(
 		m.g,
-		tensor.Float32,
+		tensor.Float64,
 		opts.InputShape.Dims(),
 		gorgonia.WithName("input"),
 		gorgonia.WithShape(opts.InputShape...),
@@ -110,7 +110,7 @@ func (m *Model) Predictor(layer Layer, opts PredictOpts) (Predictor, error) {
 	}
 
 	vmOpts := []gorgonia.VMOpt{
-		// gorgonia.EvalMode(),
+		gorgonia.EvalMode(),
 	}
 
 	if opts.DevMode {

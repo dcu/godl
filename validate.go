@@ -80,7 +80,21 @@ func Validate(m *Model, x, y *gorgonia.Node, costVal, predVal gorgonia.Value, va
 	numExamples := validateX.Shape()[0]
 	batches := numExamples / opts.BatchSize
 
-	vm := gorgonia.NewTapeMachine(m.g) //, gorgonia.EvalMode())
+	vmOpts := []gorgonia.VMOpt{
+		gorgonia.EvalMode(),
+	}
+
+	if opts.DevMode {
+		vmOpts = append(
+			vmOpts,
+			gorgonia.TraceExec(),
+			gorgonia.WithInfWatch(),
+			gorgonia.WithNaNWatch(),
+		)
+	}
+
+	vm := gorgonia.NewTapeMachine(m.g, vmOpts...)
+
 	defer vm.Close()
 
 	confMat := ConfusionMatrix{}
@@ -123,26 +137,26 @@ func Validate(m *Model, x, y *gorgonia.Node, costVal, predVal gorgonia.Value, va
 
 		for j := 0; j < predVal.Shape()[0]; j++ {
 			yRowT, _ := yVal.Slice(gorgonia.S(j, j+1))
-			var yRow []float32
+			var yRow []float64
 
 			switch v := yRowT.Data().(type) {
-			case []float32:
+			case []float64:
 				yRow = v
-			case float32:
-				yRow = []float32{v}
+			case float64:
+				yRow = []float64{v}
 			default:
 				log.Panicf("type %T not supported", v)
 			}
 
 			// get prediction
 			predRowT, _ := predVal.(tensor.Tensor).Slice(gorgonia.S(j, j+1))
-			var predRow []float32
+			var predRow []float64
 
 			switch v := predRowT.Data().(type) {
-			case []float32:
+			case []float64:
 				predRow = v
-			case float32:
-				predRow = []float32{v}
+			case float64:
+				predRow = []float64{v}
 			default:
 				log.Panicf("type %T not supported", v)
 			}
@@ -155,7 +169,7 @@ func Validate(m *Model, x, y *gorgonia.Node, costVal, predVal gorgonia.Value, va
 	}
 
 	if opts.ValidationObserver != nil {
-		opts.ValidationObserver(confMat, costVal.Data().(float32))
+		opts.ValidationObserver(confMat, costVal.Data().(float64))
 	}
 
 	return nil

@@ -16,7 +16,7 @@ type GLUBlockOpts struct {
 	Size int
 
 	WithBias    bool
-	Momentum    float32
+	Momentum    float64
 	WeightsInit gorgonia.InitWFn
 }
 
@@ -56,7 +56,7 @@ func GLUBlock(nn *godl.Model, opts GLUBlockOpts) godl.Layer {
 		gluInput = gluOutput
 	}
 
-	scale := gorgonia.NewConstant(float32(math.Sqrt(0.5)), gorgonia.WithName("ft.scale"))
+	scale := gorgonia.NewConstant(float64(math.Sqrt(0.5)), gorgonia.WithName("ft.scale"))
 
 	return func(nodes ...*gorgonia.Node) (godl.Result, error) {
 		if err := nn.CheckArity(lt, nodes, 1); err != nil {

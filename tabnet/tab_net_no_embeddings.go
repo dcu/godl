@@ -25,9 +25,9 @@ type TabNetNoEmbeddingsOpts struct {
 
 	WithBias bool
 
-	Gamma                            float32
-	Momentum                         float32
-	Epsilon                          float32
+	Gamma                            float64
+	Momentum                         float64
+	Epsilon                          float64
 	VirtualBatchSize                 int
 	WeightsInit, ScaleInit, BiasInit gorgonia.InitWFn
 }
@@ -173,11 +173,11 @@ func TabNetNoEmbeddings(nn *godl.Model, opts TabNetNoEmbeddingsOpts) godl.Layer 
 	gamma := gorgonia.NewConstant(opts.Gamma)
 	epsilon := gorgonia.NewConstant(opts.Epsilon)
 
-	tabNetLoss := gorgonia.NewScalar(nn.ExprGraph(), tensor.Float32, gorgonia.WithValue(float32(0.0)), gorgonia.WithName("TabNetLoss"))
-	stepsCount := gorgonia.NewScalar(nn.ExprGraph(), tensor.Float32, gorgonia.WithValue(float32(opts.DecisionSteps)), gorgonia.WithName("Steps"))
+	tabNetLoss := gorgonia.NewScalar(nn.ExprGraph(), tensor.Float64, gorgonia.WithValue(float64(0.0)), gorgonia.WithName("TabNetLoss"))
+	stepsCount := gorgonia.NewScalar(nn.ExprGraph(), tensor.Float64, gorgonia.WithValue(float64(opts.DecisionSteps)), gorgonia.WithName("Steps"))
 
-	prior := gorgonia.NewTensor(nn.ExprGraph(), tensor.Float32, 2, gorgonia.WithShape(opts.BatchSize, opts.InputSize), gorgonia.WithInit(gorgonia.Ones()), gorgonia.WithName("Prior"))
-	out := gorgonia.NewTensor(nn.ExprGraph(), tensor.Float32, 2, gorgonia.WithShape(opts.BatchSize, opts.PredictionLayerDim), gorgonia.WithInit(gorgonia.Zeroes()), gorgonia.WithName("Output"))
+	prior := gorgonia.NewTensor(nn.ExprGraph(), tensor.Float64, 2, gorgonia.WithShape(opts.BatchSize, opts.InputSize), gorgonia.WithInit(gorgonia.Ones()), gorgonia.WithName("Prior"))
+	out := gorgonia.NewTensor(nn.ExprGraph(), tensor.Float64, 2, gorgonia.WithShape(opts.BatchSize, opts.PredictionLayerDim), gorgonia.WithInit(gorgonia.Zeroes()), gorgonia.WithName("Output"))
 
 	return func(nodes ...*gorgonia.Node) (godl.Result, error) {
 		x := nodes[0]

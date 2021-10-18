@@ -55,7 +55,7 @@ func (w *Weight) GobDecode(buf []byte) error {
 }
 
 type Item struct {
-	Cost    float32
+	Cost    float64
 	Weights []Weight
 }
 

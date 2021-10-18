@@ -26,9 +26,9 @@ type RegressorOpts struct {
 	PredictionLayerDim int
 	AttentionLayerDim  int
 
-	Gamma    float32
-	Momentum float32
-	Epsilon  float32
+	Gamma    float64
+	Momentum float64
+	Epsilon  float64
 
 	WeightsInit, ScaleInit, BiasInit gorgonia.InitWFn
 }
@@ -74,7 +74,7 @@ func NewRegressor(inputDim int, catDims []int, catIdxs []int, catEmbDim []int, o
 
 func (r *Regressor) Train(trainX, trainY, validateX, validateY tensor.Tensor, opts godl.TrainOpts) error {
 	if opts.CostFn == nil {
-		lambdaSparse := gorgonia.NewConstant(float32(1e-3), gorgonia.WithName("LambdaSparse"))
+		lambdaSparse := gorgonia.NewConstant(float64(1e-3), gorgonia.WithName("LambdaSparse"))
 		opts.CostFn = func(output *gorgonia.Node, innerLoss *gorgonia.Node, y *gorgonia.Node) *gorgonia.Node {
 			cost := godl.MSELoss(output, y, godl.MSELossOpts{})
 
@@ -118,14 +118,14 @@ func (r *Regressor) Solve(x tensor.Tensor, y tensor.Tensor) (tensor.Tensor, erro
 
 		log.Printf("output: %v", t.Shape())
 
-		for _, o := range t.Data().([]float32) {
+		for _, o := range t.Data().([]float64) {
 			yVal, err := y.At(yPos, 0)
 			if err != nil {
 				panic(err)
 			}
 
 			// log.Printf("%v == %v", yVal, o)
-			if yVal.(float32) == 1 {
+			if yVal.(float64) == 1 {
 				if o > 0.5 {
 					correct++
 				}

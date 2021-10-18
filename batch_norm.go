@@ -9,8 +9,8 @@ import (
 
 // BatchNormOpts are the options to configure a batch normalization
 type BatchNormOpts struct {
-	Momentum            float32
-	Epsilon             float32
+	Momentum            float64
+	Epsilon             float64
 	ScaleInit, BiasInit gorgonia.InitWFn
 
 	ScaleName, BiasName string

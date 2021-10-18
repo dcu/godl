@@ -13,6 +13,7 @@ import (
 
 	"github.com/dcu/godl"
 	"github.com/dcu/godl/tabnet"
+	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
 )
 
@@ -30,24 +31,24 @@ func handleErr(err error) {
 
 type Processor struct {
 	columns                int
-	categoricalColumnsMap  []map[string]float32
+	categoricalColumnsMap  []map[string]float64
 	columnNames            []string
 	categoricalColumnsUniq []map[string]int
 
 	trainingRows int
 	validateRows int
 
-	trainX []float32
-	trainY []float32
+	trainX []float64
+	trainY []float64
 
-	validateX []float32
-	validateY []float32
+	validateX []float64
+	validateY []float64
 }
 
 func newProcessor(classes int) *Processor {
 	return &Processor{
 		columns:               classes,
-		categoricalColumnsMap: make([]map[string]float32, classes),
+		categoricalColumnsMap: make([]map[string]float64, classes),
 	}
 }
 
@@ -75,12 +76,12 @@ func (p Processor) catIdxs() []int {
 	return indexes
 }
 
-func (p *Processor) assignID(categoricalColumnPos int, categoricalColumnValue string) float32 {
+func (p *Processor) assignID(categoricalColumnPos int, categoricalColumnValue string) float64 {
 	// fmt.Printf("assign id for %d %v\n", categoricalColumnPos, categoricalColumnValue)
 
 	m := p.categoricalColumnsMap[categoricalColumnPos]
 	if m == nil {
-		m = make(map[string]float32, 64)
+		m = make(map[string]float64, 64)
 		p.categoricalColumnsMap[categoricalColumnPos] = m
 	}
 
@@ -89,15 +90,15 @@ func (p *Processor) assignID(categoricalColumnPos int, categoricalColumnValue st
 		return id
 	}
 
-	id = float32(len(p.categoricalColumnsMap[categoricalColumnPos]))
+	id = float64(len(p.categoricalColumnsMap[categoricalColumnPos]))
 	m[categoricalColumnValue] = id
 
 	return id
 }
 
 func (p *Processor) processRow(record []string, targetCol int, targetVal string) {
-	x := make([]float32, p.columns)
-	y := float32(0.0)
+	x := make([]float64, p.columns)
+	y := float64(0.0)
 
 	if p.columnNames == nil {
 		p.columnNames = record
@@ -175,18 +176,18 @@ func (p *Processor) ValidateTensors() (x tensor.Tensor, y tensor.Tensor) {
 		)
 }
 
-func parseNumber(v string) (float32, bool) {
-	f, err := strconv.ParseFloat(v, 32)
+func parseNumber(v string) (float64, bool) {
+	f, err := strconv.ParseFloat(v, 64)
 	if err != nil {
-		i, err := strconv.ParseInt(v, 10, 32)
+		i, err := strconv.ParseInt(v, 10, 64)
 		if err != nil {
 			return 0.0, false
 		}
 
-		return float32(i), true
+		return float64(i), true
 	}
 
-	return float32(f), true
+	return float64(f), true
 }
 
 func process(filePath string) *Processor {
@@ -257,23 +258,25 @@ func main() {
 		BatchSize: batchSize,
 		Epochs:    15,
 		DevMode:   true,
-		MatchTypeFor: func(predVal, targetVal []float32) godl.MatchType {
-			log.Printf("%v vs %v", predVal, targetVal)
+		Solver:    gorgonia.NewAdamSolver(gorgonia.WithLearnRate(0.02), gorgonia.WithClip(1.0)),
+		MatchTypeFor: func(predVal, targetVal []float64) godl.MatchType {
+			// log.Printf("%v vs %v", predVal, targetVal)
+
 			if targetVal[0] == 1 {
-				if predVal[0] > 0.5 {
+				if predVal[0] >= 0.5 {
 					return godl.MatchTypeTruePositive
 				} else {
-					return godl.MatchTypeTrueNegative
-				}
-			} else {
-				if predVal[0] > 0.5 {
 					return godl.MatchTypeFalsePositive
+				}
+			} else { // == 0
+				if predVal[0] < 0.5 {
+					return godl.MatchTypeTrueNegative
 				} else {
 					return godl.MatchTypeFalseNegative
 				}
 			}
 		},
-		ValidationObserver: func(confMat godl.ConfusionMatrix, cost float32) {
+		ValidationObserver: func(confMat godl.ConfusionMatrix, cost float64) {
 			fmt.Printf("%v\nCost: %0.4f", confMat, cost)
 		},
 		// WithLearnablesHeatmap: true,

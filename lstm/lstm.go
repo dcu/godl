@@ -55,7 +55,7 @@ func LSTM(m *godl.Model, opts LSTMOpts) godl.Layer {
 	}
 
 	weights := buildParamsList(paramsCount, m, lt, opts)
-	two := gorgonia.NewConstant(float32(2.0), gorgonia.WithName("two"))
+	two := gorgonia.NewConstant(float64(2.0), gorgonia.WithName("two"))
 
 	return func(inputs ...*gorgonia.Node) (godl.Result, error) {
 		var (
@@ -67,8 +67,8 @@ func LSTM(m *godl.Model, opts LSTMOpts) godl.Layer {
 			x = inputs[0]
 			batchSize := x.Shape()[1]
 
-			dummyHidden := gorgonia.NewTensor(m.ExprGraph(), tensor.Float32, 3, gorgonia.WithShape(1, batchSize, opts.HiddenSize), gorgonia.WithInit(gorgonia.Zeroes()), gorgonia.WithName("LSTMDummyHidden")) // FIXME: unique name
-			dummyCell := gorgonia.NewTensor(m.ExprGraph(), tensor.Float32, 3, gorgonia.WithShape(1, batchSize, opts.HiddenSize), gorgonia.WithInit(gorgonia.Zeroes()), gorgonia.WithName("LSTMDummyCell"))
+			dummyHidden := gorgonia.NewTensor(m.ExprGraph(), tensor.Float64, 3, gorgonia.WithShape(1, batchSize, opts.HiddenSize), gorgonia.WithInit(gorgonia.Zeroes()), gorgonia.WithName("LSTMDummyHidden")) // FIXME: unique name
+			dummyCell := gorgonia.NewTensor(m.ExprGraph(), tensor.Float64, 3, gorgonia.WithShape(1, batchSize, opts.HiddenSize), gorgonia.WithInit(gorgonia.Zeroes()), gorgonia.WithName("LSTMDummyCell"))
 
 			prevHidden = dummyHidden
 			prevCell = dummyCell

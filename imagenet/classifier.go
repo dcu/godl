@@ -22,7 +22,7 @@ type Classifier struct {
 func NewClassifier(builder func(m *godl.Model) godl.Layer, width, height int) *Classifier {
 	m := godl.NewModel()
 	layer := builder(m)
-	x := gorgonia.NewTensor(m.ExprGraph(), tensor.Float32, 4, gorgonia.WithShape(1, 3, width, height), gorgonia.WithName("x"))
+	x := gorgonia.NewTensor(m.ExprGraph(), tensor.Float64, 4, gorgonia.WithShape(1, 3, width, height), gorgonia.WithName("x"))
 
 	result, err := layer(x)
 	if err != nil {
@@ -43,7 +43,7 @@ func (c *Classifier) Model() *godl.Model {
 	return c.m
 }
 
-func (c *Classifier) Predict(img image.Image) (string, float32, error) {
+func (c *Classifier) Predict(img image.Image) (string, float64, error) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
@@ -72,5 +72,5 @@ func (c *Classifier) Predict(img image.Image) (string, float32, error) {
 		return "", 0.0, err
 	}
 
-	return Labels[index], val.(float32), nil
+	return Labels[index], val.(float64), nil
 }

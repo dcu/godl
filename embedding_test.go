@@ -15,7 +15,7 @@ func TestEmbedding(t *testing.T) {
 		dim            int
 		input          []int
 		inputShape     tensor.Shape
-		expectedOutput []float32
+		expectedOutput []float64
 	}{
 		{
 			desc:           "Example 1",
@@ -23,7 +23,7 @@ func TestEmbedding(t *testing.T) {
 			inputShape:     tensor.Shape{2},
 			classes:        4,
 			dim:            2,
-			expectedOutput: []float32{2, 3, 4, 5},
+			expectedOutput: []float64{2, 3, 4, 5},
 		},
 		{
 			desc:           "Example 2",
@@ -31,7 +31,7 @@ func TestEmbedding(t *testing.T) {
 			inputShape:     tensor.Shape{4},
 			classes:        4,
 			dim:            2,
-			expectedOutput: []float32{2, 3, 4, 5, 4, 5, 0, 1},
+			expectedOutput: []float64{2, 3, 4, 5, 4, 5, 0, 1},
 		},
 		{
 			desc:           "Example 3",
@@ -39,7 +39,7 @@ func TestEmbedding(t *testing.T) {
 			inputShape:     tensor.Shape{1, 1, 1},
 			classes:        4,
 			dim:            2,
-			expectedOutput: []float32{4, 5},
+			expectedOutput: []float64{4, 5},
 		},
 		{
 			desc:           "Example 4",
@@ -47,7 +47,7 @@ func TestEmbedding(t *testing.T) {
 			inputShape:     tensor.Shape{2, 1, 2},
 			classes:        4,
 			dim:            2,
-			expectedOutput: []float32{0, 1, 6, 7, 4, 5, 2, 3},
+			expectedOutput: []float64{0, 1, 6, 7, 4, 5, 2, 3},
 		},
 	}
 

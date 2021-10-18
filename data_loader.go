@@ -145,7 +145,7 @@ func (dl *DataLoader) Shuffle() error {
 		_ = dl.x.Reshape(oldXShape...)
 	}()
 
-	iterX, err := native.MatrixF32(dl.x.(*tensor.Dense))
+	iterX, err := native.MatrixF64(dl.x.(*tensor.Dense))
 	if err != nil {
 		return err
 	}
@@ -155,12 +155,12 @@ func (dl *DataLoader) Shuffle() error {
 		_ = dl.y.Reshape(oldYShape...)
 	}()
 
-	iterY, err := native.MatrixF32(dl.y.(*tensor.Dense))
+	iterY, err := native.MatrixF64(dl.y.(*tensor.Dense))
 	if err != nil {
 		return err
 	}
 
-	tmp := make([]float32, dl.FeaturesShape.TotalSize())
+	tmp := make([]float64, dl.FeaturesShape.TotalSize())
 	rand.Shuffle(dl.Rows, func(i, j int) {
 		copy(tmp, iterX[i])
 		copy(iterX[i], iterX[j])

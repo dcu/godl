@@ -13,7 +13,7 @@ type FeatureTransformerOpts struct {
 	InputDimension    int
 	OutputDimension   int
 	WithBias          bool
-	Momentum          float32
+	Momentum          float64
 
 	WeightsInit gorgonia.InitWFn
 }
