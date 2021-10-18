@@ -257,8 +257,8 @@ func main() {
 	err := regressor.Train(trainX, trainY, validateX, validateY, godl.TrainOpts{
 		BatchSize: batchSize,
 		Epochs:    15,
-		DevMode:   true,
-		Solver:    gorgonia.NewAdamSolver(gorgonia.WithLearnRate(0.02), gorgonia.WithClip(1.0)),
+		// DevMode:   true,
+		Solver: gorgonia.NewAdamSolver(gorgonia.WithLearnRate(0.02), gorgonia.WithClip(1.0)),
 		MatchTypeFor: func(predVal, targetVal []float64) godl.MatchType {
 			// log.Printf("%v vs %v", predVal, targetVal)
 

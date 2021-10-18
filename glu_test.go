@@ -112,9 +112,9 @@ func TestGLU(t *testing.T) {
 			c.NoError(err)
 
 			c.Equal(tcase.expectedShape, y.Shape())
-			c.Equal(tcase.expectedOutput, y.Value().Data())
+			c.InDeltaSlice(tcase.expectedOutput, y.Value().Data(), 1e-5, "actual: %#v", y.Value().Data())
 			c.Equal(tcase.expectedGrad, yGrad.Data())
-			c.Equal(tcase.expectedCost, cost.Value().Data())
+			c.InDelta(tcase.expectedCost, cost.Value().Data(), 1e-5, "actual: %#v", cost.Value().Data())
 		})
 	}
 }

@@ -92,11 +92,11 @@ func TestBatchNorm(t *testing.T) {
 			log.Printf("bias grad: %v", biasGrad)
 			log.Printf("cost: %v", cost.Value())
 
-			c.Equal(tC.expectedOutput.Data(), result.Value().Data())
+			c.InDeltaSlice(tC.expectedOutput.Data(), result.Value().Data(), 1e-5, "actual: %#v", result.Value().Data())
 			c.Equal(tC.expectedOutputGrad.Data(), outputGrad.Data())
 			c.Equal(tC.expectedScaleGrad.Data(), scaleGrad.Data())
 			c.Equal(tC.expectedBiasGrad.Data(), biasGrad.Data())
-			c.Equal(tC.expectedCost, cost.Value().Data())
+			c.InDelta(tC.expectedCost, cost.Value().Data(), 1e-5)
 
 			c.NoError(solver.Step(gorgonia.NodesToValueGrads(m.Learnables())))
 

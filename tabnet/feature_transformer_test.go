@@ -108,13 +108,13 @@ func TestFeatureTransformer(t *testing.T) {
 			tn.PrintWatchables()
 
 			c.Equal(tcase.expectedShape, y.Shape())
-			c.Equal(tcase.expectedOutput, y.Value().Data().([]float64))
+			c.InDeltaSlice(tcase.expectedOutput, y.Value().Data().([]float64), 1e-5)
 
 			yGrad, err := y.Output.Grad()
 			c.NoError(err)
 
 			c.Equal(tcase.expectedGrad, yGrad.Data())
-			c.Equal(tcase.expectedCost, cost.Value().Data())
+			c.InDelta(tcase.expectedCost, cost.Value().Data(), 1e-5)
 		})
 	}
 }

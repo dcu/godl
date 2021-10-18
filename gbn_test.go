@@ -85,9 +85,9 @@ func TestGBN(t *testing.T) {
 			yGrad, err := y.Output.Grad()
 			c.NoError(err)
 
-			c.Equal(tcase.expectedOutput, y.Value().Data().([]float64))
-			c.Equal(tcase.expectedCost, cost.Value().Data())
-			c.Equal(tcase.expectedGrad, yGrad.Data())
+			c.InDeltaSlice(tcase.expectedOutput, y.Value().Data().([]float64), 1e-5, "actual: %#v", y.Value().Data())
+			c.InDelta(tcase.expectedCost, cost.Value().Data(), 1e-5, "actual: %#v", cost.Value().Data())
+			c.InDeltaSlice(tcase.expectedGrad, yGrad.Data(), 1e-5, "actual: %#v", yGrad.Data())
 		})
 	}
 }

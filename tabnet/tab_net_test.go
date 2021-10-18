@@ -123,7 +123,7 @@ func TestTabNetEmbeddings(t *testing.T) {
 			c.NoError(err)
 
 			c.Equal(tcase.expectedGrad, yGrad.Data())
-			c.Equal(tcase.expectedCost, cost.Value().Data())
+			c.InDelta(tcase.expectedCost, cost.Value().Data(), 1e-5)
 			c.Equal(tcase.expectedAcumLoss, result.Loss.Value().Data())
 
 			weightsByName := map[string]*gorgonia.Node{}
