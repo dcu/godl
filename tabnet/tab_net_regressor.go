@@ -73,14 +73,16 @@ func NewRegressor(inputDim int, catDims []int, catIdxs []int, catEmbDim []int, o
 }
 
 func (r *Regressor) Train(trainX, trainY, validateX, validateY tensor.Tensor, opts godl.TrainOpts) error {
+	log.Printf("input: %v", trainX)
+
 	if opts.CostFn == nil {
 		lambdaSparse := gorgonia.NewConstant(float64(1e-3), gorgonia.WithName("LambdaSparse"))
 		opts.CostFn = func(output *gorgonia.Node, innerLoss *gorgonia.Node, y *gorgonia.Node) *gorgonia.Node {
 			cost := godl.MSELoss(output, y, godl.MSELossOpts{})
 
-			// r.model.Watch("output", gorgonia.Must(gorgonia.Sum(output)))
-			// r.model.Watch("loss", cost)
+			// r.model.Watch("output", output)
 			// r.model.Watch("innerLoss", innerLoss)
+			// r.model.Watch("loss", cost)
 
 			tmpLoss := gorgonia.Must(gorgonia.Mul(innerLoss, lambdaSparse))
 			cost = gorgonia.Must(gorgonia.Sub(cost, tmpLoss))

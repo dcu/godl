@@ -79,7 +79,7 @@ func FC(nn *Model, opts FCOpts) Layer {
 			}
 		}
 
-		if opts.Dropout > 0.0 && nn.Training {
+		if opts.Dropout > 0.0 {
 			layer, err = gorgonia.Dropout(layer, opts.Dropout)
 			if err != nil {
 				return Result{}, ErrorF(lt, "error applying dropout %w", err)

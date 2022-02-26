@@ -1,7 +1,6 @@
 package godl
 
 import (
-	"io/ioutil"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -12,18 +11,18 @@ import (
 func TestFC(t *testing.T) {
 	testCases := []struct {
 		desc               string
-		y                  tensor.Tensor
 		input              tensor.Tensor
 		expectedOutput     tensor.Tensor
 		expectedOutputGrad tensor.Tensor
+		expectedInputGrad  tensor.Tensor
 		expectedWeightGrad tensor.Tensor
 	}{
 		{
 			desc:               "Example 1",
-			y:                  tensor.New(tensor.WithShape(2, 4), tensor.WithBacking([]float64{0.5, 0.05, 0.1, 0.2, 0.05, 0.5, 0.1, 0.2})),
 			input:              tensor.New(tensor.WithShape(2, 2), tensor.WithBacking([]float64{0.1, 0.01, 0.01, 0.1})),
-			expectedOutput:     tensor.New(tensor.WithShape(2, 4), tensor.WithBacking([]float64{0.11, 0.11, 0.11, 0.11, 0.11, 0.11, 0.11, 0.11})),
+			expectedOutput:     tensor.New(tensor.WithShape(2, 4), tensor.WithBacking([]float64{-0.005200000000000001, 0.0013999999999999996, 0.007999999999999998, 0.014600000000000002, -0.0025000000000000005, 0.0040999999999999995, 0.0107, 0.017300000000000003})),
 			expectedOutputGrad: tensor.New(tensor.WithShape(2, 4), tensor.WithBacking([]float64{0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125})),
+			expectedInputGrad:  tensor.New(tensor.WithShape(2, 2), tensor.WithBacking([]float64{0.019999999999999997, 0.034999999999999996, 0.019999999999999997, 0.034999999999999996})),
 			expectedWeightGrad: tensor.New(tensor.WithShape(2, 4), tensor.WithBacking([]float64{0.01375, 0.01375, 0.01375, 0.01375, 0.01375, 0.01375, 0.01375, 0.01375})),
 		},
 	}
@@ -35,24 +34,22 @@ func TestFC(t *testing.T) {
 			fc := FC(m, FCOpts{
 				InputDimension:  tC.input.Shape()[1],
 				OutputDimension: 4,
-				WeightsInit:     gorgonia.Ones(),
+				WeightsInit:     gorgonia.RangedFromWithStep(-0.05, 0.03),
 			})
 
 			x := gorgonia.NewTensor(m.g, tensor.Float64, 2, gorgonia.WithShape(tC.input.Shape()...), gorgonia.WithValue(tC.input), gorgonia.WithName("x"))
-			y := gorgonia.NewTensor(m.g, tensor.Float64, 2, gorgonia.WithShape(tC.y.Shape()...), gorgonia.WithValue(tC.y), gorgonia.WithName("y"))
 
 			result, err := fc(x)
 			c.NoError(err)
 
-			diff := gorgonia.Must(gorgonia.Sub(result.Output, y))
-			cost := gorgonia.Must(gorgonia.Mean(diff))
+			cost := gorgonia.Must(gorgonia.Mean(result.Output))
 
 			l := m.learnables
 
-			_, err = gorgonia.Grad(cost, l...)
+			_, err = gorgonia.Grad(cost, append(l, x)...)
 			c.NoError(err)
 
-			_ = ioutil.WriteFile("fc.dot", []byte(m.g.ToDot()), 0644)
+			// _ = ioutil.WriteFile("fc.dot", []byte(m.g.ToDot()), 0644)
 
 			vm := gorgonia.NewTapeMachine(m.g,
 				gorgonia.BindDualValues(l...),
@@ -62,6 +59,7 @@ func TestFC(t *testing.T) {
 			c.NoError(vm.RunAll())
 			c.NoError(vm.Close())
 
+			c.Equal(tC.expectedInputGrad.Data(), x.Deriv().Value().Data())
 			c.Equal(tC.expectedOutput.Data(), result.Output.Value().Data())
 
 			outputGrad, err := result.Output.Grad()

@@ -201,6 +201,8 @@ func TabNetNoEmbeddings(nn *godl.Model, opts TabNetNoEmbeddingsOpts) godl.Layer 
 			attentiveTransformer := attentiveTransformers[i]
 			featureTransformer := featureTransformers[i]
 
+			// nn.Watch("prior", prior)
+
 			result, err := attentiveTransformer(xAttentiveLayer, prior)
 			if err != nil {
 				return godl.Result{}, err

@@ -25,8 +25,6 @@ type Model struct {
 	learnables gorgonia.Nodes
 	watchables []watchable
 
-	Training bool
-
 	Storage *storage.Storage
 }
 

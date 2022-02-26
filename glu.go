@@ -18,8 +18,11 @@ type GLUOpts struct {
 	Momentum         float64
 }
 
-// GLU implements a Gated Linear Unit Block
-func GLU(nn *Model, opts GLUOpts) Layer {
+func (opts *GLUOpts) setDefaults() {
+	if opts.Momentum == 0 {
+		opts.Momentum = 0.02
+	}
+
 	if opts.ActivationFn == nil {
 		opts.ActivationFn = gorgonia.Sigmoid
 	}
@@ -35,6 +38,11 @@ func GLU(nn *Model, opts GLUOpts) Layer {
 	if opts.VirtualBatchSize == 0 {
 		panic("virtual batch size must be set")
 	}
+}
+
+// GLU implements a Gated Linear Unit Block
+func GLU(nn *Model, opts GLUOpts) Layer {
+	opts.setDefaults()
 
 	lt := AddLayer("GLU")
 

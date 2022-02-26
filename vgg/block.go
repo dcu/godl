@@ -100,7 +100,7 @@ func Block(m *godl.Model, opts BlockOpts) godl.Layer {
 			x = gorgonia.Must(gorgonia.MaxPool2D(x, tensor.Shape{2, 2}, []int{0, 0}, []int{2, 2}))
 		}
 
-		if opts.Dropout > 0.0 && m.Training {
+		if opts.Dropout > 0.0 {
 			x = gorgonia.Must(gorgonia.Dropout(x, opts.Dropout))
 		}
 

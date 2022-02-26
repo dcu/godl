@@ -56,7 +56,6 @@ func TestTabNetEmbeddings(t *testing.T) {
 			c := require.New(t)
 
 			tn := godl.NewModel()
-			tn.Training = true
 
 			g := tn.ExprGraph()
 
@@ -98,7 +97,7 @@ func TestTabNetEmbeddings(t *testing.T) {
 			}
 
 			cost := gorgonia.Must(gorgonia.Mean(y))
-			_, err = gorgonia.Grad(cost, tn.Learnables()...)
+			_, err = gorgonia.Grad(cost, append([]*gorgonia.Node{x}, tn.Learnables()...)...)
 			c.NoError(err)
 
 			vm := gorgonia.NewTapeMachine(g,
@@ -113,6 +112,8 @@ func TestTabNetEmbeddings(t *testing.T) {
 
 			tn.PrintWatchables()
 			// fmt.Printf("%v\n", g.String())
+
+			log.Printf("input grad: %v", x.Deriv().Value())
 
 			c.Equal(tcase.expectedShape, y.Shape())
 
@@ -147,12 +148,15 @@ func TestTabNetEmbeddings(t *testing.T) {
 			err = optim.Step(gorgonia.NodesToValueGrads(tn.Learnables()))
 			c.NoError(err)
 
-			// {
-			// 	w := weightsByName["BatchNorm1d_1.1.scale.1.5"]
-			// 	log.Printf("weight updated: %v\n\n\n", w.Value())
-			// 	c.Equal([]float64{0.9800, 0.9800, 0.9800, 1.0000, 1.0000}, w.Value().Data(), w.Name())
-			// }
+			{
+				w := weightsByName["BatchNorm1d_1.1.scale.1.5"]
+				log.Printf("weight updated: %v\n\n\n", w.Value())
+				c.Equal([]float64{0.9800000823404622, 0.9800000823404622, 0.9800000823404622, 1, 1}, w.Value().Data(), w.Name())
+			}
 
+			for _, n := range tn.Learnables() {
+				log.Printf("%s: %v", n.Name(), n.Value().Data().([]float64)[0:2])
+			}
 		})
 	}
 }

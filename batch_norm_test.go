@@ -45,7 +45,6 @@ func TestBatchNorm(t *testing.T) {
 			solver := gorgonia.NewAdamSolver(gorgonia.WithLearnRate(0.1))
 
 			m := NewModel()
-			m.Training = true
 
 			bnFunc := BatchNorm1d
 			if tC.input.Dims() == 4 {

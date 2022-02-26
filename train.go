@@ -58,11 +58,6 @@ func (o *TrainOpts) setDefaults() {
 // Train trains the model with the given data
 func Train(m *Model, layer Layer, trainX, trainY, validateX, validateY tensor.Tensor, opts TrainOpts) error {
 	opts.setDefaults()
-	m.Training = true
-
-	defer func() {
-		m.Training = false
-	}()
 
 	if opts.DevMode {
 		warn("Start training in dev mode")
@@ -85,7 +80,7 @@ func Train(m *Model, layer Layer, trainX, trainY, validateX, validateY tensor.Te
 
 	dl := NewDataLoader(trainX, trainY, DataLoaderOpts{
 		BatchSize: opts.BatchSize,
-		Shuffle:   true,
+		Shuffle:   false,
 	})
 
 	xShape := append(tensor.Shape{opts.BatchSize}, trainX.Shape()[1:]...)

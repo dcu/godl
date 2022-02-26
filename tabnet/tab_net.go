@@ -69,6 +69,8 @@ func TabNet(nn *godl.Model, opts TabNetOpts) godl.Layer {
 			return godl.Result{}, err
 		}
 
+		// nn.Watch("embedding output:", res.Output)
+
 		return tn(res.Output)
 	}
 }

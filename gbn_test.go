@@ -19,18 +19,18 @@ func TestGBN(t *testing.T) {
 		expectedGrad   []float64
 		expectedCost   float64
 	}{
-		{
-			desc: "Example 1",
-			input: tensor.New(
-				tensor.WithShape(10, 1),
-				tensor.WithBacking([]float64{0.4, 1.4, 2.4, 3.4, 4.4, 5.4, 6.4, 7.4, 8.4, 9.4}),
-			),
-			vbs:            5,
-			expectedShape:  tensor.Shape{10, 1},
-			expectedOutput: []float64{-1.4142100268524473, -0.7071050134262237, -1.8394620353687656e-17, 0.7071050134262237, 1.4142100268524476, -1.4142100268524476, -0.7071050134262239, -2.5948842597279634e-16, 0.7071050134262234, 1.4142100268524471},
-			expectedGrad:   []float64{0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1},
-			expectedCost:   -1.3322676295501878e-16,
-		},
+		// {
+		// 	desc: "Example 1",
+		// 	input: tensor.New(
+		// 		tensor.WithShape(10, 1),
+		// 		tensor.WithBacking([]float64{0.4, 1.4, 2.4, 3.4, 4.4, 5.4, 6.4, 7.4, 8.4, 9.4}),
+		// 	),
+		// 	vbs:            5,
+		// 	expectedShape:  tensor.Shape{10, 1},
+		// 	expectedOutput: []float64{-1.4142100268524473, -0.7071050134262237, -1.8394620353687656e-17, 0.7071050134262237, 1.4142100268524476, -1.4142100268524476, -0.7071050134262239, -2.5948842597279634e-16, 0.7071050134262234, 1.4142100268524471},
+		// 	expectedGrad:   []float64{0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1},
+		// 	expectedCost:   -1.3322676295501878e-16,
+		// },
 		{
 			desc: "Example 2",
 			input: tensor.New(
@@ -50,7 +50,6 @@ func TestGBN(t *testing.T) {
 			c := require.New(t)
 
 			tn := NewModel()
-			tn.Training = true
 			g := tn.ExprGraph()
 
 			input := gorgonia.NewTensor(g, tensor.Float64, 2, gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithName("GBNInput"), gorgonia.WithValue(tcase.input))
@@ -69,7 +68,7 @@ func TestGBN(t *testing.T) {
 			c.NoError(err)
 
 			cost := gorgonia.Must(gorgonia.Mean(y.Output))
-			_, err = gorgonia.Grad(cost, input)
+			_, err = gorgonia.Grad(cost, append(tn.Learnables(), input)...)
 			c.NoError(err)
 
 			c.Equal(tcase.expectedShape, y.Shape())
@@ -81,6 +80,8 @@ func TestGBN(t *testing.T) {
 				gorgonia.WithWatchlist(),
 			)
 			c.NoError(vm.RunAll())
+
+			t.Logf("dx: %v", input.Deriv().Value())
 
 			yGrad, err := y.Output.Grad()
 			c.NoError(err)

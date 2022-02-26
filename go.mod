@@ -31,5 +31,5 @@ require (
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
 	gorgonia.org/gorgonia v0.9.17
 	gorgonia.org/qol v0.0.0-20210328233931-ddcfc12ae8eb
-	gorgonia.org/tensor v0.9.22-0.20211016001831-bfdc96b1c8c9
+	gorgonia.org/tensor v0.9.22-0.20211018175907-3039f42ea573
 )
