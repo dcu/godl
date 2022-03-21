@@ -165,18 +165,18 @@ func TestLSTM(t *testing.T) {
 			c := require.New(t)
 
 			m := godl.NewModel()
-			input := gorgonia.NodeFromAny(m.ExprGraph(), tC.Input, gorgonia.WithName("input"))
+			input := gorgonia.NodeFromAny(m.TrainGraph(), tC.Input, gorgonia.WithName("input"))
 
 			args := make([]*gorgonia.Node, 0, 3)
 			args = append(args, input)
 
 			if tC.HiddenInput != nil {
-				hiddenInput := gorgonia.NodeFromAny(m.ExprGraph(), tC.HiddenInput, gorgonia.WithName("hidden"))
+				hiddenInput := gorgonia.NodeFromAny(m.TrainGraph(), tC.HiddenInput, gorgonia.WithName("hidden"))
 				args = append(args, hiddenInput)
 			}
 
 			if tC.CellInput != nil {
-				cellInput := gorgonia.NodeFromAny(m.ExprGraph(), tC.CellInput, gorgonia.WithName("cell"))
+				cellInput := gorgonia.NodeFromAny(m.TrainGraph(), tC.CellInput, gorgonia.WithName("cell"))
 				args = append(args, cellInput)
 			}
 
@@ -191,7 +191,7 @@ func TestLSTM(t *testing.T) {
 			result, err := l(args...)
 			c.NoError(err)
 
-			vm := gorgonia.NewTapeMachine(m.ExprGraph())
+			vm := gorgonia.NewTapeMachine(m.TrainGraph())
 			c.NoError(vm.RunAll())
 
 			m.PrintWatchables()

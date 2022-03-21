@@ -16,7 +16,7 @@ import (
 
 type Cell struct {
 	Dtype tensor.Dtype
-	V     interface{}
+	V     any
 }
 
 func (v Cell) Int() int {
@@ -37,7 +37,7 @@ func StringToCell(v string) Cell {
 		return Cell{tensor.Int, int(i)}
 	}
 
-	f, err := strconv.ParseFloat(strings.TrimSpace(v), 64)
+	f, err := strconv.ParseFloat(strings.TrimSpace(v), 32)
 	if err == nil {
 		return Cell{tensor.Float32, f}
 	}

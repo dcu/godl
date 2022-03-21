@@ -108,9 +108,7 @@ func main() {
 		ValidationObserver: func(confMat godl.ConfusionMatrix, cost float32) {
 			fmt.Printf("%v\nCost: %0.4f", confMat, cost)
 		},
-		CostFn: func(output, accumLoss, target *gorgonia.Node) *gorgonia.Node {
-			return godl.CategoricalCrossEntropyLoss(output, target, godl.CrossEntropyLossOpt{})
-		},
+		CostFn: godl.CategoricalCrossEntropyLoss(godl.CrossEntropyLossOpt{}),
 	})
 	handleErr("training", err)
 }

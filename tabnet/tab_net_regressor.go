@@ -63,12 +63,12 @@ func newModel(training bool, batchSize int, inputDim int, catDims []int, catIdxs
 }
 
 func NewRegressor(inputDim int, catDims []int, catIdxs []int, catEmbDim []int, opts RegressorOpts) *Regressor {
-	train, trainLayer := newModel(true, opts.BatchSize, inputDim, catDims, catIdxs, catEmbDim, opts)
+	model, layer := newModel(true, opts.BatchSize, inputDim, catDims, catIdxs, catEmbDim, opts)
 
 	return &Regressor{
 		opts:  opts,
-		model: train,
-		layer: trainLayer,
+		model: model,
+		layer: layer,
 	}
 }
 
@@ -77,14 +77,10 @@ func (r *Regressor) Train(trainX, trainY, validateX, validateY tensor.Tensor, op
 
 	if opts.CostFn == nil {
 		lambdaSparse := gorgonia.NewConstant(float32(1e-3), gorgonia.WithName("LambdaSparse"))
-		opts.CostFn = func(output *gorgonia.Node, innerLoss *gorgonia.Node, y *gorgonia.Node) *gorgonia.Node {
-			cost := godl.MSELoss(output, y, godl.MSELossOpts{})
+		opts.CostFn = godl.MSELoss(godl.MSELossOpts{})
 
-			// r.model.Watch("output", output)
-			// r.model.Watch("innerLoss", innerLoss)
-			// r.model.Watch("loss", cost)
-
-			tmpLoss := gorgonia.Must(gorgonia.Mul(innerLoss, lambdaSparse))
+		opts.CustomCost = func(cost *gorgonia.Node, result godl.Result) *gorgonia.Node {
+			tmpLoss := gorgonia.Must(gorgonia.Mul(result.Loss, lambdaSparse))
 			cost = gorgonia.Must(gorgonia.Sub(cost, tmpLoss))
 
 			return cost

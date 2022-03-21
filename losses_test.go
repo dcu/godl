@@ -49,7 +49,7 @@ func TestMSELoss(t *testing.T) {
 			outputNode := gorgonia.NewTensor(g, tensor.Float32, tC.output.Shape().Dims(), gorgonia.WithShape(tC.output.Shape()...), gorgonia.WithValue(tC.output), gorgonia.WithName("output"))
 			targetNode := gorgonia.NewTensor(g, tensor.Float32, tC.target.Shape().Dims(), gorgonia.WithShape(tC.target.Shape()...), gorgonia.WithValue(tC.target), gorgonia.WithName("target"))
 
-			loss := MSELoss(outputNode, targetNode, MSELossOpts{})
+			loss := MSELoss(MSELossOpts{})(outputNode, targetNode)
 
 			var lossV gorgonia.Value
 			gorgonia.Read(loss, &lossV)
@@ -106,9 +106,9 @@ func TestCrossEntropyLoss(t *testing.T) {
 			outputNode := gorgonia.NewTensor(g, tensor.Float32, tC.output.Shape().Dims(), gorgonia.WithShape(tC.output.Shape()...), gorgonia.WithValue(tC.output), gorgonia.WithName("output"))
 			targetNode := gorgonia.NewTensor(g, tensor.Float32, tC.target.Shape().Dims(), gorgonia.WithShape(tC.target.Shape()...), gorgonia.WithValue(tC.target), gorgonia.WithName("target"))
 
-			loss := CrossEntropyLoss(outputNode, targetNode, CrossEntropyLossOpt{
+			loss := CrossEntropyLoss(CrossEntropyLossOpt{
 				Reduction: tC.reduction,
-			})
+			})(outputNode, targetNode)
 
 			var lossV gorgonia.Value
 			gorgonia.Read(loss, &lossV)

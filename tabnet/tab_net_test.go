@@ -62,7 +62,7 @@ func TestTabNetEmbeddings(t *testing.T) {
 
 			tn.Logger = log.New(logFile, "", log.LstdFlags)
 
-			g := tn.ExprGraph()
+			g := tn.TrainGraph()
 
 			x := gorgonia.NewTensor(g, tensor.Float32, 2, gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithName("Input"), gorgonia.WithValue(tcase.input))
 

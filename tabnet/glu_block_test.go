@@ -34,7 +34,7 @@ func TestGLUBlock(t *testing.T) {
 			c := require.New(t)
 			nn := godl.NewModel()
 
-			input := gorgonia.NewTensor(nn.ExprGraph(), tensor.Float32, tC.X.Dims(), gorgonia.WithShape(tC.X.Shape()...), gorgonia.WithName("x"), gorgonia.WithValue(tC.X))
+			input := gorgonia.NewTensor(nn.TrainGraph(), tensor.Float32, tC.X.Dims(), gorgonia.WithShape(tC.X.Shape()...), gorgonia.WithName("x"), gorgonia.WithValue(tC.X))
 
 			shared := make([]godl.Layer, tC.Shared)
 			fcInput := input.Shape()[1]
@@ -63,7 +63,7 @@ func TestGLUBlock(t *testing.T) {
 			_, err = gorgonia.Grad(cost, input)
 			c.NoError(err)
 
-			vm := gorgonia.NewTapeMachine(nn.ExprGraph(), gorgonia.BindDualValues(nn.Learnables()...))
+			vm := gorgonia.NewTapeMachine(nn.TrainGraph(), gorgonia.BindDualValues(nn.Learnables()...))
 			c.NoError(vm.RunAll())
 
 			nn.PrintWatchables()

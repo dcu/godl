@@ -78,9 +78,10 @@ func (r *Classifier) Model() *godl.Model {
 func (r *Classifier) Train(trainX, trainY, validateX, validateY tensor.Tensor, opts godl.TrainOpts) error {
 	if opts.CostFn == nil {
 		lambdaSparse := gorgonia.NewConstant(float32(1e-3))
-		opts.CostFn = func(output *gorgonia.Node, innerLoss *gorgonia.Node, y *gorgonia.Node) *gorgonia.Node {
-			cost := godl.CategoricalCrossEntropyLoss(output, y, godl.CrossEntropyLossOpt{})
-			cost = gorgonia.Must(gorgonia.Sub(cost, gorgonia.Must(gorgonia.Mul(lambdaSparse, innerLoss))))
+		opts.CostFn = godl.CategoricalCrossEntropyLoss(godl.CrossEntropyLossOpt{})
+
+		opts.CustomCost = func(cost *gorgonia.Node, result godl.Result) *gorgonia.Node {
+			cost = gorgonia.Must(gorgonia.Sub(cost, gorgonia.Must(gorgonia.Mul(lambdaSparse, result.Loss))))
 
 			return cost
 		}

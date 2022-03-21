@@ -34,7 +34,8 @@ type TrainOpts struct {
 	CostObserver       func(epoch int, totalEpoch, batch int, totalBatch int, cost float32)
 	ValidationObserver func(confMat ConfusionMatrix, cost float32)
 	MatchTypeFor       func(predVal, targetVal []float32) MatchType
-	CostFn             func(output *gorgonia.Node, accumLoss *gorgonia.Node, target *gorgonia.Node) *gorgonia.Node
+	CostFn             CostFn
+	CustomCost         func(cost *gorgonia.Node, result Result) *gorgonia.Node
 }
 
 func (o *TrainOpts) setDefaults() {
@@ -67,7 +68,7 @@ func Train(m *Model, layer Layer, trainX, trainY, validateX, validateY tensor.Te
 				graphFileName := "graph.dot"
 
 				log.Printf("panic triggered, dumping the model graph to: %v", graphFileName)
-				_ = ioutil.WriteFile(graphFileName, []byte(m.g.ToDot()), 0644)
+				_ = ioutil.WriteFile(graphFileName, []byte(m.trainGraph.ToDot()), 0644)
 				panic(err)
 			}
 		}()
@@ -85,8 +86,8 @@ func Train(m *Model, layer Layer, trainX, trainY, validateX, validateY tensor.Te
 
 	xShape := append(tensor.Shape{opts.BatchSize}, trainX.Shape()[1:]...)
 
-	x := gorgonia.NewTensor(m.g, tensor.Float32, trainX.Shape().Dims(), gorgonia.WithShape(xShape...), gorgonia.WithName("x"))
-	y := gorgonia.NewMatrix(m.g, tensor.Float32, gorgonia.WithShape(opts.BatchSize, trainY.Shape()[1]), gorgonia.WithName("y"))
+	x := gorgonia.NewTensor(m.trainGraph, tensor.Float32, trainX.Shape().Dims(), gorgonia.WithShape(xShape...), gorgonia.WithName("x"))
+	y := gorgonia.NewMatrix(m.trainGraph, tensor.Float32, gorgonia.WithShape(opts.BatchSize, trainY.Shape()[1]), gorgonia.WithName("y"))
 
 	result, err := layer(x)
 	if err != nil {
@@ -103,7 +104,11 @@ func Train(m *Model, layer Layer, trainX, trainY, validateX, validateY tensor.Te
 	)
 
 	{
-		cost := opts.CostFn(result.Output, result.Loss, y)
+		cost := opts.CostFn(result.Output, y)
+
+		if opts.CustomCost != nil {
+			cost = opts.CustomCost(cost, result)
+		}
 
 		gorgonia.Read(cost, &costVal)
 		gorgonia.Read(result.Output, &predVal)
@@ -113,8 +118,10 @@ func Train(m *Model, layer Layer, trainX, trainY, validateX, validateY tensor.Te
 		}
 	}
 
-	validationGraph := m.g.SubgraphRoots(result.Output)
+	validationGraph := m.trainGraph.SubgraphRoots(result.Output)
 	validationGraph.RemoveNode(y)
+
+	m.evalGraph = validationGraph
 
 	vmOpts := []gorgonia.VMOpt{
 		gorgonia.BindDualValues(m.learnables...),
@@ -129,7 +136,7 @@ func Train(m *Model, layer Layer, trainX, trainY, validateX, validateY tensor.Te
 		)
 	}
 
-	vm := gorgonia.NewTapeMachine(m.g, vmOpts...)
+	vm := gorgonia.NewTapeMachine(m.trainGraph, vmOpts...)
 
 	if opts.Solver == nil {
 		info("defaulting to RMS solver")
@@ -181,8 +188,7 @@ func Train(m *Model, layer Layer, trainX, trainY, validateX, validateY tensor.Te
 		dl.Reset()
 
 		if i%opts.ValidateEvery == 0 {
-
-			err := Validate(validationGraph, m, x, y, costVal, predVal, validateX, validateY, opts)
+			err := Validate(m, x, y, costVal, predVal, validateX, validateY, opts)
 			if err != nil {
 				color.Red("Failed to run validation on epoch %v: %v", i, err)
 			}

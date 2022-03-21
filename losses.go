@@ -33,11 +33,15 @@ type MSELossOpts struct {
 	Reduction Reduction
 }
 
-// MSELoss defines the mean square root cost function
-func MSELoss(output *gorgonia.Node, target *gorgonia.Node, opts MSELossOpts) *gorgonia.Node {
-	sub := gorgonia.Must(gorgonia.Sub(output, target))
+type CostFn func(output *gorgonia.Node, target *gorgonia.Node) *gorgonia.Node
 
-	return gorgonia.Must(opts.Reduction.Func()(gorgonia.Must(gorgonia.Square(sub))))
+// MSELoss defines the mean square root cost function
+func MSELoss(opts MSELossOpts) CostFn {
+	return func(output *gorgonia.Node, target *gorgonia.Node) *gorgonia.Node {
+		sub := gorgonia.Must(gorgonia.Sub(output, target))
+
+		return gorgonia.Must(opts.Reduction.Func()(gorgonia.Must(gorgonia.Square(sub))))
+	}
 }
 
 type CrossEntropyLossOpt struct {
@@ -45,17 +49,21 @@ type CrossEntropyLossOpt struct {
 }
 
 // CrossEntropyLoss implements cross entropy loss function
-func CrossEntropyLoss(output *gorgonia.Node, target *gorgonia.Node, opts CrossEntropyLossOpt) *gorgonia.Node {
-	cost := gorgonia.Must(gorgonia.HadamardProd(gorgonia.Must(gorgonia.Neg(gorgonia.Must(gorgonia.Log(output)))), target))
+func CrossEntropyLoss(opts CrossEntropyLossOpt) CostFn {
+	return func(output *gorgonia.Node, target *gorgonia.Node) *gorgonia.Node {
+		cost := gorgonia.Must(gorgonia.HadamardProd(gorgonia.Must(gorgonia.Neg(gorgonia.Must(gorgonia.Log(output)))), target))
 
-	return gorgonia.Must(opts.Reduction.Func()(cost))
+		return gorgonia.Must(opts.Reduction.Func()(cost))
+	}
 }
 
 // CategoricalCrossEntropyLoss is softmax + cce
-func CategoricalCrossEntropyLoss(output *gorgonia.Node, target *gorgonia.Node, opts CrossEntropyLossOpt) *gorgonia.Node {
-	output = gorgonia.Must(gorgonia.SoftMax(output))
+func CategoricalCrossEntropyLoss(opts CrossEntropyLossOpt) CostFn {
+	return func(output *gorgonia.Node, target *gorgonia.Node) *gorgonia.Node {
+		output = gorgonia.Must(gorgonia.SoftMax(output))
 
-	return CrossEntropyLoss(output, target, opts)
+		return CrossEntropyLoss(opts)(output, target)
+	}
 }
 
 func noopReduction(n *gorgonia.Node, along ...int) (*gorgonia.Node, error) {

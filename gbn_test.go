@@ -50,7 +50,7 @@ func TestGBN(t *testing.T) {
 			c := require.New(t)
 
 			tn := NewModel()
-			g := tn.ExprGraph()
+			g := tn.TrainGraph()
 
 			input := gorgonia.NewTensor(g, tensor.Float32, 2, gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithName("GBNInput"), gorgonia.WithValue(tcase.input))
 
@@ -73,7 +73,7 @@ func TestGBN(t *testing.T) {
 
 			c.Equal(tcase.expectedShape, y.Shape())
 
-			vm := gorgonia.NewTapeMachine(tn.g,
+			vm := gorgonia.NewTapeMachine(tn.trainGraph,
 				gorgonia.WithLogger(testLogger),
 				gorgonia.BindDualValues(tn.learnables...),
 				gorgonia.WithValueFmt("%+v"),

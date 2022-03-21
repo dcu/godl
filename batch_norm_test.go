@@ -55,7 +55,7 @@ func TestBatchNorm(t *testing.T) {
 				InputSize: tC.input.Shape()[1],
 			})
 
-			x := gorgonia.NewTensor(m.g, tensor.Float32, tC.input.Shape().Dims(), gorgonia.WithShape(tC.input.Shape()...), gorgonia.WithValue(tC.input), gorgonia.WithName("x"))
+			x := gorgonia.NewTensor(m.trainGraph, tensor.Float32, tC.input.Shape().Dims(), gorgonia.WithShape(tC.input.Shape()...), gorgonia.WithValue(tC.input), gorgonia.WithName("x"))
 
 			result, err := bn(x)
 			c.NoError(err)
@@ -67,7 +67,7 @@ func TestBatchNorm(t *testing.T) {
 			_, err = gorgonia.Grad(cost, l...)
 			c.NoError(err)
 
-			vm := gorgonia.NewTapeMachine(m.g,
+			vm := gorgonia.NewTapeMachine(m.trainGraph,
 				gorgonia.BindDualValues(l...),
 				gorgonia.WithWatchlist(),
 				gorgonia.TraceExec(),

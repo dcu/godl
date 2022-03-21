@@ -72,7 +72,7 @@ func (t *Model) CreateWeightsNode(shape tensor.Shape, opts NewWeightsOpts) *gorg
 
 	if shape.Dims() == 2 {
 		w = gorgonia.NewMatrix(
-			t.g,
+			t.trainGraph,
 			tensor.Float32,
 			gorgonia.WithShape(shape...),
 			gorgonia.WithName(opts.UniqueName),
@@ -80,7 +80,7 @@ func (t *Model) CreateWeightsNode(shape tensor.Shape, opts NewWeightsOpts) *gorg
 		)
 	} else {
 		w = gorgonia.NewTensor(
-			t.g,
+			t.trainGraph,
 			tensor.Float32,
 			shape.Dims(),
 			gorgonia.WithShape(shape...),

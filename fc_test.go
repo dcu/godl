@@ -37,7 +37,7 @@ func TestFC(t *testing.T) {
 				WeightsInit:     gorgonia.RangedFromWithStep(-0.05, 0.03),
 			})
 
-			x := gorgonia.NewTensor(m.g, tensor.Float32, 2, gorgonia.WithShape(tC.input.Shape()...), gorgonia.WithValue(tC.input), gorgonia.WithName("x"))
+			x := gorgonia.NewTensor(m.trainGraph, tensor.Float32, 2, gorgonia.WithShape(tC.input.Shape()...), gorgonia.WithValue(tC.input), gorgonia.WithName("x"))
 
 			result, err := fc(x)
 			c.NoError(err)
@@ -51,7 +51,7 @@ func TestFC(t *testing.T) {
 
 			// _ = ioutil.WriteFile("fc.dot", []byte(m.g.ToDot()), 0644)
 
-			vm := gorgonia.NewTapeMachine(m.g,
+			vm := gorgonia.NewTapeMachine(m.trainGraph,
 				gorgonia.BindDualValues(l...),
 				gorgonia.WithWatchlist(),
 				gorgonia.TraceExec(),

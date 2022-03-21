@@ -74,8 +74,13 @@ Recall: %0.1f%%
 	return b.String()
 }
 
-func Validate(g *gorgonia.ExprGraph, m *Model, x, y *gorgonia.Node, costVal, predVal gorgonia.Value, validateX, validateY tensor.Tensor, opts TrainOpts) error {
+func Validate(m *Model, x, y *gorgonia.Node, costVal, predVal gorgonia.Value, validateX, validateY tensor.Tensor, opts TrainOpts) error {
 	opts.setDefaults()
+
+	g := m.evalGraph
+	if g == nil {
+		fatal("evaluation graph not set")
+	}
 
 	numExamples := validateX.Shape()[0]
 	batches := numExamples / opts.BatchSize

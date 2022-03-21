@@ -22,9 +22,9 @@ const (
 
 // Model implements the tab net model
 type Model struct {
-	g          *gorgonia.ExprGraph
-	learnables gorgonia.Nodes
-	watchables []watchable
+	trainGraph, evalGraph *gorgonia.ExprGraph
+	learnables            gorgonia.Nodes
+	watchables            []watchable
 
 	Logger  *log.Logger
 	Storage *storage.Storage
@@ -33,7 +33,7 @@ type Model struct {
 // NewModel creates a new model for the neural network
 func NewModel() *Model {
 	return &Model{
-		g:          gorgonia.NewGraph(),
+		trainGraph: gorgonia.NewGraph(),
 		learnables: make([]*gorgonia.Node, 0, bufferSizeModel),
 		watchables: make([]watchable, 0),
 		Storage:    storage.NewStorage(),
@@ -42,7 +42,7 @@ func NewModel() *Model {
 
 // WriteSVG creates a SVG representation of the node
 func (m *Model) WriteSVG(path string) error {
-	b := m.g.ToDot()
+	b := m.trainGraph.ToDot()
 
 	fileName := "graph.dot"
 
@@ -58,9 +58,9 @@ func (m *Model) WriteSVG(path string) error {
 	return cmd.Run()
 }
 
-// ExprGraph returns the graph for the model
-func (m *Model) ExprGraph() *gorgonia.ExprGraph {
-	return m.g
+// TrainGraph returns the graph for the model
+func (m *Model) TrainGraph() *gorgonia.ExprGraph {
+	return m.trainGraph
 }
 
 // Learnables returns all learnables in the model
@@ -70,7 +70,7 @@ func (m *Model) Learnables() gorgonia.Nodes {
 
 // Run runs the virtual machine in prediction mode
 func (m *Model) Run(vmOpts ...gorgonia.VMOpt) error {
-	vm := gorgonia.NewTapeMachine(m.g, vmOpts...)
+	vm := gorgonia.NewTapeMachine(m.trainGraph, vmOpts...)
 
 	err := vm.RunAll()
 	if err != nil {
@@ -97,7 +97,7 @@ func (m *Model) Predictor(layer Layer, opts PredictOpts) (Predictor, error) {
 	opts.setDefaults()
 
 	x := gorgonia.NewTensor(
-		m.g,
+		m.trainGraph,
 		tensor.Float32,
 		opts.InputShape.Dims(),
 		gorgonia.WithName("input"),

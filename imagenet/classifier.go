@@ -22,7 +22,7 @@ type Classifier struct {
 func NewClassifier(builder func(m *godl.Model) godl.Layer, width, height int) *Classifier {
 	m := godl.NewModel()
 	layer := builder(m)
-	x := gorgonia.NewTensor(m.ExprGraph(), tensor.Float32, 4, gorgonia.WithShape(1, 3, width, height), gorgonia.WithName("x"))
+	x := gorgonia.NewTensor(m.TrainGraph(), tensor.Float32, 4, gorgonia.WithShape(1, 3, width, height), gorgonia.WithName("x"))
 
 	result, err := layer(x)
 	if err != nil {
