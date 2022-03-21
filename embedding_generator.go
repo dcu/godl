@@ -49,7 +49,7 @@ func EmbeddingGenerator(m *Model, inputDims int, catDims []int, catIdxs []int, c
 			s := gorgonia.Must(gorgonia.Slice(x, nil, gorgonia.S(featInitIdx)))
 
 			if isCategorical {
-				s := gorgonia.Must(gorgonia.ConvType(s, tensor.Float64, tensor.Int))
+				s := gorgonia.Must(gorgonia.ConvType(s, tensor.Float32, tensor.Int))
 				result, err := embeddings[catFeatCounter](s)
 				if err != nil {
 					panic(err)

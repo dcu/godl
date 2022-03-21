@@ -28,6 +28,10 @@ func (m Model) PrintWatchables() {
 	for _, w := range m.watchables {
 		if w.node != nil {
 			fmt.Printf("[w] %s: %v\n%v\n\n", color.GreenString(w.name), (*w.node).Shape(), *w.node)
+
+			if m.Logger != nil {
+				m.Logger.Printf("%s-%v\n%#v", w.name, (*w.node).Shape(), (*w.node).Data())
+			}
 		}
 	}
 }

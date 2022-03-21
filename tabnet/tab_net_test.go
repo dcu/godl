@@ -2,6 +2,7 @@ package tabnet
 
 import (
 	"log"
+	"os"
 	"testing"
 
 	"github.com/dcu/godl"
@@ -24,30 +25,30 @@ func TestTabNetEmbeddings(t *testing.T) {
 		attentive         int
 		expectedShape     tensor.Shape
 		expectedErr       string
-		expectedOutput    []float64
-		expectedGrad      []float64
-		expectedCost      float64
-		expectedAcumLoss  float64
+		expectedOutput    []float32
+		expectedGrad      []float32
+		expectedCost      float32
+		expectedAcumLoss  float32
 	}{
 		{
 			desc: "Example 1",
 			input: tensor.New(
 				tensor.WithShape(4, 4),
-				tensor.WithBacking([]float64{0.4, 1.4, 2.4, 0, 4.4, 5.4, 6.4, 1, 8.4, 9.4, 10.4, 2, 12.4, 13.4, 14.4, 3}),
+				tensor.WithBacking([]float32{0.4, 1.4, 2.4, 0, 4.4, 5.4, 6.4, 1, 8.4, 9.4, 10.4, 2, 12.4, 13.4, 14.4, 3}),
 			),
-			vbs:               2,
+			vbs:               4,
 			output:            12,
 			independentBlocks: 2,
 			sharedBlocks:      2,
 			steps:             5,
 			gamma:             1.2,
-			prediction:        64,
-			attentive:         64,
+			prediction:        8,
+			attentive:         8,
 			expectedShape:     tensor.Shape{4, 12},
-			expectedOutput:    []float64{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 447.8014308162882, 447.8014308162882, 447.8014308162882, 447.8014308162882, 447.8014308162882, 447.8014308162882, 447.8014308162882, 447.8014308162882, 447.8014308162882, 447.8014308162882, 447.8014308162882, 447.8014308162882, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 447.8014308162882, 447.8014308162882, 447.8014308162882, 447.8014308162882, 447.8014308162882, 447.8014308162882, 447.8014308162882, 447.8014308162882, 447.8014308162882, 447.8014308162882, 447.8014308162882, 447.8014308162882},
-			expectedGrad:      []float64{0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332},
-			expectedCost:      223.90071540814404,
-			expectedAcumLoss:  -1.6094379119341007,
+			expectedOutput:    []float32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.81077474, 0.81077474, 0.81077474, 0.81077474, 0.81077474, 0.81077474, 0.81077474, 0.81077474, 0.81077474, 0.81077474, 0.81077474, 0.81077474, 102.183235, 102.183235, 102.183235, 102.183235, 102.183235, 102.183235, 102.183235, 102.183235, 102.183235, 102.183235, 102.183235, 102.183235},
+			expectedGrad:      []float32{0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332},
+			expectedCost:      25.748503,
+			expectedAcumLoss:  -1.609438,
 		},
 	}
 
@@ -56,13 +57,17 @@ func TestTabNetEmbeddings(t *testing.T) {
 			c := require.New(t)
 
 			tn := godl.NewModel()
+			logFile, _ := os.Create("tabnet.log")
+			defer func() { _ = logFile.Close() }()
+
+			tn.Logger = log.New(logFile, "", log.LstdFlags)
 
 			g := tn.ExprGraph()
 
-			x := gorgonia.NewTensor(g, tensor.Float64, 2, gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithName("Input"), gorgonia.WithValue(tcase.input))
+			x := gorgonia.NewTensor(g, tensor.Float32, 2, gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithName("Input"), gorgonia.WithValue(tcase.input))
 
-			a := gorgonia.NewTensor(g, tensor.Float64, tcase.input.Dims(), gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithInit(gorgonia.Ones()), gorgonia.WithName("AttentiveX"))
-			priors := gorgonia.NewTensor(g, tensor.Float64, tcase.input.Dims(), gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithInit(gorgonia.Ones()), gorgonia.WithName("Priors"))
+			a := gorgonia.NewTensor(g, tensor.Float32, tcase.input.Dims(), gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithInit(gorgonia.Ones()), gorgonia.WithName("AttentiveX"))
+			priors := gorgonia.NewTensor(g, tensor.Float32, tcase.input.Dims(), gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithInit(gorgonia.Ones()), gorgonia.WithName("Priors"))
 
 			result, err := TabNet(tn, TabNetOpts{
 				VirtualBatchSize:   tcase.vbs,
@@ -100,6 +105,8 @@ func TestTabNetEmbeddings(t *testing.T) {
 			_, err = gorgonia.Grad(cost, append([]*gorgonia.Node{x}, tn.Learnables()...)...)
 			c.NoError(err)
 
+			optimizer := gorgonia.NewAdamSolver(gorgonia.WithLearnRate(0.02))
+
 			vm := gorgonia.NewTapeMachine(g,
 				gorgonia.BindDualValues(tn.Learnables()...),
 				gorgonia.WithLogger(testLogger),
@@ -108,55 +115,46 @@ func TestTabNetEmbeddings(t *testing.T) {
 				gorgonia.WithNaNWatch(),
 				gorgonia.WithInfWatch(),
 			)
-			c.NoError(vm.RunAll())
 
+			err = vm.RunAll()
 			tn.PrintWatchables()
+			c.NoError(err)
+
+			err = optimizer.Step(gorgonia.NodesToValueGrads(tn.Learnables()))
+			c.NoError(err)
+
+			vm.Reset()
+
 			// fmt.Printf("%v\n", g.String())
 
 			log.Printf("input grad: %v", x.Deriv().Value())
 
 			c.Equal(tcase.expectedShape, y.Shape())
 
-			log.Printf("y: %#v", y.Value().Data())
-			c.InDeltaSlice(tcase.expectedOutput, y.Value().Data().([]float64), 1e-5)
+			log.Printf("[train] y: %#v", y.Value().Data())
+			log.Printf("[train] cost: %#v", cost.Value().Data())
+			log.Printf("[train] accum lost: %#v", result.Loss.Value().Data())
 
-			yGrad, err := y.Grad()
-			c.NoError(err)
+			c.InDeltaSlice(tcase.expectedOutput, y.Value().Data().([]float32), 1e-5)
 
-			c.Equal(tcase.expectedGrad, yGrad.Data())
 			c.InDelta(tcase.expectedCost, cost.Value().Data(), 1e-5)
 			c.Equal(tcase.expectedAcumLoss, result.Loss.Value().Data())
 
-			weightsByName := map[string]*gorgonia.Node{}
+			vmEval := gorgonia.NewTapeMachine(g,
+				gorgonia.EvalMode(),
+				gorgonia.WithLogger(testLogger),
+				gorgonia.WithValueFmt("%+v"),
+				gorgonia.WithWatchlist(),
+				gorgonia.WithNaNWatch(),
+				gorgonia.WithInfWatch(),
+			)
 
-			for _, n := range tn.Learnables() {
-				weightsByName[n.Name()] = n
-
-				wGrad, err := n.Grad()
-				c.NoError(err)
-				log.Printf("%s: %v", n.Name(), wGrad.Data().([]float64)[0:2])
-			}
-
-			// {
-			// 	w := weightsByName["BatchNorm1d_31.81.scale.1.5"]
-			// 	wGrad, err := w.Grad()
-			// 	c.NoError(err)
-			// 	c.Equal([]float64{0.0024, 0.0024, 0.0024, 0.0000, 0.0000}, wGrad.Data(), w.Name())
-			// }
-
-			optim := gorgonia.NewAdamSolver(gorgonia.WithLearnRate(0.02))
-			err = optim.Step(gorgonia.NodesToValueGrads(tn.Learnables()))
+			err = vmEval.RunAll()
+			tn.PrintWatchables()
 			c.NoError(err)
 
-			{
-				w := weightsByName["BatchNorm1d_1.1.scale.1.5"]
-				log.Printf("weight updated: %v\n\n\n", w.Value())
-				c.Equal([]float64{0.9800000823404622, 0.9800000823404622, 0.9800000823404622, 1, 1}, w.Value().Data(), w.Name())
-			}
-
-			for _, n := range tn.Learnables() {
-				log.Printf("%s: %v", n.Name(), n.Value().Data().([]float64)[0:2])
-			}
+			log.Printf("[eval] y: %#v", y.Value().Data())
+			log.Printf("[eval] accum lost: %#v", result.Loss.Value().Data())
 		})
 	}
 }

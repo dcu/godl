@@ -59,8 +59,8 @@ func Load(mode Mode, baseDir string) (inputs, targets tensor.Tensor, err error) 
 	return imageDataToTensor(imageData), labelDataToTensor(labelData), nil
 }
 
-func pixelWeight(px byte) float64 {
-	retVal := float64(px)/255*0.9 + 0.1
+func pixelWeight(px byte) float32 {
+	retVal := float32(px)/255*0.9 + 0.1
 	if retVal == 1.0 {
 		return 0.999
 	}
@@ -72,7 +72,7 @@ func imageDataToTensor(imageData [][]byte) tensor.Tensor {
 	rows := len(imageData)
 	cols := len(imageData[0])
 
-	backing := make([]float64, 0, rows*cols)
+	backing := make([]float32, 0, rows*cols)
 
 	for i := 0; i < rows; i++ {
 		for j := 0; j < len(imageData[i]); j++ {
@@ -87,7 +87,7 @@ func labelDataToTensor(labelData []uint8) tensor.Tensor {
 	rows := len(labelData)
 	cols := 10
 
-	backing := make([]float64, 0, rows*cols)
+	backing := make([]float32, 0, rows*cols)
 
 	for i := 0; i < rows; i++ {
 		for j := 0; j < cols; j++ {

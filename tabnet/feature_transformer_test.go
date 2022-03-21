@@ -13,32 +13,32 @@ func TestFeatureTransformer(t *testing.T) {
 	testCases := []struct {
 		desc              string
 		input             tensor.Tensor
-		weight            []float64
+		weight            []float32
 		vbs               int
 		independentBlocks int
 		sharedBlocks      int
 		output            int
 		expectedShape     tensor.Shape
 		expectedErr       string
-		expectedOutput    []float64
-		expectedGrad      []float64
-		expectedCost      float64
+		expectedOutput    []float32
+		expectedGrad      []float32
+		expectedCost      float32
 	}{
 		{
 			desc: "Example1",
 			input: tensor.New(
 				tensor.WithShape(6, 2),
-				tensor.WithBacking([]float64{0.4, 1.4, 2.4, 3.4, 4.4, 5.4, 6.4, 7.4, 8.4, 9.4, 10.4, 11.4}),
+				tensor.WithBacking([]float32{0.4, 1.4, 2.4, 3.4, 4.4, 5.4, 6.4, 7.4, 8.4, 9.4, 10.4, 11.4}),
 			),
-			weight:            []float64{-2.1376, -1.7072, 1.5896, 1.3657, 0.2603, -0.4051, -0.8271, 1.0830, 0.2617, -0.2792, -1.2426, 0.8678, 1.0771, -0.1787, -0.7482, 0.9506, -0.0861, -0.3015, -1.0695, -0.0246, -0.7007, 0.0354, -0.2400, -0.2516, -0.3165, 2.0425, 0.6425, 0.5848, -1.9183, 0.0099, -0.8387, -1.5346},
+			weight:            []float32{-2.1376, -1.7072, 1.5896, 1.3657, 0.2603, -0.4051, -0.8271, 1.0830, 0.2617, -0.2792, -1.2426, 0.8678, 1.0771, -0.1787, -0.7482, 0.9506, -0.0861, -0.3015, -1.0695, -0.0246, -0.7007, 0.0354, -0.2400, -0.2516, -0.3165, 2.0425, 0.6425, 0.5848, -1.9183, 0.0099, -0.8387, -1.5346},
 			vbs:               2,
 			output:            8 + 8,
 			independentBlocks: 5,
 			sharedBlocks:      5,
 			expectedShape:     tensor.Shape{6, 2},
-			expectedOutput:    []float64{-0.46379327241699114, -0.28701657712035417, 1.87719497530188, 2.053971670598517, 0.24331350876955665, 0.4200902040661938, 2.5843017564884274, 2.761078451785065, 0.9504202899561044, 1.1271969852527415, 3.291408537674976, 3.4681852329716127},
-			expectedGrad:      []float64{0.08333333333333333, 0.08333333333333333, 0.08333333333333333, 0.08333333333333333, 0.08333333333333333, 0.08333333333333333, 0.08333333333333333, 0.08333333333333333, 0.08333333333333333, 0.08333333333333333, 0.08333333333333333, 0.08333333333333333},
-			expectedCost:      1.502195980277311,
+			expectedOutput:    []float32{-0.24453057, 2.446192, 0.664702, -6.64944, -0.2445306, 2.446192, 0.66470236, -6.6494403, -0.2445307, 2.4461923, 0.6647016, -6.64944},
+			expectedGrad:      []float32{0.08333333333333333, 0.08333333333333333, 0.08333333333333333, 0.08333333333333333, 0.08333333333333333, 0.08333333333333333, 0.08333333333333333, 0.08333333333333333, 0.08333333333333333, 0.08333333333333333, 0.08333333333333333, 0.08333333333333333},
+			expectedCost:      -0.94576913,
 		},
 	}
 
@@ -48,9 +48,9 @@ func TestFeatureTransformer(t *testing.T) {
 			tn := godl.NewModel()
 			g := tn.ExprGraph()
 
-			input := gorgonia.NewTensor(g, tensor.Float64, tcase.input.Dims(), gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithName("x"), gorgonia.WithValue(tcase.input))
+			input := gorgonia.NewTensor(g, tensor.Float32, tcase.input.Dims(), gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithName("x"), gorgonia.WithValue(tcase.input))
 
-			fcWeight := gorgonia.NewTensor(g, tensor.Float64, 2, gorgonia.WithShape(input.Shape()[1], tcase.output), gorgonia.WithValue(
+			fcWeight := gorgonia.NewTensor(g, tensor.Float32, 2, gorgonia.WithShape(input.Shape()[1], tcase.output), gorgonia.WithValue(
 				tensor.New(
 					tensor.WithShape(input.Shape()[1], tcase.output),
 					tensor.WithBacking(tcase.weight),
@@ -109,7 +109,7 @@ func TestFeatureTransformer(t *testing.T) {
 			t.Logf("dx: %v", input.Deriv().Value())
 
 			c.Equal(tcase.expectedShape, y.Shape())
-			c.InDeltaSlice(tcase.expectedOutput, y.Value().Data().([]float64), 1e-5)
+			c.InDeltaSlice(tcase.expectedOutput, y.Value().Data().([]float32), 1e-5, "%#v expected. Got: %#v", tcase.expectedOutput, y.Value().Data())
 
 			yGrad, err := y.Grad()
 			c.NoError(err)

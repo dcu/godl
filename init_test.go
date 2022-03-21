@@ -21,7 +21,7 @@ func init() {
 }
 
 func initDummyWeights(dt tensor.Dtype, s ...int) interface{} {
-	v := make([]float64, tensor.Shape(s).TotalSize())
+	v := make([]float32, tensor.Shape(s).TotalSize())
 
 	for i := range v {
 		v[i] = 1.0

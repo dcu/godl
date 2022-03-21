@@ -20,13 +20,13 @@ func TestDataLoader(t *testing.T) {
 			x: tensor.New(
 				tensor.WithShape(6),
 				tensor.WithBacking(
-					tensor.Range(tensor.Float64, 0, 6),
+					tensor.Range(tensor.Float32, 0, 6),
 				),
 			),
 			y: tensor.New(
 				tensor.WithShape(6),
 				tensor.WithBacking(
-					tensor.Range(tensor.Float64, 0, 6),
+					tensor.Range(tensor.Float32, 0, 6),
 				),
 			),
 			opts: DataLoaderOpts{
@@ -41,13 +41,13 @@ func TestDataLoader(t *testing.T) {
 			x: tensor.New(
 				tensor.WithShape(6),
 				tensor.WithBacking(
-					tensor.Range(tensor.Float64, 0, 6),
+					tensor.Range(tensor.Float32, 0, 6),
 				),
 			),
 			y: tensor.New(
 				tensor.WithShape(6),
 				tensor.WithBacking(
-					tensor.Range(tensor.Float64, 0, 6),
+					tensor.Range(tensor.Float32, 0, 6),
 				),
 			),
 			opts: DataLoaderOpts{

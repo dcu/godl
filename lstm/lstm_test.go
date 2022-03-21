@@ -30,27 +30,27 @@ func TestLSTM(t *testing.T) {
 			HiddenSize: 3,
 			Input: tensor.New(
 				tensor.WithShape(1, 1, 2),
-				tensor.WithBacking([]float64{0.2653, 1.0994}),
+				tensor.WithBacking([]float32{0.2653, 1.0994}),
 			),
 			HiddenInput: tensor.New(
 				tensor.WithShape(1, 1, 3),
-				tensor.WithBacking([]float64{1.0118, -0.5075, 1.6139}),
+				tensor.WithBacking([]float32{1.0118, -0.5075, 1.6139}),
 			),
 			CellInput: tensor.New(
 				tensor.WithShape(1, 1, 3),
-				tensor.WithBacking([]float64{0.0478, 0.1320, 2.6778}),
+				tensor.WithBacking([]float32{0.0478, 0.1320, 2.6778}),
 			),
 			ExpectedOutput: tensor.New(
 				tensor.WithShape(1, 1, 3),
-				tensor.WithBacking([]float64{0.74483687, 0.77539575, 0.9686491}),
+				tensor.WithBacking([]float32{0.74483687, 0.77539575, 0.9686491}),
 			),
 			ExpectedHiddenOutput: tensor.New(
 				tensor.WithShape(1, 1, 3),
-				tensor.WithBacking([]float64{0.74483687, 0.77539575, 0.9686491}),
+				tensor.WithBacking([]float32{0.74483687, 0.77539575, 0.9686491}),
 			),
 			ExpectedCellOutput: tensor.New(
 				tensor.WithShape(1, 1, 3),
-				tensor.WithBacking([]float64{1.0147434717579717, 1.0964340832994137, 3.5663623358196377}),
+				tensor.WithBacking([]float32{1.0147434717579717, 1.0964340832994137, 3.5663623358196377}),
 			),
 		},
 		{
@@ -59,27 +59,27 @@ func TestLSTM(t *testing.T) {
 			WithBias:   true,
 			Input: tensor.New(
 				tensor.WithShape(2, 1, 2),
-				tensor.WithBacking([]float64{1.5333, -2.5040, -0.9077, -0.2410}),
+				tensor.WithBacking([]float32{1.5333, -2.5040, -0.9077, -0.2410}),
 			),
 			HiddenInput: tensor.New(
 				tensor.WithShape(1, 1, 3),
-				tensor.WithBacking([]float64{-1.4728, -0.1176, -0.6555}),
+				tensor.WithBacking([]float32{-1.4728, -0.1176, -0.6555}),
 			),
 			CellInput: tensor.New(
 				tensor.WithShape(1, 1, 3),
-				tensor.WithBacking([]float64{-0.1723, -0.7119, 0.9053}),
+				tensor.WithBacking([]float32{-0.1723, -0.7119, 0.9053}),
 			),
 			ExpectedOutput: tensor.New(
 				tensor.WithShape(2, 1, 3),
-				tensor.WithBacking([]float64{-0.0017358345, -0.0025350708, -0.00013593411, -0.049025163, -0.050171264, -0.046729423}),
+				tensor.WithBacking([]float32{-0.0017358345, -0.0025350708, -0.00013593411, -0.049025163, -0.050171264, -0.046729423}),
 			),
 			ExpectedHiddenOutput: tensor.New(
 				tensor.WithShape(1, 1, 3),
-				tensor.WithBacking([]float64{-0.049025163, -0.050171264, -0.046729423}),
+				tensor.WithBacking([]float32{-0.049025163, -0.050171264, -0.046729423}),
 			),
 			ExpectedCellOutput: tensor.New(
 				tensor.WithShape(1, 1, 3),
-				tensor.WithBacking([]float64{-0.20725529, -0.21224551, -0.19728966}),
+				tensor.WithBacking([]float32{-0.20725529, -0.21224551, -0.19728966}),
 			),
 		},
 		{
@@ -88,27 +88,27 @@ func TestLSTM(t *testing.T) {
 			WithBias:   true,
 			Input: tensor.New(
 				tensor.WithShape(2, 2, 2),
-				tensor.WithBacking([]float64{1.0138, -1.3644, 0.7197, 0.6099, 0.6193, 1.8894, -0.8197, 1.6288}),
+				tensor.WithBacking([]float32{1.0138, -1.3644, 0.7197, 0.6099, 0.6193, 1.8894, -0.8197, 1.6288}),
 			),
 			HiddenInput: tensor.New(
 				tensor.WithShape(1, 2, 3),
-				tensor.WithBacking([]float64{-0.9553, -2.0582, 1.7633, 0.8580, -1.6359, 0.4142}),
+				tensor.WithBacking([]float32{-0.9553, -2.0582, 1.7633, 0.8580, -1.6359, 0.4142}),
 			),
 			CellInput: tensor.New(
 				tensor.WithShape(1, 2, 3),
-				tensor.WithBacking([]float64{0.8895, -0.2665, -0.6879, 0.2842, 0.0325, -0.9686}),
+				tensor.WithBacking([]float32{0.8895, -0.2665, -0.6879, 0.2842, 0.0325, -0.9686}),
 			),
 			ExpectedOutput: tensor.New(
 				tensor.WithShape(2, 2, 3),
-				tensor.WithBacking([]float64{-0.0009099007, -0.03304913, -0.04428876, 0.45866472, 0.37035143, -0.1153187, 0.65836966, 0.5679527, 0.5295214, 0.7193798, 0.6868317, 0.44933355}),
+				tensor.WithBacking([]float32{-0.0009099007, -0.03304913, -0.04428876, 0.45866472, 0.37035143, -0.1153187, 0.65836966, 0.5679527, 0.5295214, 0.7193798, 0.6868317, 0.44933355}),
 			),
 			ExpectedHiddenOutput: tensor.New(
 				tensor.WithShape(1, 2, 3),
-				tensor.WithBacking([]float64{0.65836966, 0.5679527, 0.5295214, 0.7193798, 0.6868317, 0.44933355}),
+				tensor.WithBacking([]float32{0.65836966, 0.5679527, 0.5295214, 0.7193798, 0.6868317, 0.44933355}),
 			),
 			ExpectedCellOutput: tensor.New(
 				tensor.WithShape(1, 2, 3),
-				tensor.WithBacking([]float64{0.9000132286721142, 0.7216510432533824, 0.6566321635514328, 1.3595007652262496, 1.209836073857908, 0.6145666160555767}),
+				tensor.WithBacking([]float32{0.9000132286721142, 0.7216510432533824, 0.6566321635514328, 1.3595007652262496, 1.209836073857908, 0.6145666160555767}),
 			),
 		},
 		{
@@ -117,21 +117,21 @@ func TestLSTM(t *testing.T) {
 			WithBias:   false,
 			Input: tensor.New(
 				tensor.WithShape(2, 2, 2),
-				tensor.WithBacking([]float64{0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08}),
+				tensor.WithBacking([]float32{0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08}),
 			),
 			HiddenInput: nil,
 			CellInput:   nil,
 			ExpectedOutput: tensor.New(
 				tensor.WithShape(2, 2, 3),
-				tensor.WithBacking([]float64{0.007723757, 0.007723757, 0.007723757, 0.018707205, 0.018707205, 0.018707205, 0.041886266, 0.041886266, 0.041886266, 0.07235941, 0.07235941, 0.07235941}),
+				tensor.WithBacking([]float32{0.007723757, 0.007723757, 0.007723757, 0.018707205, 0.018707205, 0.018707205, 0.041886266, 0.041886266, 0.041886266, 0.07235941, 0.07235941, 0.07235941}),
 			),
 			ExpectedHiddenOutput: tensor.New(
 				tensor.WithShape(1, 2, 3),
-				tensor.WithBacking([]float64{0.041886266, 0.041886266, 0.041886266, 0.07235941, 0.07235941, 0.07235941}),
+				tensor.WithBacking([]float32{0.041886266, 0.041886266, 0.041886266, 0.07235941, 0.07235941, 0.07235941}),
 			),
 			ExpectedCellOutput: tensor.New(
 				tensor.WithShape(1, 2, 3),
-				tensor.WithBacking([]float64{0.078712106, 0.078712106, 0.078712106, 0.13200212, 0.13200212, 0.13200212}),
+				tensor.WithBacking([]float32{0.078712106, 0.078712106, 0.078712106, 0.13200212, 0.13200212, 0.13200212}),
 			),
 		},
 		{
@@ -141,21 +141,21 @@ func TestLSTM(t *testing.T) {
 			WithBias:      false,
 			Input: tensor.New(
 				tensor.WithShape(2, 2, 2),
-				tensor.WithBacking([]float64{0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08}),
+				tensor.WithBacking([]float32{0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08}),
 			),
 			HiddenInput: nil,
 			CellInput:   nil,
 			ExpectedOutput: tensor.New(
 				tensor.WithShape(2, 2, 6),
-				tensor.WithBacking([]float64{0.007723757, 0.007723757, 0.007723757, 0.05005947, 0.05005947, 0.05005947, 0.018707205, 0.018707205, 0.018707205, 0.082762234, 0.082762234, 0.082762234, 0.041886266, 0.041886266, 0.041886266, 0.030448243, 0.030448243, 0.030448243, 0.07235941, 0.07235941, 0.07235941, 0.042911056, 0.042911056, 0.042911056}),
+				tensor.WithBacking([]float32{0.007723757, 0.007723757, 0.007723757, 0.05005947, 0.05005947, 0.05005947, 0.018707205, 0.018707205, 0.018707205, 0.082762234, 0.082762234, 0.082762234, 0.041886266, 0.041886266, 0.041886266, 0.030448243, 0.030448243, 0.030448243, 0.07235941, 0.07235941, 0.07235941, 0.042911056, 0.042911056, 0.042911056}),
 			),
 			ExpectedHiddenOutput: tensor.New(
 				tensor.WithShape(2, 2, 3),
-				tensor.WithBacking([]float64{0.041886266, 0.041886266, 0.041886266, 0.07235941, 0.07235941, 0.07235941, 0.05005947, 0.05005947, 0.05005947, 0.082762234, 0.082762234, 0.082762234}),
+				tensor.WithBacking([]float32{0.041886266, 0.041886266, 0.041886266, 0.07235941, 0.07235941, 0.07235941, 0.05005947, 0.05005947, 0.05005947, 0.082762234, 0.082762234, 0.082762234}),
 			),
 			ExpectedCellOutput: tensor.New(
 				tensor.WithShape(2, 2, 3),
-				tensor.WithBacking([]float64{0.078712106, 0.078712106, 0.078712106, 0.13200212, 0.13200212, 0.13200212, 0.09468048, 0.09468048, 0.09468048, 0.1517626, 0.1517626, 0.1517626}),
+				tensor.WithBacking([]float32{0.078712106, 0.078712106, 0.078712106, 0.13200212, 0.13200212, 0.13200212, 0.09468048, 0.09468048, 0.09468048, 0.1517626, 0.1517626, 0.1517626}),
 			),
 		},
 	}

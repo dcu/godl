@@ -27,7 +27,7 @@ type UI struct {
 	epochsBar, batchesBar *gauge.Gauge
 	costLine              *linechart.LineChart
 	costText              *text.Text
-	costs                 []float64
+	costs                 []float32
 }
 
 func New() *UI {

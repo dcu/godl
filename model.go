@@ -3,6 +3,7 @@ package godl
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -25,6 +26,7 @@ type Model struct {
 	learnables gorgonia.Nodes
 	watchables []watchable
 
+	Logger  *log.Logger
 	Storage *storage.Storage
 }
 
@@ -96,7 +98,7 @@ func (m *Model) Predictor(layer Layer, opts PredictOpts) (Predictor, error) {
 
 	x := gorgonia.NewTensor(
 		m.g,
-		tensor.Float64,
+		tensor.Float32,
 		opts.InputShape.Dims(),
 		gorgonia.WithName("input"),
 		gorgonia.WithShape(opts.InputShape...),

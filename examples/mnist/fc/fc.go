@@ -37,35 +37,41 @@ func main() {
 		godl.FC(model, godl.FCOpts{
 			InputDimension:  784,
 			OutputDimension: 300,
-			WithBias:        false,
+			WithBias:        true,
 			Activation:      godl.Rectify,
+		}),
+		godl.BatchNorm1d(model, godl.BatchNormOpts{
+			InputSize: 300,
 		}),
 		godl.FC(model, godl.FCOpts{
 			InputDimension:  300,
 			OutputDimension: 100,
-			WithBias:        false,
+			WithBias:        true,
 			Activation:      godl.Rectify,
+		}),
+		godl.BatchNorm1d(model, godl.BatchNormOpts{
+			InputSize: 100,
 		}),
 		godl.FC(model, godl.FCOpts{
 			InputDimension:  100,
 			OutputDimension: 10,
-			WithBias:        false,
+			WithBias:        true,
 		}),
 	)
 
 	err = godl.Train(model, layer, trainX, trainY, validateX, validateY, godl.TrainOpts{
-		Epochs:        10,
+		Epochs:        3,
 		ValidateEvery: 0,
 		BatchSize:     64,
 		// WriteGraphFileTo: "graph.svg",
-		Solver: gorgonia.NewAdamSolver(gorgonia.WithLearnRate(0.0005)),
-		CostObserver: func(epoch, totalEpoch, batch, totalBatch int, cost float64) {
+		Solver: gorgonia.NewAdamSolver(gorgonia.WithLearnRate(0.001)),
+		CostObserver: func(epoch, totalEpoch, batch, totalBatch int, cost float32) {
 			// log.Printf("batch=%d/%d epoch=%d/%d cost=%0.3f", batch, totalBatch, epoch, totalEpoch, cost)
 		},
-		MatchTypeFor: func(predVal, targetVal []float64) godl.MatchType {
+		MatchTypeFor: func(predVal, targetVal []float32) godl.MatchType {
 			var (
 				rowLabel int
-				yRowHigh float64
+				yRowHigh float32
 			)
 
 			for k := 0; k < 10; k++ {
@@ -80,7 +86,7 @@ func main() {
 
 			var (
 				rowGuess    int
-				predRowHigh float64
+				predRowHigh float32
 			)
 
 			for k := 0; k < 10; k++ {
@@ -99,7 +105,7 @@ func main() {
 
 			return godl.MatchTypeFalseNegative
 		},
-		ValidationObserver: func(confMat godl.ConfusionMatrix, cost float64) {
+		ValidationObserver: func(confMat godl.ConfusionMatrix, cost float32) {
 			fmt.Printf("%v\nCost: %0.4f", confMat, cost)
 		},
 		CostFn: func(output, accumLoss, target *gorgonia.Node) *gorgonia.Node {

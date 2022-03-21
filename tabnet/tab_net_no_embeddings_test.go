@@ -26,15 +26,15 @@ func TestTabNetNoEmbeddings(t *testing.T) {
 		attentive         int
 		expectedShape     tensor.Shape
 		expectedErr       string
-		expectedOutput    []float64
-		expectedCost      float64
-		expectedAcumLoss  float64
+		expectedOutput    []float32
+		expectedCost      float32
+		expectedAcumLoss  float32
 	}{
 		// {
 		// 	desc: "Example 1",
 		// 	input: tensor.New(
 		// 		tensor.WithShape(4, 4),
-		// 		tensor.WithBacking([]float64{0.4, 1.4, 2.4, 3.4, 4.4, 5.4, 6.4, 7.4, 8.4, 9.4, 10.4, 11.4, 12.4, 13.4, 14.4, 15.4}),
+		// 		tensor.WithBacking([]float32{0.4, 1.4, 2.4, 3.4, 4.4, 5.4, 6.4, 7.4, 8.4, 9.4, 10.4, 11.4, 12.4, 13.4, 14.4, 15.4}),
 		// 	),
 		// 	vbs:               2,
 		// 	output:            12,
@@ -47,8 +47,8 @@ func TestTabNetNoEmbeddings(t *testing.T) {
 		// 	prediction:        64,
 		// 	attentive:         64,
 		// 	expectedShape:     tensor.Shape{4, 12},
-		// 	expectedOutput:    []float64{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638},
-		// 	expectedGrad:      []float64{0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332},
+		// 	expectedOutput:    []float32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638, 447.8060947055638},
+		// 	expectedGrad:      []float32{0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332, 0.020833333333333332},
 		// 	expectedCost:      223.9030473527819,
 		// 	expectedAcumLoss:  -1.3862943607198905,
 		// },
@@ -56,7 +56,7 @@ func TestTabNetNoEmbeddings(t *testing.T) {
 			desc: "Example 2",
 			input: tensor.New(
 				tensor.WithShape(4, 5),
-				tensor.WithBacking([]float64{0.4, 1.4, 2.4, 1, 1, 4.4, 5.4, 6.4, 1, 1, 8.4, 9.4, 10.4, 1, 1, 12.4, 13.4, 14.4, 1, 1}),
+				tensor.WithBacking([]float32{0.4, 1.4, 2.4, 1, 1, 4.4, 5.4, 6.4, 1, 1, 8.4, 9.4, 10.4, 1, 1, 12.4, 13.4, 14.4, 1, 1}),
 			),
 			vbs:               128,
 			output:            1,
@@ -69,8 +69,8 @@ func TestTabNetNoEmbeddings(t *testing.T) {
 			prediction:        8,
 			attentive:         8,
 			expectedShape:     tensor.Shape{4, 1},
-			expectedOutput:    []float64{0, 0, 0.48646697946517703, 61.30994653919584},
-			expectedCost:      15.449103379665255,
+			expectedOutput:    []float32{0, 0, 0.4864648, 61.30994},
+			expectedCost:      15.449101,
 			expectedAcumLoss:  -1.6094379124340954,
 		},
 	}
@@ -83,10 +83,10 @@ func TestTabNetNoEmbeddings(t *testing.T) {
 
 			g := tn.ExprGraph()
 
-			x := gorgonia.NewTensor(g, tensor.Float64, 2, gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithName("Input"), gorgonia.WithValue(tcase.input))
+			x := gorgonia.NewTensor(g, tensor.Float32, 2, gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithName("Input"), gorgonia.WithValue(tcase.input))
 
-			a := gorgonia.NewTensor(g, tensor.Float64, tcase.input.Dims(), gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithInit(gorgonia.Ones()), gorgonia.WithName("AttentiveX"))
-			priors := gorgonia.NewTensor(g, tensor.Float64, tcase.input.Dims(), gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithInit(gorgonia.Ones()), gorgonia.WithName("Priors"))
+			a := gorgonia.NewTensor(g, tensor.Float32, tcase.input.Dims(), gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithInit(gorgonia.Ones()), gorgonia.WithName("AttentiveX"))
+			priors := gorgonia.NewTensor(g, tensor.Float32, tcase.input.Dims(), gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithInit(gorgonia.Ones()), gorgonia.WithName("Priors"))
 
 			result, err := TabNetNoEmbeddings(tn, TabNetNoEmbeddingsOpts{
 				VirtualBatchSize:   tcase.vbs,
@@ -136,7 +136,7 @@ func TestTabNetNoEmbeddings(t *testing.T) {
 			log.Printf("input grad: %v", x.Deriv().Value())
 
 			c.Equal(tcase.expectedShape, y.Shape())
-			c.Equal(tcase.expectedOutput, y.Value().Data().([]float64))
+			c.Equal(tcase.expectedOutput, y.Value().Data().([]float32))
 
 			c.Equal(tcase.expectedCost, cost.Value().Data())
 			c.Equal(tcase.expectedAcumLoss, result.Loss.Value().Data())

@@ -37,11 +37,13 @@ func main() {
 
 	p.AddTag(table.RandValueIn(map[string]float64{
 		"train":    0.8,
-		"validate": 0.2,
+		"validate": 0.1,
+		"test":     0.1,
 	}))
 
 	trainX, trainY := p.ToTensors(table.ToTensorOpts{TargetColumns: []int{14}, SelectTags: []string{"train"}})
 	validateX, validateY := p.ToTensors(table.ToTensorOpts{TargetColumns: []int{14}, SelectTags: []string{"validate"}})
+	testX, testY := p.ToTensors(table.ToTensorOpts{TargetColumns: []int{14}, SelectTags: []string{"test"}})
 
 	log.Printf("train x: %v train y: %v", trainX.Shape(), trainY.Shape())
 	log.Printf("validateX: %v validateY: %v", validateX.Shape(), validateY.Shape())
@@ -55,11 +57,6 @@ func main() {
 	log.Printf("cat dims: %v", catDims)
 	log.Printf("cat emb dims: %v", catEmbDim)
 	log.Printf("cat idxs: %v", catIdxs)
-
-	// s, _ := trainX.Slice(tensor.S(0))
-	// log.Printf("%v", s.Data())
-
-	// os.Exit(1)
 
 	regressor := tabnet.NewRegressor(
 		trainX.Shape()[1], catDims, catIdxs, catEmbDim, tabnet.RegressorOpts{
@@ -80,10 +77,10 @@ func main() {
 
 	err = regressor.Train(trainX, trainY, validateX, validateY, godl.TrainOpts{
 		BatchSize: batchSize,
-		Epochs:    15,
+		Epochs:    1,
 		DevMode:   true,
-		Solver:    gorgonia.NewAdamSolver(gorgonia.WithLearnRate(0.02), gorgonia.WithClip(1.0)),
-		MatchTypeFor: func(predVal, targetVal []float64) godl.MatchType {
+		Solver:    gorgonia.NewAdamSolver(gorgonia.WithLearnRate(2e-2)),
+		MatchTypeFor: func(predVal, targetVal []float32) godl.MatchType {
 			log.Printf("%v vs %v", predVal, targetVal)
 
 			if targetVal[0] == 1 {
@@ -100,13 +97,15 @@ func main() {
 				}
 			}
 		},
-		ValidationObserver: func(confMat godl.ConfusionMatrix, cost float64) {
+		ValidationObserver: func(confMat godl.ConfusionMatrix, cost float32) {
 			fmt.Printf("%v\nCost: %0.4f", confMat, cost)
 		},
 		// WithLearnablesHeatmap: true,
 	})
 	handleErr(err)
 
-	_, err = regressor.Solve(validateX, validateY)
+	out, err := regressor.Solve(testX, testY)
 	handleErr(err)
+
+	log.Printf("out: %v", out)
 }

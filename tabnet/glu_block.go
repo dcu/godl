@@ -3,6 +3,7 @@ package tabnet
 import (
 	"math"
 
+	"github.com/chewxy/math32"
 	"github.com/dcu/godl"
 	"gorgonia.org/gorgonia"
 )
@@ -56,7 +57,7 @@ func GLUBlock(nn *godl.Model, opts GLUBlockOpts) godl.Layer {
 		gluInput = gluOutput
 	}
 
-	scale := gorgonia.NewConstant(float64(math.Sqrt(0.5)), gorgonia.WithName("ft.scale"))
+	scale := gorgonia.NewConstant(math32.Sqrt(0.5), gorgonia.WithName("ft.scale"))
 
 	return func(nodes ...*gorgonia.Node) (godl.Result, error) {
 		if err := nn.CheckArity(lt, nodes, 1); err != nil {

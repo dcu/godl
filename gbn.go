@@ -95,6 +95,9 @@ func GBN(nn *Model, opts GBNOpts) Layer {
 			return Result{}, ErrorF(lt, "error concatenating %d nodes: %w", len(nodes), err)
 		}
 
+		// nn.Watch("gbnIn", inputs[0])
+		// nn.Watch("gbnOut", ret)
+
 		return Result{Output: ret}, nil
 	}
 }

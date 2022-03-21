@@ -19,11 +19,11 @@ func TestFC(t *testing.T) {
 	}{
 		{
 			desc:               "Example 1",
-			input:              tensor.New(tensor.WithShape(2, 2), tensor.WithBacking([]float64{0.1, 0.01, 0.01, 0.1})),
-			expectedOutput:     tensor.New(tensor.WithShape(2, 4), tensor.WithBacking([]float64{-0.005200000000000001, 0.0013999999999999996, 0.007999999999999998, 0.014600000000000002, -0.0025000000000000005, 0.0040999999999999995, 0.0107, 0.017300000000000003})),
-			expectedOutputGrad: tensor.New(tensor.WithShape(2, 4), tensor.WithBacking([]float64{0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125})),
-			expectedInputGrad:  tensor.New(tensor.WithShape(2, 2), tensor.WithBacking([]float64{0.019999999999999997, 0.034999999999999996, 0.019999999999999997, 0.034999999999999996})),
-			expectedWeightGrad: tensor.New(tensor.WithShape(2, 4), tensor.WithBacking([]float64{0.01375, 0.01375, 0.01375, 0.01375, 0.01375, 0.01375, 0.01375, 0.01375})),
+			input:              tensor.New(tensor.WithShape(2, 2), tensor.WithBacking([]float32{0.1, 0.01, 0.01, 0.1})),
+			expectedOutput:     tensor.New(tensor.WithShape(2, 4), tensor.WithBacking([]float32{-0.0052000005, 0.0013999998, 0.008, 0.014599999, -0.0025000002, 0.0041, 0.0107, 0.0173})),
+			expectedOutputGrad: tensor.New(tensor.WithShape(2, 4), tensor.WithBacking([]float32{0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125})),
+			expectedInputGrad:  tensor.New(tensor.WithShape(2, 2), tensor.WithBacking([]float32{0.019999999999999997, 0.034999999999999996, 0.019999999999999997, 0.034999999999999996})),
+			expectedWeightGrad: tensor.New(tensor.WithShape(2, 4), tensor.WithBacking([]float32{0.01375, 0.01375, 0.01375, 0.01375, 0.01375, 0.01375, 0.01375, 0.01375})),
 		},
 	}
 	for _, tC := range testCases {
@@ -37,7 +37,7 @@ func TestFC(t *testing.T) {
 				WeightsInit:     gorgonia.RangedFromWithStep(-0.05, 0.03),
 			})
 
-			x := gorgonia.NewTensor(m.g, tensor.Float64, 2, gorgonia.WithShape(tC.input.Shape()...), gorgonia.WithValue(tC.input), gorgonia.WithName("x"))
+			x := gorgonia.NewTensor(m.g, tensor.Float32, 2, gorgonia.WithShape(tC.input.Shape()...), gorgonia.WithValue(tC.input), gorgonia.WithName("x"))
 
 			result, err := fc(x)
 			c.NoError(err)

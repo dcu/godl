@@ -31,9 +31,9 @@ type TrainOpts struct {
 	// ValidateEvery indicates the number of epochs to run before running a validation. Defaults 1 (every epoch)
 	ValidateEvery int
 
-	CostObserver       func(epoch int, totalEpoch, batch int, totalBatch int, cost float64)
-	ValidationObserver func(confMat ConfusionMatrix, cost float64)
-	MatchTypeFor       func(predVal, targetVal []float64) MatchType
+	CostObserver       func(epoch int, totalEpoch, batch int, totalBatch int, cost float32)
+	ValidationObserver func(confMat ConfusionMatrix, cost float32)
+	MatchTypeFor       func(predVal, targetVal []float32) MatchType
 	CostFn             func(output *gorgonia.Node, accumLoss *gorgonia.Node, target *gorgonia.Node) *gorgonia.Node
 }
 
@@ -85,8 +85,8 @@ func Train(m *Model, layer Layer, trainX, trainY, validateX, validateY tensor.Te
 
 	xShape := append(tensor.Shape{opts.BatchSize}, trainX.Shape()[1:]...)
 
-	x := gorgonia.NewTensor(m.g, tensor.Float64, trainX.Shape().Dims(), gorgonia.WithShape(xShape...), gorgonia.WithName("x"))
-	y := gorgonia.NewMatrix(m.g, tensor.Float64, gorgonia.WithShape(opts.BatchSize, trainY.Shape()[1]), gorgonia.WithName("y"))
+	x := gorgonia.NewTensor(m.g, tensor.Float32, trainX.Shape().Dims(), gorgonia.WithShape(xShape...), gorgonia.WithName("x"))
+	y := gorgonia.NewMatrix(m.g, tensor.Float32, gorgonia.WithShape(opts.BatchSize, trainY.Shape()[1]), gorgonia.WithName("y"))
 
 	result, err := layer(x)
 	if err != nil {
@@ -108,10 +108,13 @@ func Train(m *Model, layer Layer, trainX, trainY, validateX, validateY tensor.Te
 		gorgonia.Read(cost, &costVal)
 		gorgonia.Read(result.Output, &predVal)
 
-		if _, err := gorgonia.Grad(cost, m.learnables...); err != nil {
+		if _, err := gorgonia.Grad(cost, m.Learnables()...); err != nil {
 			return fmt.Errorf("error calculating gradient: %w", err)
 		}
 	}
+
+	validationGraph := m.g.SubgraphRoots(result.Output)
+	validationGraph.RemoveNode(y)
 
 	vmOpts := []gorgonia.VMOpt{
 		gorgonia.BindDualValues(m.learnables...),
@@ -165,7 +168,7 @@ func Train(m *Model, layer Layer, trainX, trainY, validateX, validateY tensor.Te
 			}
 
 			if opts.CostObserver != nil {
-				opts.CostObserver(i, opts.Epochs, dl.CurrentBatch, dl.Batches, costVal.Data().(float64))
+				opts.CostObserver(i, opts.Epochs, dl.CurrentBatch, dl.Batches, costVal.Data().(float32))
 			} else {
 				// color.Yellow(" Epoch %d %d | cost %v (%v)\n", i, dl.CurrentBatch, costVal, time.Since(startTime))
 			}
@@ -178,7 +181,8 @@ func Train(m *Model, layer Layer, trainX, trainY, validateX, validateY tensor.Te
 		dl.Reset()
 
 		if i%opts.ValidateEvery == 0 {
-			err := Validate(m, x, y, costVal, predVal, validateX, validateY, opts)
+
+			err := Validate(validationGraph, m, x, y, costVal, predVal, validateX, validateY, opts)
 			if err != nil {
 				color.Red("Failed to run validation on epoch %v: %v", i, err)
 			}

@@ -1,0 +1,9 @@
+*.gz
+go.work
+go.work.sum
+*.py
+*~
+.vscode
+.DS_Store
+*.svg
+*.log

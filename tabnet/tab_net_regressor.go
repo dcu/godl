@@ -76,7 +76,7 @@ func (r *Regressor) Train(trainX, trainY, validateX, validateY tensor.Tensor, op
 	log.Printf("input: %v", trainX)
 
 	if opts.CostFn == nil {
-		lambdaSparse := gorgonia.NewConstant(float64(1e-3), gorgonia.WithName("LambdaSparse"))
+		lambdaSparse := gorgonia.NewConstant(float32(1e-3), gorgonia.WithName("LambdaSparse"))
 		opts.CostFn = func(output *gorgonia.Node, innerLoss *gorgonia.Node, y *gorgonia.Node) *gorgonia.Node {
 			cost := godl.MSELoss(output, y, godl.MSELossOpts{})
 
@@ -120,14 +120,14 @@ func (r *Regressor) Solve(x tensor.Tensor, y tensor.Tensor) (tensor.Tensor, erro
 
 		log.Printf("output: %v", t.Shape())
 
-		for _, o := range t.Data().([]float64) {
+		for _, o := range t.Data().([]float32) {
 			yVal, err := y.At(yPos, 0)
 			if err != nil {
 				panic(err)
 			}
 
 			// log.Printf("%v == %v", yVal, o)
-			if yVal.(float64) == 1 {
+			if yVal.(float32) == 1 {
 				if o > 0.5 {
 					correct++
 				}
