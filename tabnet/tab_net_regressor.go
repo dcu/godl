@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/dcu/godl"
+	"github.com/dcu/godl/activation"
 	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
 )
@@ -17,7 +18,7 @@ type Regressor struct {
 type RegressorOpts struct {
 	BatchSize        int
 	VirtualBatchSize int
-	MaskFunction     godl.ActivationFn
+	MaskFunction     activation.Function
 	WithBias         bool
 
 	SharedBlocks       int

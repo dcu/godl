@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/dcu/godl"
+	"github.com/dcu/godl/activation"
 	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
 )
@@ -27,17 +28,17 @@ type LSTMOpts struct {
 	WithBias              bool
 	WeightsInit, BiasInit gorgonia.InitWFn
 
-	RecurrentActivation godl.ActivationFn
-	Activation          godl.ActivationFn
+	RecurrentActivation activation.Function
+	Activation          activation.Function
 }
 
 func (o *LSTMOpts) setDefaults() {
 	if o.RecurrentActivation == nil {
-		o.RecurrentActivation = godl.Sigmoid
+		o.RecurrentActivation = activation.Sigmoid
 	}
 
 	if o.Activation == nil {
-		o.Activation = godl.Tanh
+		o.Activation = activation.Tanh
 	}
 
 	if o.MergeMode == "" {
@@ -231,7 +232,7 @@ func lstmGate(m *godl.Model, seqX, inputWeights, prevHidden, hiddenWeights, prev
 		return nil, nil, err
 	}
 
-	cellTan := gorgonia.Must(godl.Tanh(prevCell))
+	cellTan := gorgonia.Must(activation.Tanh(prevCell))
 
 	prevHidden, err = gorgonia.BroadcastHadamardProd(outputGate, cellTan, nil, []byte{0})
 	if err != nil {

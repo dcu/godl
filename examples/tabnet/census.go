@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/dcu/godl"
+	"github.com/dcu/godl/activation"
 	"github.com/dcu/godl/table"
 	"github.com/dcu/godl/tabnet"
 	"gorgonia.org/gorgonia"
@@ -62,7 +63,7 @@ func main() {
 		trainX.Shape()[1], catDims, catIdxs, catEmbDim, tabnet.RegressorOpts{
 			BatchSize:          batchSize,
 			VirtualBatchSize:   virtualBatchSize,
-			MaskFunction:       godl.Sparsemax,
+			MaskFunction:       activation.SparseMax,
 			PredictionLayerDim: 8,
 			AttentionLayerDim:  8,
 			Gamma:              1.3,

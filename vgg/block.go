@@ -4,6 +4,7 @@ import (
 	"math"
 
 	"github.com/dcu/godl"
+	"github.com/dcu/godl/activation"
 	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
 )
@@ -13,14 +14,14 @@ type BlockOpts struct {
 	InputDimension  int
 	OutputDimension int
 
-	ActivationFn godl.ActivationFn
-	Dropout      float64
-	KernelSize   tensor.Shape
-	Pad          []int
-	Stride       []int
-	Dilation     []int
-	WithBias     bool
-	WithPooling  bool
+	Activation  activation.Function
+	Dropout     float64
+	KernelSize  tensor.Shape
+	Pad         []int
+	Stride      []int
+	Dilation    []int
+	WithBias    bool
+	WithPooling bool
 
 	WeightsInit, BiasInit gorgonia.InitWFn
 	WeightsName, BiasName string
@@ -28,8 +29,8 @@ type BlockOpts struct {
 }
 
 func (o *BlockOpts) setDefaults() {
-	if o.ActivationFn == nil {
-		o.ActivationFn = gorgonia.Rectify
+	if o.Activation == nil {
+		o.Activation = activation.Rectify
 	}
 
 	if o.KernelSize == nil {
@@ -92,8 +93,8 @@ func Block(m *godl.Model, opts BlockOpts) godl.Layer {
 			x = gorgonia.Must(gorgonia.BroadcastAdd(x, bias, nil, []byte{0, 2, 3}))
 		}
 
-		if opts.ActivationFn != nil {
-			x = gorgonia.Must(opts.ActivationFn(x))
+		if opts.Activation != nil {
+			x = gorgonia.Must(opts.Activation(x))
 		}
 
 		if opts.WithPooling {

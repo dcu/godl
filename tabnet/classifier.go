@@ -2,6 +2,7 @@ package tabnet
 
 import (
 	"github.com/dcu/godl"
+	"github.com/dcu/godl/activation"
 	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
 )
@@ -14,7 +15,7 @@ type Classifier struct {
 type ClassifierOpts struct {
 	BatchSize        int
 	VirtualBatchSize int
-	MaskFunction     godl.ActivationFn
+	MaskFunction     activation.Function
 	WithBias         bool
 
 	SharedBlocks       int

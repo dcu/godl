@@ -4,6 +4,7 @@ import (
 	"math"
 
 	"github.com/dcu/godl"
+	"github.com/dcu/godl/activation"
 	"gorgonia.org/gorgonia"
 )
 
@@ -13,14 +14,14 @@ type AttentiveTransformerOpts struct {
 	Momentum                         float64
 	Epsilon                          float64
 	VirtualBatchSize                 int
-	Activation                       godl.ActivationFn
+	Activation                       activation.Function
 	WithBias                         bool
 	WeightsInit, ScaleInit, BiasInit gorgonia.InitWFn
 }
 
 func (o *AttentiveTransformerOpts) setDefaults() {
 	if o.Activation == nil {
-		o.Activation = godl.Sparsemax
+		o.Activation = activation.SparseMax
 	}
 
 	if o.WeightsInit == nil {

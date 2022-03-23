@@ -2,6 +2,7 @@ package tabnet
 
 import (
 	"github.com/dcu/godl"
+	"github.com/dcu/godl/activation"
 	"gorgonia.org/gorgonia"
 )
 
@@ -16,7 +17,7 @@ type TabNetOpts struct {
 	PredictionLayerDim int
 	AttentionLayerDim  int
 
-	MaskFunction godl.ActivationFn
+	MaskFunction activation.Function
 
 	WithBias bool
 

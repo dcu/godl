@@ -50,7 +50,7 @@ func TestLSTM(t *testing.T) {
 			),
 			ExpectedCellOutput: tensor.New(
 				tensor.WithShape(1, 1, 3),
-				tensor.WithBacking([]float32{1.0147434717579717, 1.0964340832994137, 3.5663623358196377}),
+				tensor.WithBacking([]float32{1.0147436, 1.0964341, 3.5663624}),
 			),
 		},
 		{
@@ -108,7 +108,7 @@ func TestLSTM(t *testing.T) {
 			),
 			ExpectedCellOutput: tensor.New(
 				tensor.WithShape(1, 2, 3),
-				tensor.WithBacking([]float32{0.9000132286721142, 0.7216510432533824, 0.6566321635514328, 1.3595007652262496, 1.209836073857908, 0.6145666160555767}),
+				tensor.WithBacking([]float32{0.90001315, 0.72165096, 0.65663207, 1.3595006, 1.209836, 0.61456656}),
 			),
 		},
 		{

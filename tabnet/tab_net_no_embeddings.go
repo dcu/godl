@@ -5,6 +5,7 @@ import (
 	"math"
 
 	"github.com/dcu/godl"
+	"github.com/dcu/godl/activation"
 	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
 )
@@ -21,7 +22,7 @@ type TabNetNoEmbeddingsOpts struct {
 	PredictionLayerDim int
 	AttentionLayerDim  int
 
-	MaskFunction godl.ActivationFn
+	MaskFunction activation.Function
 
 	WithBias bool
 

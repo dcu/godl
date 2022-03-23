@@ -2,6 +2,7 @@ package vgg
 
 import (
 	"github.com/dcu/godl"
+	"github.com/dcu/godl/activation"
 	"gorgonia.org/gorgonia"
 )
 
@@ -47,7 +48,7 @@ func VGG16Layer(m *godl.Model, opts Opts) godl.Layer {
 		Block(m, BlockOpts{
 			InputDimension:  3,
 			OutputDimension: 64,
-			ActivationFn:    gorgonia.Rectify,
+			Activation:      gorgonia.Rectify,
 			Dropout:         0.0,
 			WithBias:        opts.WithBias,
 			BiasInit:        opts.BiasInit,
@@ -59,7 +60,7 @@ func VGG16Layer(m *godl.Model, opts Opts) godl.Layer {
 		Block(m, BlockOpts{
 			InputDimension:  64,
 			OutputDimension: 64,
-			ActivationFn:    gorgonia.Rectify,
+			Activation:      gorgonia.Rectify,
 			Dropout:         0.0,
 			WithBias:        opts.WithBias,
 			BiasInit:        opts.BiasInit,
@@ -72,7 +73,7 @@ func VGG16Layer(m *godl.Model, opts Opts) godl.Layer {
 		Block(m, BlockOpts{
 			InputDimension:  64,
 			OutputDimension: 128,
-			ActivationFn:    gorgonia.Rectify,
+			Activation:      gorgonia.Rectify,
 			Dropout:         0.0,
 			WithBias:        opts.WithBias,
 			BiasInit:        opts.BiasInit,
@@ -84,7 +85,7 @@ func VGG16Layer(m *godl.Model, opts Opts) godl.Layer {
 		Block(m, BlockOpts{
 			InputDimension:  128,
 			OutputDimension: 128,
-			ActivationFn:    gorgonia.Rectify,
+			Activation:      gorgonia.Rectify,
 			Dropout:         0.0,
 			WithBias:        opts.WithBias,
 			BiasInit:        opts.BiasInit,
@@ -97,7 +98,7 @@ func VGG16Layer(m *godl.Model, opts Opts) godl.Layer {
 		Block(m, BlockOpts{
 			InputDimension:  128,
 			OutputDimension: 256,
-			ActivationFn:    gorgonia.Rectify,
+			Activation:      gorgonia.Rectify,
 			Dropout:         0.0,
 			WithBias:        opts.WithBias,
 			BiasInit:        opts.BiasInit,
@@ -109,7 +110,7 @@ func VGG16Layer(m *godl.Model, opts Opts) godl.Layer {
 		Block(m, BlockOpts{
 			InputDimension:  256,
 			OutputDimension: 256,
-			ActivationFn:    gorgonia.Rectify,
+			Activation:      gorgonia.Rectify,
 			Dropout:         0.0,
 			WithBias:        opts.WithBias,
 			BiasInit:        opts.BiasInit,
@@ -121,7 +122,7 @@ func VGG16Layer(m *godl.Model, opts Opts) godl.Layer {
 		Block(m, BlockOpts{
 			InputDimension:  256,
 			OutputDimension: 256,
-			ActivationFn:    gorgonia.Rectify,
+			Activation:      gorgonia.Rectify,
 			Dropout:         0.0,
 			WithBias:        opts.WithBias,
 			BiasInit:        opts.BiasInit,
@@ -134,7 +135,7 @@ func VGG16Layer(m *godl.Model, opts Opts) godl.Layer {
 		Block(m, BlockOpts{
 			InputDimension:  256,
 			OutputDimension: 512,
-			ActivationFn:    gorgonia.Rectify,
+			Activation:      gorgonia.Rectify,
 			Dropout:         0.0,
 			WithBias:        opts.WithBias,
 			BiasInit:        opts.BiasInit,
@@ -146,7 +147,7 @@ func VGG16Layer(m *godl.Model, opts Opts) godl.Layer {
 		Block(m, BlockOpts{
 			InputDimension:  512,
 			OutputDimension: 512,
-			ActivationFn:    gorgonia.Rectify,
+			Activation:      gorgonia.Rectify,
 			Dropout:         0.0,
 			WithBias:        opts.WithBias,
 			BiasInit:        opts.BiasInit,
@@ -158,7 +159,7 @@ func VGG16Layer(m *godl.Model, opts Opts) godl.Layer {
 		Block(m, BlockOpts{
 			InputDimension:  512,
 			OutputDimension: 512,
-			ActivationFn:    gorgonia.Rectify,
+			Activation:      gorgonia.Rectify,
 			Dropout:         0.0,
 			WithBias:        opts.WithBias,
 			BiasInit:        opts.BiasInit,
@@ -171,7 +172,7 @@ func VGG16Layer(m *godl.Model, opts Opts) godl.Layer {
 		Block(m, BlockOpts{
 			InputDimension:  512,
 			OutputDimension: 512,
-			ActivationFn:    gorgonia.Rectify,
+			Activation:      gorgonia.Rectify,
 			Dropout:         0.0,
 			WithBias:        opts.WithBias,
 			BiasInit:        opts.BiasInit,
@@ -183,7 +184,7 @@ func VGG16Layer(m *godl.Model, opts Opts) godl.Layer {
 		Block(m, BlockOpts{
 			InputDimension:  512,
 			OutputDimension: 512,
-			ActivationFn:    gorgonia.Rectify,
+			Activation:      gorgonia.Rectify,
 			Dropout:         0.0,
 			WithBias:        opts.WithBias,
 			BiasInit:        opts.BiasInit,
@@ -195,7 +196,7 @@ func VGG16Layer(m *godl.Model, opts Opts) godl.Layer {
 		Block(m, BlockOpts{
 			InputDimension:  512,
 			OutputDimension: 512,
-			ActivationFn:    gorgonia.Rectify,
+			Activation:      gorgonia.Rectify,
 			Dropout:         0.0,
 			WithBias:        opts.WithBias,
 			BiasInit:        opts.BiasInit,
@@ -237,7 +238,7 @@ func VGG16Layer(m *godl.Model, opts Opts) godl.Layer {
 				InputDimension:  4096,
 				OutputDimension: 1000,
 				WithBias:        opts.WithBias,
-				Activation:      godl.Softmax,
+				Activation:      activation.SoftMax,
 				Dropout:         0.0,
 				WeightsInit:     opts.WeightsInit,
 				BiasInit:        opts.BiasInit,

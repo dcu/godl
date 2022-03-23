@@ -38,20 +38,20 @@ func main() {
 			InputDimension:  784,
 			OutputDimension: 300,
 			WithBias:        true,
-			Activation:      godl.Rectify,
 		}),
 		godl.BatchNorm1d(model, godl.BatchNormOpts{
 			InputSize: 300,
 		}),
+		godl.Rectify(),
 		godl.FC(model, godl.FCOpts{
 			InputDimension:  300,
 			OutputDimension: 100,
 			WithBias:        true,
-			Activation:      godl.Rectify,
 		}),
 		godl.BatchNorm1d(model, godl.BatchNormOpts{
 			InputSize: 100,
 		}),
+		godl.Rectify(),
 		godl.FC(model, godl.FCOpts{
 			InputDimension:  100,
 			OutputDimension: 10,
@@ -64,7 +64,7 @@ func main() {
 		ValidateEvery: 0,
 		BatchSize:     64,
 		// WriteGraphFileTo: "graph.svg",
-		Solver: gorgonia.NewAdamSolver(gorgonia.WithLearnRate(0.001)),
+		Solver: gorgonia.NewAdamSolver(gorgonia.WithLearnRate(5e-4)),
 		CostObserver: func(epoch, totalEpoch, batch, totalBatch int, cost float32) {
 			// log.Printf("batch=%d/%d epoch=%d/%d cost=%0.3f", batch, totalBatch, epoch, totalEpoch, cost)
 		},

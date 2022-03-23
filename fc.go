@@ -1,13 +1,14 @@
 package godl
 
 import (
+	"github.com/dcu/godl/activation"
 	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
 )
 
 // FCOpts contains optional parameter for a layer
 type FCOpts struct {
-	Activation      ActivationFn
+	Activation      activation.Function
 	Dropout         float64
 	OutputDimension int
 	InputDimension  int

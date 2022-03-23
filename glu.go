@@ -1,6 +1,7 @@
 package godl
 
 import (
+	"github.com/dcu/godl/activation"
 	"gorgonia.org/gorgonia"
 )
 
@@ -11,7 +12,7 @@ type GLUOpts struct {
 	InputDimension   int
 	OutputDimension  int
 	VirtualBatchSize int
-	ActivationFn     ActivationFn
+	Activation       activation.Function
 	FC               Layer
 	WeightsInit      gorgonia.InitWFn
 	WithBias         bool
@@ -23,8 +24,8 @@ func (opts *GLUOpts) setDefaults() {
 		opts.Momentum = 0.02
 	}
 
-	if opts.ActivationFn == nil {
-		opts.ActivationFn = gorgonia.Sigmoid
+	if opts.Activation == nil {
+		opts.Activation = gorgonia.Sigmoid
 	}
 
 	if opts.InputDimension == 0 {
@@ -82,7 +83,7 @@ func GLU(nn *Model, opts GLUOpts) Layer {
 		firstHalf := gorgonia.Must(gorgonia.Slice(gnbResult.Output, nil, gorgonia.S(0, opts.OutputDimension)))
 		secondHalf := gorgonia.Must(gorgonia.Slice(gnbResult.Output, nil, gorgonia.S(opts.OutputDimension, gnbResult.Output.Shape()[1])))
 
-		act, err := opts.ActivationFn(secondHalf)
+		act, err := opts.Activation(secondHalf)
 		if err != nil {
 			return Result{}, ErrorF(lt, "%s: applying activation function failed: %w", err)
 		}

@@ -47,7 +47,7 @@ func TestReadCSV(t *testing.T) {
 	testCases := []struct {
 		csvPath            string
 		SumColumn          int
-		ExpectedSum        float64
+		ExpectedSum        float32
 		SliceAt            int
 		ExpectedSliceValue []float32
 

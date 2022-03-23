@@ -39,7 +39,7 @@ func StringToCell(v string) Cell {
 
 	f, err := strconv.ParseFloat(strings.TrimSpace(v), 32)
 	if err == nil {
-		return Cell{tensor.Float32, f}
+		return Cell{tensor.Float32, float32(f)}
 	}
 
 	return Cell{tensor.String, v}
@@ -240,6 +240,8 @@ func (t *Table) ToTensors(opts ToTensorOpts) (x *tensor.Dense, y *tensor.Dense) 
 			} else if cell.Dtype == tensor.Int {
 				val = float32(cell.V.(int))
 			} else if cell.Dtype == tensor.Float64 {
+				val = float32(cell.V.(float64))
+			} else if cell.Dtype == tensor.Float32 {
 				val = cell.V.(float32)
 			} else {
 				log.Panicf("unsupported type: %v", cell.Dtype)
