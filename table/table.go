@@ -31,23 +31,29 @@ func (v Cell) String() string {
 	return fmt.Sprintf("%v", v.V)
 }
 
-func StringToCell(v string) Cell {
+func StringToCell(v string) *Cell {
 	i, err := strconv.ParseInt(strings.TrimSpace(v), 10, 64)
 	if err == nil {
-		return Cell{tensor.Int, int(i)}
+		return &Cell{tensor.Int, int(i)}
 	}
 
 	f, err := strconv.ParseFloat(strings.TrimSpace(v), 32)
 	if err == nil {
-		return Cell{tensor.Float32, float32(f)}
+		return &Cell{tensor.Float32, float32(f)}
 	}
 
-	return Cell{tensor.String, v}
+	return &Cell{tensor.String, v}
 }
 
 type Row struct {
-	Cells []Cell
+	Cells []*Cell
 	Tags  map[string]bool
+}
+
+func (r *Row) AddTag(tags ...string) {
+	for _, tag := range tags {
+		r.Tags[tag] = true
+	}
 }
 
 func (r Row) HasAnyTag(tags []string) bool {
@@ -65,7 +71,7 @@ func (r Row) HasAnyTag(tags []string) bool {
 }
 
 func StringsToRow(values []string) Row {
-	cells := make([]Cell, len(values))
+	cells := make([]*Cell, len(values))
 	for i, v := range values {
 		cells[i] = StringToCell(v)
 	}
@@ -73,7 +79,7 @@ func StringsToRow(values []string) Row {
 	return Row{cells, map[string]bool{}}
 }
 
-type Rows []Row
+type Rows []*Row
 
 type Table struct {
 	Header []string
@@ -116,7 +122,7 @@ func ReadCSV(pathCSV string) (*Table, error) {
 			return nil, err
 		}
 
-		cells := make([]Cell, len(record))
+		cells := make([]*Cell, len(record))
 		for i, r := range record {
 			v := StringToCell(r)
 
@@ -129,7 +135,7 @@ func ReadCSV(pathCSV string) (*Table, error) {
 			}
 		}
 
-		t.Rows = append(t.Rows, Row{cells, map[string]bool{}})
+		t.Rows = append(t.Rows, &Row{cells, map[string]bool{}})
 	}
 
 	return t, nil
@@ -169,7 +175,7 @@ func (t *Table) AddTag(tagFunc func() string) {
 	}
 }
 
-func (t *Table) EachColumn(f func(columnName string, v Cell)) {
+func (t *Table) EachColumn(f func(columnName string, v *Cell)) {
 	if len(t.Rows) == 0 {
 		return
 	}
@@ -179,13 +185,21 @@ func (t *Table) EachColumn(f func(columnName string, v Cell)) {
 	}
 }
 
-func (t *Table) EachRow(f func(row Row)) {
+func (t *Table) EachRow(f func(row *Row)) {
 	if len(t.Rows) == 0 {
 		return
 	}
 
 	for _, row := range t.Rows {
 		f(row)
+	}
+}
+
+func (t *Table) EachCell(cb func(rowNumber, columnNumber int, cell *Cell)) {
+	for rowNumber, row := range t.Rows {
+		for columnNumber, cell := range row.Cells {
+			cb(rowNumber, columnNumber, cell)
+		}
 	}
 }
 
@@ -236,7 +250,7 @@ func (t *Table) ToTensors(opts ToTensorOpts) (x *tensor.Dense, y *tensor.Dense) 
 
 			if m, ok := indexes[colIndex]; ok {
 				// this is a categorical column which is encoded as a number
-				val = float32(m[cell.V.(string)])
+				val = float32(m[fmt.Sprintf("%v", cell.V)])
 			} else if cell.Dtype == tensor.Int {
 				val = float32(cell.V.(int))
 			} else if cell.Dtype == tensor.Float64 {

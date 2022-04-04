@@ -35,8 +35,6 @@ func FC(nn *Model, opts FCOpts) Layer {
 		})
 	)
 
-	// nn.Watch("W FC", w)
-
 	if opts.WithBias {
 		bias = nn.AddBias(lt, tensor.Shape{1, opts.OutputDimension}, NewWeightsOpts{
 			InitFN:     opts.BiasInit,

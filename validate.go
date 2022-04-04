@@ -82,8 +82,10 @@ func Validate(m *Model, x, y *gorgonia.Node, costVal, predVal gorgonia.Value, va
 		fatal("evaluation graph not set")
 	}
 
-	numExamples := validateX.Shape()[0]
-	batches := numExamples / opts.BatchSize
+	dl := NewDataLoader(validateX, validateY, DataLoaderOpts{
+		BatchSize: opts.BatchSize,
+		Shuffle:   false,
+	})
 
 	vmOpts := []gorgonia.VMOpt{
 		gorgonia.EvalMode(),
@@ -104,29 +106,10 @@ func Validate(m *Model, x, y *gorgonia.Node, costVal, predVal gorgonia.Value, va
 
 	confMat := ConfusionMatrix{}
 
-	for b := 0; b < batches; b++ {
-		start := b * opts.BatchSize
-		end := start + opts.BatchSize
+	for dl.HasNext() {
+		xVal, yVal := dl.Next()
 
-		if start >= numExamples {
-			break
-		}
-
-		if end > numExamples {
-			end = numExamples
-		}
-
-		xVal, err := validateX.Slice(gorgonia.S(start, end))
-		if err != nil {
-			return err
-		}
-
-		yVal, err := validateY.Slice(gorgonia.S(start, end))
-		if err != nil {
-			return err
-		}
-
-		err = gorgonia.Let(x, xVal)
+		err := gorgonia.Let(x, xVal)
 		if err != nil {
 			fatal("error assigning x: %v", err)
 		}
@@ -137,7 +120,7 @@ func Validate(m *Model, x, y *gorgonia.Node, costVal, predVal gorgonia.Value, va
 		}
 
 		if err = vm.RunAll(); err != nil {
-			fatal("Failed batch %d. Error: %v", b, err)
+			fatal("Failed batch %d. Error: %v", dl.CurrentBatch, err)
 		}
 
 		for j := 0; j < predVal.Shape()[0]; j++ {
