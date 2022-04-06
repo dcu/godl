@@ -35,7 +35,6 @@ type TrainOpts struct {
 	ValidationObserver func(confMat ConfusionMatrix, cost float32)
 	MatchTypeFor       func(predVal, targetVal []float32) MatchType
 	CostFn             CostFn
-	CustomCost         func(cost *gorgonia.Node, result Result) *gorgonia.Node
 }
 
 func (o *TrainOpts) setDefaults() {
@@ -57,7 +56,7 @@ func (o *TrainOpts) setDefaults() {
 }
 
 // Train trains the model with the given data
-func Train(m *Model, layer Layer, trainX, trainY, validateX, validateY tensor.Tensor, opts TrainOpts) error {
+func Train(m *Model, module Module, trainX, trainY, validateX, validateY tensor.Tensor, opts TrainOpts) error {
 	opts.setDefaults()
 
 	if opts.DevMode {
@@ -89,10 +88,7 @@ func Train(m *Model, layer Layer, trainX, trainY, validateX, validateY tensor.Te
 	x := gorgonia.NewTensor(m.trainGraph, tensor.Float32, trainX.Shape().Dims(), gorgonia.WithShape(xShape...), gorgonia.WithName("x"))
 	y := gorgonia.NewMatrix(m.trainGraph, tensor.Float32, gorgonia.WithShape(opts.BatchSize, trainY.Shape()[1]), gorgonia.WithName("y"))
 
-	result, err := layer(x)
-	if err != nil {
-		return fmt.Errorf("error running layer: %w", err)
-	}
+	result := module.Forward(x)
 
 	if opts.WriteGraphFileTo != "" {
 		m.WriteSVG(opts.WriteGraphFileTo)
@@ -104,21 +100,17 @@ func Train(m *Model, layer Layer, trainX, trainY, validateX, validateY tensor.Te
 	)
 
 	{
-		cost := opts.CostFn(result.Output, y)
-
-		if opts.CustomCost != nil {
-			cost = opts.CustomCost(cost, result)
-		}
+		cost := opts.CostFn(result, y)
 
 		gorgonia.Read(cost, &costVal)
-		gorgonia.Read(result.Output, &predVal)
+		gorgonia.Read(result[0], &predVal)
 
 		if _, err := gorgonia.Grad(cost, m.Learnables()...); err != nil {
 			return fmt.Errorf("error calculating gradient: %w", err)
 		}
 	}
 
-	validationGraph := m.trainGraph.SubgraphRoots(result.Output)
+	validationGraph := m.trainGraph.SubgraphRoots(result[0])
 	validationGraph.RemoveNode(y)
 
 	m.evalGraph = validationGraph
@@ -152,7 +144,7 @@ func Train(m *Model, layer Layer, trainX, trainY, validateX, validateY tensor.Te
 		for dl.HasNext() {
 			xVal, yVal := dl.Next()
 
-			err = gorgonia.Let(x, xVal)
+			err := gorgonia.Let(x, xVal)
 			if err != nil {
 				fatal("error assigning x: %v", err)
 			}

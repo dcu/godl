@@ -32,7 +32,20 @@ type TabNetOpts struct {
 	CatEmbDim []int
 }
 
-func TabNet(nn *godl.Model, opts TabNetOpts) godl.Layer {
+type TabNetModule struct {
+	model    *godl.Model
+	embedder *godl.EmbeddingGeneratorModule
+	tabnet   *TabNetNoEmbeddingsModule
+}
+
+func (m *TabNetModule) Forward(inputs ...*godl.Node) godl.Nodes {
+	x := inputs[0]
+	res := m.embedder.Forward(x)
+
+	return m.tabnet.Forward(res[0])
+}
+
+func TabNet(nn *godl.Model, opts TabNetOpts) *TabNetModule {
 	embedder := godl.EmbeddingGenerator(nn, opts.InputSize, opts.CatDims, opts.CatIdxs, opts.CatEmbDim, godl.EmbeddingOpts{
 		WeightsInit: opts.WeightsInit,
 	})
@@ -63,13 +76,9 @@ func TabNet(nn *godl.Model, opts TabNetOpts) godl.Layer {
 		Epsilon:            opts.Epsilon,
 	})
 
-	return func(nodes ...*gorgonia.Node) (godl.Result, error) {
-		x := nodes[0]
-		res, err := embedder(x)
-		if err != nil {
-			return godl.Result{}, err
-		}
-
-		return tn(res.Output)
+	return &TabNetModule{
+		model:    nn,
+		tabnet:   tn,
+		embedder: embedder,
 	}
 }

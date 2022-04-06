@@ -7,7 +7,7 @@ import (
 
 // FeatureTransformerOpts contains options for feature transformer layer
 type FeatureTransformerOpts struct {
-	Shared            []godl.Layer
+	Shared            []*godl.LinearModule
 	VirtualBatchSize  int
 	IndependentBlocks int
 	InputDimension    int
@@ -32,8 +32,27 @@ func (o *FeatureTransformerOpts) setDefaults() {
 	}
 }
 
+type FeatureTransformerModule struct {
+	model       *godl.Model
+	layer       godl.LayerType
+	opts        FeatureTransformerOpts
+	shared      *GLUBlockModule
+	independent *GLUBlockModule
+}
+
+func (m *FeatureTransformerModule) Forward(inputs ...*godl.Node) godl.Nodes {
+	if err := m.model.CheckArity(m.layer, inputs, 1); err != nil {
+		panic(err)
+	}
+
+	x := inputs[0]
+	res := m.shared.Forward(x)
+
+	return m.independent.Forward(res[0])
+}
+
 // FeatureTransformer implements a feature transformer layer
-func FeatureTransformer(nn *godl.Model, opts FeatureTransformerOpts) godl.Layer {
+func FeatureTransformer(nn *godl.Model, opts FeatureTransformerOpts) *FeatureTransformerModule {
 	lt := godl.AddLayer("FeatureTransformer")
 
 	opts.setDefaults()
@@ -60,18 +79,11 @@ func FeatureTransformer(nn *godl.Model, opts FeatureTransformerOpts) godl.Layer 
 		WeightsInit:      opts.WeightsInit,
 	})
 
-	return func(nodes ...*gorgonia.Node) (godl.Result, error) {
-		if err := nn.CheckArity(lt, nodes, 1); err != nil {
-			return godl.Result{}, err
-		}
-
-		x := nodes[0]
-
-		res, err := shared(x)
-		if err != nil {
-			return godl.Result{}, err
-		}
-
-		return independent(res.Output)
+	return &FeatureTransformerModule{
+		model:       nn,
+		layer:       lt,
+		opts:        opts,
+		shared:      shared,
+		independent: independent,
 	}
 }

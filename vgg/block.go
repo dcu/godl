@@ -60,8 +60,43 @@ func (o *BlockOpts) setDefaults() {
 	}
 }
 
+type BlockModule struct {
+	model *godl.Model
+	layer godl.LayerType
+	opts  BlockOpts
+
+	weight, bias *godl.Node
+}
+
+func (m *BlockModule) Forward(inputs ...*godl.Node) godl.Nodes {
+	if err := m.model.CheckArity(m.layer, inputs, 1); err != nil {
+		panic(err)
+	}
+
+	x := inputs[0]
+	x = gorgonia.Must(gorgonia.Conv2d(x, m.weight, m.opts.KernelSize, m.opts.Pad, m.opts.Stride, m.opts.Dilation))
+
+	if m.bias != nil {
+		x = gorgonia.Must(gorgonia.BroadcastAdd(x, m.bias, nil, []byte{0, 2, 3}))
+	}
+
+	if m.opts.Activation != nil {
+		x = gorgonia.Must(m.opts.Activation(x))
+	}
+
+	if m.opts.WithPooling {
+		x = gorgonia.Must(gorgonia.MaxPool2D(x, tensor.Shape{2, 2}, []int{0, 0}, []int{2, 2}))
+	}
+
+	if m.opts.Dropout > 0.0 {
+		x = gorgonia.Must(gorgonia.Dropout(x, m.opts.Dropout))
+	}
+
+	return godl.Nodes{x}
+}
+
 // Block is a VGG block composed of conv2d+maxpool with optional dropout and activation function
-func Block(m *godl.Model, opts BlockOpts) godl.Layer {
+func Block(m *godl.Model, opts BlockOpts) *BlockModule {
 	opts.setDefaults()
 
 	lt := godl.AddLayer("vgg.Block")
@@ -81,32 +116,11 @@ func Block(m *godl.Model, opts BlockOpts) godl.Layer {
 		})
 	}
 
-	return func(inputs ...*gorgonia.Node) (godl.Result, error) {
-		if err := m.CheckArity(lt, inputs, 1); err != nil {
-			return godl.Result{}, err
-		}
-
-		x := inputs[0]
-		x = gorgonia.Must(gorgonia.Conv2d(x, w, opts.KernelSize, opts.Pad, opts.Stride, opts.Dilation))
-
-		if bias != nil {
-			x = gorgonia.Must(gorgonia.BroadcastAdd(x, bias, nil, []byte{0, 2, 3}))
-		}
-
-		if opts.Activation != nil {
-			x = gorgonia.Must(opts.Activation(x))
-		}
-
-		if opts.WithPooling {
-			x = gorgonia.Must(gorgonia.MaxPool2D(x, tensor.Shape{2, 2}, []int{0, 0}, []int{2, 2}))
-		}
-
-		if opts.Dropout > 0.0 {
-			x = gorgonia.Must(gorgonia.Dropout(x, opts.Dropout))
-		}
-
-		return godl.Result{
-			Output: x,
-		}, nil
+	return &BlockModule{
+		model:  m,
+		layer:  lt,
+		opts:   opts,
+		weight: w,
+		bias:   bias,
 	}
 }

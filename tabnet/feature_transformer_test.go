@@ -57,11 +57,11 @@ func TestFeatureTransformer(t *testing.T) {
 				),
 			), gorgonia.WithName("fcWeight"))
 
-			shared := make([]godl.Layer, tcase.sharedBlocks)
+			shared := make([]*godl.LinearModule, tcase.sharedBlocks)
 			fcInput := input.Shape()[1]
 			fcOutput := 2 * tcase.output
 			for i := 0; i < tcase.sharedBlocks; i++ {
-				shared[i] = godl.FC(tn, godl.FCOpts{
+				shared[i] = godl.Linear(tn, godl.LinearOpts{
 					OutputDimension: fcOutput, // double the size so we can take half and half
 					WeightsInit:     gorgonia.RangedFromWithStep(-0.1, 0.01),
 					InputDimension:  fcInput,
@@ -70,7 +70,7 @@ func TestFeatureTransformer(t *testing.T) {
 				fcInput = tcase.output
 			}
 
-			result, err := FeatureTransformer(tn, FeatureTransformerOpts{
+			result := FeatureTransformer(tn, FeatureTransformerOpts{
 				VirtualBatchSize:  tcase.vbs,
 				InputDimension:    input.Shape()[1],
 				OutputDimension:   tcase.output,
@@ -78,25 +78,15 @@ func TestFeatureTransformer(t *testing.T) {
 				IndependentBlocks: tcase.independentBlocks,
 				WeightsInit:       initDummyWeights,
 				Momentum:          0.02,
-			})(input)
+			}).Forward(input)
 
-			if tcase.expectedErr != "" {
-				c.Error(err)
-
-				c.Equal(tcase.expectedErr, err.Error())
-
-				return
-			} else {
-				c.NoError(err)
-			}
-
-			y := result.Output
+			y := result[0]
 
 			wT := gorgonia.Must(gorgonia.Transpose(fcWeight, 1, 0))
 			y = gorgonia.Must(gorgonia.Mul(y, wT))
 
 			cost := gorgonia.Must(gorgonia.Mean(y))
-			_, err = gorgonia.Grad(cost, input)
+			_, err := gorgonia.Grad(cost, input)
 			c.NoError(err)
 
 			vm := gorgonia.NewTapeMachine(g, gorgonia.BindDualValues(tn.Learnables()...))
@@ -104,7 +94,7 @@ func TestFeatureTransformer(t *testing.T) {
 
 			tn.PrintWatchables()
 
-			t.Logf("feat output: %v", result.Output.Value())
+			t.Logf("feat output: %v", y.Value())
 			t.Logf("y: %v", y.Value())
 			t.Logf("dx: %v", input.Deriv().Value())
 

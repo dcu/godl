@@ -52,8 +52,33 @@ func (o *Conv2dOpts) setDefaults() {
 	}
 }
 
+type Conv2dModule struct {
+	model *Model
+	layer LayerType
+
+	opts Conv2dOpts
+
+	weight, bias *Node
+}
+
+func (m *Conv2dModule) Forward(inputs ...*Node) Nodes {
+	err := m.model.CheckArity(m.layer, inputs, 1)
+	if err != nil {
+		panic(err)
+	}
+
+	x := inputs[0]
+	x = gorgonia.Must(gorgonia.Conv2d(x, m.weight, m.opts.KernelSize, m.opts.Pad, m.opts.Stride, m.opts.Dilation))
+
+	if m.bias != nil {
+		x = gorgonia.Must(gorgonia.BroadcastAdd(x, m.bias, nil, []byte{0, 2, 3}))
+	}
+
+	return Nodes{x}
+}
+
 // Conv2d applies a conv2d operation to the input
-func Conv2d(m *Model, opts Conv2dOpts) Layer {
+func Conv2d(m *Model, opts Conv2dOpts) *Conv2dModule {
 	opts.setDefaults()
 	lt := AddLayer("Conv2d")
 
@@ -72,19 +97,11 @@ func Conv2d(m *Model, opts Conv2dOpts) Layer {
 		})
 	}
 
-	return func(inputs ...*gorgonia.Node) (Result, error) {
-		err := m.CheckArity(lt, inputs, 1)
-		if err != nil {
-			return Result{}, err
-		}
-
-		x := inputs[0]
-		x = gorgonia.Must(gorgonia.Conv2d(x, w, opts.KernelSize, opts.Pad, opts.Stride, opts.Dilation))
-
-		if bias != nil {
-			x = gorgonia.Must(gorgonia.BroadcastAdd(x, bias, nil, []byte{0, 2, 3}))
-		}
-
-		return Result{Output: x}, nil
+	return &Conv2dModule{
+		model:  m,
+		layer:  lt,
+		opts:   opts,
+		weight: w,
+		bias:   bias,
 	}
 }

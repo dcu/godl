@@ -36,11 +36,11 @@ func TestGLUBlock(t *testing.T) {
 
 			input := gorgonia.NewTensor(nn.TrainGraph(), tensor.Float32, tC.X.Dims(), gorgonia.WithShape(tC.X.Shape()...), gorgonia.WithName("x"), gorgonia.WithValue(tC.X))
 
-			shared := make([]godl.Layer, tC.Shared)
+			shared := make([]*godl.LinearModule, tC.Shared)
 			fcInput := input.Shape()[1]
 			fcOutput := 2 * tC.Output
 			for i := 0; i < tC.Shared; i++ {
-				shared[i] = godl.FC(nn, godl.FCOpts{
+				shared[i] = godl.Linear(nn, godl.LinearOpts{
 					OutputDimension: fcOutput, // double the size so we can take half and half
 					WeightsInit:     gorgonia.RangedFromWithStep(-0.1, 0.01),
 					InputDimension:  fcInput,
@@ -49,18 +49,17 @@ func TestGLUBlock(t *testing.T) {
 				fcInput = tC.Output
 			}
 
-			result, err := GLUBlock(nn, GLUBlockOpts{
+			result := GLUBlock(nn, GLUBlockOpts{
 				InputDimension:   tC.X.Shape()[1],
 				OutputDimension:  tC.Output,
 				Shared:           shared,
 				VirtualBatchSize: tC.VBS,
 				Size:             tC.BlockSize,
-			})(input)
-			c.NoError(err)
+			}).Forward(input)
 
-			y := result.Output
+			y := result[0]
 			cost := gorgonia.Must(gorgonia.Mean(y))
-			_, err = gorgonia.Grad(cost, input)
+			_, err := gorgonia.Grad(cost, input)
 			c.NoError(err)
 
 			vm := gorgonia.NewTapeMachine(nn.TrainGraph(), gorgonia.BindDualValues(nn.Learnables()...))

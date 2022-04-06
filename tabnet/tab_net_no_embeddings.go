@@ -71,8 +71,84 @@ func (o *TabNetNoEmbeddingsOpts) setDefaults() {
 	}
 }
 
+type TabNetNoEmbeddingsModule struct {
+	model *godl.Model
+	opts  TabNetNoEmbeddingsOpts
+
+	bn              *godl.BatchNormModule
+	initialSplitter *FeatureTransformerModule
+	finalMapping    *godl.LinearModule
+
+	attentiveTransformers []*AttentiveTransformerModule
+	featureTransformers   []*FeatureTransformerModule
+}
+
+func (m *TabNetNoEmbeddingsModule) Forward(inputs ...*godl.Node) godl.Nodes {
+	x := inputs[0]
+
+	bn := m.bn.Forward(x)[0]
+	ft := m.initialSplitter.Forward(bn)[0]
+
+	xAttentiveLayer := gorgonia.Must(gorgonia.Slice(ft, nil, gorgonia.S(m.opts.PredictionLayerDim, ft.Shape()[1])))
+
+	gamma := gorgonia.NewConstant(float32(m.opts.Gamma))
+	epsilon := gorgonia.NewConstant(float32(m.opts.Epsilon))
+
+	loss := gorgonia.NewScalar(m.model.TrainGraph(), tensor.Float32, gorgonia.WithValue(float32(0.0)), gorgonia.WithName("TabNetLoss"))
+	stepsCount := gorgonia.NewScalar(m.model.TrainGraph(), tensor.Float32, gorgonia.WithValue(float32(m.opts.DecisionSteps)), gorgonia.WithName("Steps"))
+
+	prior := gorgonia.NewTensor(m.model.TrainGraph(), tensor.Float32, 2, gorgonia.WithShape(m.opts.BatchSize, m.opts.InputSize), gorgonia.WithInit(gorgonia.Ones()), gorgonia.WithName("Prior"))
+	out := gorgonia.NewTensor(m.model.TrainGraph(), tensor.Float32, 2, gorgonia.WithShape(m.opts.BatchSize, m.opts.PredictionLayerDim), gorgonia.WithInit(gorgonia.Zeroes()), gorgonia.WithName("Output"))
+
+	for i := 0; i < m.opts.DecisionSteps; i++ {
+		attentiveTransformer := m.attentiveTransformers[i]
+		featureTransformer := m.featureTransformers[i]
+
+		result := attentiveTransformer.Forward(xAttentiveLayer, prior)
+
+		mask := result[0]
+
+		stepLoss := gorgonia.Must(gorgonia.Mean(
+			gorgonia.Must(gorgonia.Sum(
+				gorgonia.Must(gorgonia.HadamardProd(
+					mask,
+					gorgonia.Must(gorgonia.Log(
+						gorgonia.Must(gorgonia.Add(mask, epsilon)),
+					)),
+				)),
+				1,
+			)),
+		))
+
+		// accum losses
+		loss = gorgonia.Must(gorgonia.Add(loss, stepLoss))
+
+		// Update prior
+		{
+			prior = gorgonia.Must(gorgonia.HadamardProd(gorgonia.Must(gorgonia.Sub(gamma, mask)), prior))
+		}
+
+		maskedX := gorgonia.Must(gorgonia.HadamardProd(mask, bn))
+
+		ds := featureTransformer.Forward(maskedX)[0]
+
+		firstPart := gorgonia.Must(gorgonia.Slice(ds, nil, gorgonia.S(0, m.opts.PredictionLayerDim)))
+
+		relu := gorgonia.Must(gorgonia.Rectify(firstPart))
+
+		out = gorgonia.Must(gorgonia.Add(out, relu))
+
+		xAttentiveLayer = gorgonia.Must(gorgonia.Slice(ds, nil, gorgonia.S(m.opts.PredictionLayerDim, ds.Shape()[1])))
+	}
+
+	loss = gorgonia.Must(gorgonia.Div(loss, stepsCount))
+	result := m.finalMapping.Forward(out)[0]
+
+	return godl.Nodes{result, loss}
+}
+
 // TabNetNoEmbeddings implements the tab net architecture
-func TabNetNoEmbeddings(nn *godl.Model, opts TabNetNoEmbeddingsOpts) godl.Layer {
+func TabNetNoEmbeddings(nn *godl.Model, opts TabNetNoEmbeddingsOpts) *TabNetNoEmbeddingsModule {
 	opts.setDefaults()
 
 	bnLayer := godl.BatchNorm1d(nn, godl.BatchNormOpts{
@@ -82,7 +158,7 @@ func TabNetNoEmbeddings(nn *godl.Model, opts TabNetNoEmbeddingsOpts) godl.Layer 
 		Momentum:  0.01,
 	})
 
-	shared := make([]godl.Layer, 0, opts.SharedBlocks)
+	shared := make([]*godl.LinearModule, 0, opts.SharedBlocks)
 	outputDim := 2 * (opts.PredictionLayerDim + opts.AttentionLayerDim) // double the size so we can take half and half
 
 	{
@@ -98,7 +174,7 @@ func TabNetNoEmbeddings(nn *godl.Model, opts TabNetNoEmbeddingsOpts) godl.Layer 
 				sharedWeightsInit = gorgonia.GlorotN(gain)
 			}
 
-			shared = append(shared, godl.FC(nn, godl.FCOpts{
+			shared = append(shared, godl.Linear(nn, godl.LinearOpts{
 				InputDimension:  fcInput,
 				OutputDimension: fcOutput,
 				WeightsInit:     sharedWeightsInit,
@@ -123,8 +199,8 @@ func TabNetNoEmbeddings(nn *godl.Model, opts TabNetNoEmbeddingsOpts) godl.Layer 
 		Momentum:          opts.Momentum,
 	})
 
-	featureTransformers := make([]godl.Layer, 0, opts.DecisionSteps)
-	attentiveTransformers := make([]godl.Layer, 0, opts.DecisionSteps)
+	featureTransformers := make([]*FeatureTransformerModule, 0, opts.DecisionSteps)
+	attentiveTransformers := make([]*AttentiveTransformerModule, 0, opts.DecisionSteps)
 
 	for i := 0; i < opts.DecisionSteps; i++ {
 		featureTransformer := FeatureTransformer(nn, FeatureTransformerOpts{
@@ -163,7 +239,7 @@ func TabNetNoEmbeddings(nn *godl.Model, opts TabNetNoEmbeddingsOpts) godl.Layer 
 		weightsInit = gorgonia.GlorotN(gain)
 	}
 
-	finalMapping := godl.FC(nn, godl.FCOpts{
+	finalMapping := godl.Linear(nn, godl.LinearOpts{
 		InputDimension:  opts.PredictionLayerDim,
 		OutputDimension: opts.OutputSize,
 		WeightsInit:     weightsInit,
@@ -171,113 +247,13 @@ func TabNetNoEmbeddings(nn *godl.Model, opts TabNetNoEmbeddingsOpts) godl.Layer 
 		WithBias:        opts.WithBias,
 	})
 
-	gamma := gorgonia.NewConstant(float32(opts.Gamma))
-	epsilon := gorgonia.NewConstant(float32(opts.Epsilon))
-
-	tabNetLoss := gorgonia.NewScalar(nn.TrainGraph(), tensor.Float32, gorgonia.WithValue(float32(0.0)), gorgonia.WithName("TabNetLoss"))
-	stepsCount := gorgonia.NewScalar(nn.TrainGraph(), tensor.Float32, gorgonia.WithValue(float32(opts.DecisionSteps)), gorgonia.WithName("Steps"))
-
-	prior := gorgonia.NewTensor(nn.TrainGraph(), tensor.Float32, 2, gorgonia.WithShape(opts.BatchSize, opts.InputSize), gorgonia.WithInit(gorgonia.Ones()), gorgonia.WithName("Prior"))
-	out := gorgonia.NewTensor(nn.TrainGraph(), tensor.Float32, 2, gorgonia.WithShape(opts.BatchSize, opts.PredictionLayerDim), gorgonia.WithInit(gorgonia.Zeroes()), gorgonia.WithName("Output"))
-
-	return func(nodes ...*gorgonia.Node) (godl.Result, error) {
-		x := nodes[0]
-
-		bn, err := bnLayer(x)
-		if err != nil {
-			return godl.Result{}, fmt.Errorf("applying initial batch norm %v: %w", x.Shape(), err)
-		}
-
-		ft, err := initialSplitter(bn.Output)
-		if err != nil {
-			return godl.Result{}, fmt.Errorf("applying initial splitter %v: %w", bn.Output.Shape(), err)
-		}
-
-		xAttentiveLayer, err := gorgonia.Slice(ft.Output, nil, gorgonia.S(opts.PredictionLayerDim, ft.Shape()[1]))
-		if err != nil {
-			return godl.Result{}, fmt.Errorf("slicing %v: %w", ft.Shape(), err)
-		}
-
-		for i := 0; i < opts.DecisionSteps; i++ {
-			attentiveTransformer := attentiveTransformers[i]
-			featureTransformer := featureTransformers[i]
-
-			// nn.Watch("prior", prior)
-
-			result, err := attentiveTransformer(xAttentiveLayer, prior)
-			if err != nil {
-				return godl.Result{}, err
-			}
-
-			mask := result.Output
-
-			stepLoss := gorgonia.Must(gorgonia.Mean(
-				gorgonia.Must(gorgonia.Sum(
-					gorgonia.Must(gorgonia.HadamardProd(
-						mask,
-						gorgonia.Must(gorgonia.Log(
-							gorgonia.Must(gorgonia.Add(mask, epsilon)),
-						)),
-					)),
-					1,
-				)),
-			))
-
-			// accum losses
-			tabNetLoss = gorgonia.Must(gorgonia.Add(tabNetLoss, stepLoss))
-
-			// Update prior
-			{
-				prior, err = gorgonia.HadamardProd(gorgonia.Must(gorgonia.Sub(gamma, mask)), prior)
-				if err != nil {
-					return godl.Result{}, fmt.Errorf("updating prior: %w", err)
-				}
-			}
-
-			maskedX, err := gorgonia.HadamardProd(mask, bn.Output)
-			if err != nil {
-				return godl.Result{}, err
-			}
-
-			ds, err := featureTransformer(maskedX)
-			if err != nil {
-				return godl.Result{}, err
-			}
-
-			firstPart, err := gorgonia.Slice(ds.Output, nil, gorgonia.S(0, opts.PredictionLayerDim))
-			if err != nil {
-				return godl.Result{}, err
-			}
-
-			relu, err := gorgonia.Rectify(firstPart)
-			if err != nil {
-				return godl.Result{}, err
-			}
-
-			out, err = gorgonia.Add(out, relu)
-			if err != nil {
-				return godl.Result{}, err
-			}
-
-			xAttentiveLayer, err = gorgonia.Slice(ds.Output, nil, gorgonia.S(opts.PredictionLayerDim, ds.Shape()[1]))
-			if err != nil {
-				return godl.Result{}, err
-			}
-		}
-
-		tabNetLoss = gorgonia.Must(gorgonia.Div(tabNetLoss, stepsCount))
-
-		// nn.Watch("out before", out)
-
-		result, err := finalMapping(out)
-		if err != nil {
-			return godl.Result{}, fmt.Errorf("TabNet: applying final FC layer to %v: %w", out.Shape(), err)
-		}
-
-		// nn.Watch("out after", result.Output)
-
-		result.Loss = tabNetLoss
-
-		return result, nil
+	return &TabNetNoEmbeddingsModule{
+		model:                 nn,
+		opts:                  opts,
+		bn:                    bnLayer,
+		initialSplitter:       initialSplitter,
+		finalMapping:          finalMapping,
+		attentiveTransformers: attentiveTransformers,
+		featureTransformers:   featureTransformers,
 	}
 }

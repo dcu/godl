@@ -46,7 +46,72 @@ func (o *LSTMOpts) setDefaults() {
 	}
 }
 
-func LSTM(m *godl.Model, opts LSTMOpts) godl.Layer {
+type LSTMModule struct {
+	model   *godl.Model
+	layer   godl.LayerType
+	opts    LSTMOpts
+	weights []lstmParams
+}
+
+func (m *LSTMModule) Forward(inputs ...*godl.Node) godl.Nodes {
+	two := gorgonia.NewConstant(float32(2.0), gorgonia.WithName("two"))
+
+	var (
+		x, prevHidden, prevCell *gorgonia.Node
+	)
+
+	switch len(inputs) {
+	case 1:
+		x = inputs[0]
+		batchSize := x.Shape()[1]
+
+		dummyHidden := gorgonia.NewTensor(m.model.TrainGraph(), tensor.Float32, 3, gorgonia.WithShape(1, batchSize, m.opts.HiddenSize), gorgonia.WithInit(gorgonia.Zeroes()), gorgonia.WithName("LSTMDummyHidden")) // FIXME: unique name
+		dummyCell := gorgonia.NewTensor(m.model.TrainGraph(), tensor.Float32, 3, gorgonia.WithShape(1, batchSize, m.opts.HiddenSize), gorgonia.WithInit(gorgonia.Zeroes()), gorgonia.WithName("LSTMDummyCell"))
+
+		prevHidden = dummyHidden
+		prevCell = dummyCell
+	case 3:
+		x = inputs[0]
+		prevHidden = inputs[1]
+		prevCell = inputs[2]
+	default:
+		panic(fmt.Errorf("%v: invalid input size", m.layer))
+	}
+
+	if !m.opts.Bidirectional {
+		return lstm(m.model, x, m.weights[0].inputWeights, prevHidden, m.weights[0].hiddenWeights, prevCell, m.weights[0].bias, false, m.opts)
+	}
+
+	x1 := gorgonia.Must(gorgonia.BatchedMatMul(x, m.weights[0].inputWeights))
+	forwardOutput := lstm(m.model, x1, m.weights[0].inputWeights, prevHidden, m.weights[0].hiddenWeights, prevCell, m.weights[0].bias, true, m.opts)
+
+	x2 := gorgonia.Must(gorgonia.BatchedMatMul(x, m.weights[1].inputWeights))
+	x2 = gorgonia.Must(gorgonia.ApplyOp(OrderingOp{}, x2))
+
+	backwardOutput := lstm(m.model, x2, m.weights[1].inputWeights, prevHidden, m.weights[1].hiddenWeights, prevCell, m.weights[1].bias, true, m.opts)
+
+	backwardOutputReversed := gorgonia.Must(gorgonia.ApplyOp(OrderingOp{}, backwardOutput[0]))
+
+	var output *godl.Node
+
+	switch m.opts.MergeMode {
+	case MergeModeAverage:
+		output = gorgonia.Must(gorgonia.Div(gorgonia.Must(gorgonia.Add(forwardOutput[0], backwardOutputReversed)), two))
+	case MergeModeConcat:
+		output = gorgonia.Must(gorgonia.Concat(forwardOutput[0].Dims()-1, forwardOutput[0], backwardOutputReversed))
+	case MergeModeMul:
+		output = gorgonia.Must(gorgonia.HadamardProd(forwardOutput[0], backwardOutputReversed))
+	case MergeModeSum:
+		output = gorgonia.Must(gorgonia.Add(forwardOutput[0], backwardOutputReversed))
+	}
+
+	hidden := gorgonia.Must(gorgonia.Concat(0, forwardOutput[1], backwardOutput[1]))
+	cell := gorgonia.Must(gorgonia.Concat(0, forwardOutput[2], backwardOutput[2]))
+
+	return godl.Nodes{output, hidden, cell}
+}
+
+func LSTM(m *godl.Model, opts LSTMOpts) *LSTMModule {
 	opts.setDefaults()
 	lt := godl.AddLayer("LSTM")
 
@@ -56,69 +121,12 @@ func LSTM(m *godl.Model, opts LSTMOpts) godl.Layer {
 	}
 
 	weights := buildParamsList(paramsCount, m, lt, opts)
-	two := gorgonia.NewConstant(float32(2.0), gorgonia.WithName("two"))
 
-	return func(inputs ...*gorgonia.Node) (godl.Result, error) {
-		var (
-			x, prevHidden, prevCell *gorgonia.Node
-		)
-
-		switch len(inputs) {
-		case 1:
-			x = inputs[0]
-			batchSize := x.Shape()[1]
-
-			dummyHidden := gorgonia.NewTensor(m.TrainGraph(), tensor.Float32, 3, gorgonia.WithShape(1, batchSize, opts.HiddenSize), gorgonia.WithInit(gorgonia.Zeroes()), gorgonia.WithName("LSTMDummyHidden")) // FIXME: unique name
-			dummyCell := gorgonia.NewTensor(m.TrainGraph(), tensor.Float32, 3, gorgonia.WithShape(1, batchSize, opts.HiddenSize), gorgonia.WithInit(gorgonia.Zeroes()), gorgonia.WithName("LSTMDummyCell"))
-
-			prevHidden = dummyHidden
-			prevCell = dummyCell
-		case 3:
-			x = inputs[0]
-			prevHidden = inputs[1]
-			prevCell = inputs[2]
-		default:
-			return godl.Result{}, fmt.Errorf("%v: invalid input size", lt)
-		}
-
-		if !opts.Bidirectional {
-			return lstm(m, x, weights[0].inputWeights, prevHidden, weights[0].hiddenWeights, prevCell, weights[0].bias, false, opts)
-		}
-
-		x1 := gorgonia.Must(gorgonia.BatchedMatMul(x, weights[0].inputWeights))
-		forwardOutput, err := lstm(m, x1, weights[0].inputWeights, prevHidden, weights[0].hiddenWeights, prevCell, weights[0].bias, true, opts)
-		if err != nil {
-			return godl.Result{}, err
-		}
-
-		x2 := gorgonia.Must(gorgonia.BatchedMatMul(x, weights[1].inputWeights))
-		x2 = gorgonia.Must(gorgonia.ApplyOp(OrderingOp{}, x2))
-
-		backwardOutput, err := lstm(m, x2, weights[1].inputWeights, prevHidden, weights[1].hiddenWeights, prevCell, weights[1].bias, true, opts)
-		if err != nil {
-			return godl.Result{}, err
-		}
-
-		backwardOutputReversed := gorgonia.Must(gorgonia.ApplyOp(OrderingOp{}, backwardOutput.Output))
-
-		result := godl.Result{}
-
-		switch opts.MergeMode {
-		case MergeModeAverage:
-			result.Output = gorgonia.Must(gorgonia.Div(gorgonia.Must(gorgonia.Add(forwardOutput.Output, backwardOutputReversed)), two))
-		case MergeModeConcat:
-			result.Output = gorgonia.Must(gorgonia.Concat(forwardOutput.Output.Dims()-1, forwardOutput.Output, backwardOutputReversed))
-		case MergeModeMul:
-			result.Output = gorgonia.Must(gorgonia.HadamardProd(forwardOutput.Output, backwardOutputReversed))
-		case MergeModeSum:
-			result.Output = gorgonia.Must(gorgonia.Add(forwardOutput.Output, backwardOutputReversed))
-		}
-
-		hidden := gorgonia.Must(gorgonia.Concat(0, forwardOutput.Nodes[0], backwardOutput.Nodes[0]))
-		cell := gorgonia.Must(gorgonia.Concat(0, forwardOutput.Nodes[1], backwardOutput.Nodes[1]))
-		result.Nodes = gorgonia.Nodes{hidden, cell}
-
-		return result, nil
+	return &LSTMModule{
+		model:   m,
+		layer:   lt,
+		weights: weights,
+		opts:    opts,
 	}
 }
 
@@ -163,7 +171,7 @@ func newParams(m *godl.Model, lt godl.LayerType, opts LSTMOpts) lstmParams {
 	}
 }
 
-func lstm(m *godl.Model, x, inputWeights, prevHidden, hiddenWeights, prevCell, bias *gorgonia.Node, withPrecomputedInput bool, opts LSTMOpts) (godl.Result, error) {
+func lstm(m *godl.Model, x, inputWeights, prevHidden, hiddenWeights, prevCell, bias *gorgonia.Node, withPrecomputedInput bool, opts LSTMOpts) godl.Nodes {
 	seqs := x.Shape()[0]
 	outputs := make([]*gorgonia.Node, seqs)
 
@@ -175,7 +183,7 @@ func lstm(m *godl.Model, x, inputWeights, prevHidden, hiddenWeights, prevCell, b
 
 		prevHidden, prevCell, err = lstmGate(m, seqX, inputWeights, prevHidden, hiddenWeights, prevCell, bias, withPrecomputedInput, opts)
 		if err != nil {
-			return godl.Result{}, err
+			panic(err)
 		}
 
 		outputs[seq] = prevHidden
@@ -183,13 +191,7 @@ func lstm(m *godl.Model, x, inputWeights, prevHidden, hiddenWeights, prevCell, b
 
 	outputGate := gorgonia.Must(gorgonia.Concat(0, outputs...))
 
-	return godl.Result{
-		Output: outputGate,
-		Nodes: gorgonia.Nodes{
-			prevHidden,
-			prevCell,
-		},
-	}, nil
+	return godl.Nodes{outputGate, prevHidden, prevCell}
 }
 
 func lstmGate(m *godl.Model, seqX, inputWeights, prevHidden, hiddenWeights, prevCell, bias *gorgonia.Node, withPrecomputedInput bool, opts LSTMOpts) (*gorgonia.Node, *gorgonia.Node, error) {

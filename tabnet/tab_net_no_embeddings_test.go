@@ -88,7 +88,7 @@ func TestTabNetNoEmbeddings(t *testing.T) {
 			a := gorgonia.NewTensor(g, tensor.Float32, tcase.input.Dims(), gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithInit(gorgonia.Ones()), gorgonia.WithName("AttentiveX"))
 			priors := gorgonia.NewTensor(g, tensor.Float32, tcase.input.Dims(), gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithInit(gorgonia.Ones()), gorgonia.WithName("Priors"))
 
-			result, err := TabNetNoEmbeddings(tn, TabNetNoEmbeddingsOpts{
+			result := TabNetNoEmbeddings(tn, TabNetNoEmbeddingsOpts{
 				VirtualBatchSize:   tcase.vbs,
 				IndependentBlocks:  tcase.independentBlocks,
 				PredictionLayerDim: tcase.prediction,
@@ -104,22 +104,12 @@ func TestTabNetNoEmbeddings(t *testing.T) {
 				BiasInit:           gorgonia.Zeroes(),
 				Epsilon:            tcase.epsilon,
 				Momentum:           tcase.momentum,
-			})(x, a, priors)
+			}).Forward(x, a, priors)
 
-			y := result.Output
-
-			if tcase.expectedErr != "" {
-				c.Error(err)
-
-				c.Equal(tcase.expectedErr, err.Error())
-
-				return
-			} else {
-				c.NoError(err)
-			}
+			y := result[0]
 
 			cost := gorgonia.Must(gorgonia.Mean(y))
-			_, err = gorgonia.Grad(cost, append(tn.Learnables(), x)...)
+			_, err := gorgonia.Grad(cost, append(tn.Learnables(), x)...)
 			c.NoError(err)
 
 			vm := gorgonia.NewTapeMachine(g,
@@ -139,7 +129,7 @@ func TestTabNetNoEmbeddings(t *testing.T) {
 			c.Equal(tcase.expectedOutput, y.Value().Data().([]float32))
 
 			c.Equal(tcase.expectedCost, cost.Value().Data())
-			c.Equal(tcase.expectedAcumLoss, result.Loss.Value().Data())
+			c.Equal(tcase.expectedAcumLoss, result[1].Value().Data())
 
 			w := tn.Learnables()[len(tn.Learnables())-1]
 

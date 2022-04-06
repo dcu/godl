@@ -188,8 +188,7 @@ func TestLSTM(t *testing.T) {
 				BiasInit:       gorgonia.Zeroes(),
 			})
 
-			result, err := l(args...)
-			c.NoError(err)
+			result := l.Forward(args...)
 
 			vm := gorgonia.NewTapeMachine(m.TrainGraph())
 			c.NoError(vm.RunAll())
@@ -202,12 +201,12 @@ func TestLSTM(t *testing.T) {
 
 			maxDiffAllowed := 1e-7
 
-			c.InDeltaSlice(tC.ExpectedOutput.Data(), result.Output.Value().Data(), maxDiffAllowed, "actual: %#v", result.Output.Value().Data())
-			c.Equal(tC.ExpectedOutput.Shape(), result.Output.Shape())
-			c.InDeltaSlice(tC.ExpectedHiddenOutput.Data(), result.Nodes[0].Value().Data(), maxDiffAllowed)
-			c.Equal(tC.ExpectedHiddenOutput.Shape(), result.Nodes[0].Shape())
-			c.InDeltaSlice(tC.ExpectedCellOutput.Data(), result.Nodes[1].Value().Data(), maxDiffAllowed, "actual: %#v", result.Nodes[1].Value().Data())
-			c.Equal(tC.ExpectedCellOutput.Shape(), result.Nodes[1].Shape())
+			c.InDeltaSlice(tC.ExpectedOutput.Data(), result[0].Value().Data(), maxDiffAllowed, "actual: %#v", result[0].Value().Data())
+			c.Equal(tC.ExpectedOutput.Shape(), result[0].Shape())
+			c.InDeltaSlice(tC.ExpectedHiddenOutput.Data(), result[1].Value().Data(), maxDiffAllowed)
+			c.Equal(tC.ExpectedHiddenOutput.Shape(), result[1].Shape())
+			c.InDeltaSlice(tC.ExpectedCellOutput.Data(), result[2].Value().Data(), maxDiffAllowed, "actual: %#v", result[2].Value().Data())
+			c.Equal(tC.ExpectedCellOutput.Shape(), result[2].Shape())
 		})
 	}
 }

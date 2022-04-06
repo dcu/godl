@@ -13,7 +13,7 @@ type GLUOpts struct {
 	OutputDimension  int
 	VirtualBatchSize int
 	Activation       activation.Function
-	FC               Layer
+	Linear           *LinearModule
 	WeightsInit      gorgonia.InitWFn
 	WithBias         bool
 	Momentum         float64
@@ -41,14 +41,49 @@ func (opts *GLUOpts) setDefaults() {
 	}
 }
 
+type GLUModule struct {
+	model  *Model
+	layer  LayerType
+	opts   GLUOpts
+	gbn    *GhostBatchNormModule
+	linear *LinearModule
+}
+
+func (m *GLUModule) Forward(inputs ...*Node) Nodes {
+	if err := m.model.CheckArity(m.layer, inputs, 1); err != nil {
+		panic(err)
+	}
+
+	x := inputs[0]
+
+	fcResult := m.opts.Linear.Forward(x)
+	gnbResult := m.gbn.Forward(fcResult...)[0]
+
+	// GLU
+	firstHalf := gorgonia.Must(gorgonia.Slice(gnbResult, nil, gorgonia.S(0, m.opts.OutputDimension)))
+	secondHalf := gorgonia.Must(gorgonia.Slice(gnbResult, nil, gorgonia.S(m.opts.OutputDimension, gnbResult.Shape()[1])))
+
+	act, err := m.opts.Activation(secondHalf)
+	if err != nil {
+		panic(ErrorF(m.layer, "%s: applying activation function failed: %w", err))
+	}
+
+	mul, err := gorgonia.HadamardProd(firstHalf, act)
+	if err != nil {
+		panic(ErrorF(m.layer, "%s: HadamardProd %d x %d: %w", firstHalf.Shape(), act.Shape(), err))
+	}
+
+	return Nodes{mul}
+}
+
 // GLU implements a Gated Linear Unit Block
-func GLU(nn *Model, opts GLUOpts) Layer {
+func GLU(nn *Model, opts GLUOpts) *GLUModule {
 	opts.setDefaults()
 
 	lt := AddLayer("GLU")
 
-	if opts.FC == nil {
-		opts.FC = FC(nn, FCOpts{
+	if opts.Linear == nil {
+		opts.Linear = Linear(nn, LinearOpts{
 			InputDimension:  opts.InputDimension,
 			OutputDimension: opts.OutputDimension * 2,
 			WeightsInit:     opts.WeightsInit,
@@ -56,43 +91,17 @@ func GLU(nn *Model, opts GLUOpts) Layer {
 		})
 	}
 
-	gbnLayer := GBN(nn, GBNOpts{
+	gbn := GhostBatchNorm(nn, GhostBatchNormOpts{
 		VirtualBatchSize: opts.VirtualBatchSize,
 		OutputDimension:  opts.OutputDimension * 2,
 		Momentum:         opts.Momentum,
 	})
 
-	return func(nodes ...*gorgonia.Node) (Result, error) {
-		if err := nn.CheckArity(lt, nodes, 1); err != nil {
-			return Result{}, err
-		}
-
-		x := nodes[0]
-
-		fcResult, err := opts.FC(x)
-		if err != nil {
-			return Result{}, ErrorF(lt, "applying FC(%v) failed: %w", x.Shape(), err)
-		}
-
-		gnbResult, err := gbnLayer(fcResult.Output)
-		if err != nil {
-			return Result{}, ErrorF(lt, "applying GBN failed: %w", err)
-		}
-
-		// GLU
-		firstHalf := gorgonia.Must(gorgonia.Slice(gnbResult.Output, nil, gorgonia.S(0, opts.OutputDimension)))
-		secondHalf := gorgonia.Must(gorgonia.Slice(gnbResult.Output, nil, gorgonia.S(opts.OutputDimension, gnbResult.Output.Shape()[1])))
-
-		act, err := opts.Activation(secondHalf)
-		if err != nil {
-			return Result{}, ErrorF(lt, "%s: applying activation function failed: %w", err)
-		}
-
-		mul, err := gorgonia.HadamardProd(firstHalf, act)
-		if err != nil {
-			return Result{}, ErrorF(lt, "%s: HadamardProd %d x %d: %w", firstHalf.Shape(), act.Shape(), err)
-		}
-
-		return Result{Output: mul}, nil
+	return &GLUModule{
+		model:  nn,
+		layer:  lt,
+		opts:   opts,
+		gbn:    gbn,
+		linear: opts.Linear,
 	}
 }

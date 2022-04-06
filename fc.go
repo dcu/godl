@@ -6,8 +6,8 @@ import (
 	"gorgonia.org/tensor"
 )
 
-// FCOpts contains optional parameter for a layer
-type FCOpts struct {
+// LinearOpts contains optional parameter for a layer
+type LinearOpts struct {
 	Activation      activation.Function
 	Dropout         float64
 	OutputDimension int
@@ -20,7 +20,60 @@ type FCOpts struct {
 	FixedWeights          bool
 }
 
-func FC(nn *Model, opts FCOpts) Layer {
+type LinearModule struct {
+	model *Model
+	opts  LinearOpts
+	layer LayerType
+
+	weight, bias *Node
+}
+
+func (m *LinearModule) Forward(inputs ...*Node) (out Nodes) {
+	err := m.model.CheckArity(m.layer, inputs, 1)
+	if err != nil {
+		panic(err)
+	}
+
+	x := inputs[0]
+	xShape := x.Shape()
+
+	if x.Dims() > 2 {
+		b, v := xShape[0], tensor.Shape(xShape[1:]).TotalSize()
+		x = gorgonia.Must(gorgonia.Reshape(x, tensor.Shape{b, v}))
+	}
+
+	wT := gorgonia.Must(gorgonia.Transpose(m.weight, 1, 0))
+
+	result, err := gorgonia.Mul(x, wT)
+	if err != nil {
+		panic(ErrorF(m.layer, "error applying mul %v x %v: %w ", x.Shape(), m.weight.Shape(), err))
+	}
+
+	if m.opts.WithBias {
+		result, err = gorgonia.BroadcastAdd(result, m.bias, nil, []byte{0})
+		if err != nil {
+			panic(ErrorF(m.layer, "error adding bias %w", err))
+		}
+	}
+
+	if m.opts.Activation != nil {
+		result, err = m.opts.Activation(result)
+		if err != nil {
+			panic(ErrorF(m.layer, "error applying activation %w", err))
+		}
+	}
+
+	if m.opts.Dropout > 0.0 {
+		result, err = gorgonia.Dropout(result, m.opts.Dropout)
+		if err != nil {
+			panic(ErrorF(m.layer, "error applying dropout %w", err))
+		}
+	}
+
+	return Nodes{result}
+}
+
+func Linear(nn *Model, opts LinearOpts) *LinearModule {
 	lt := AddLayer("FC")
 
 	MustBeGreatherThan(lt, "input dimension", opts.InputDimension, 0)
@@ -43,48 +96,11 @@ func FC(nn *Model, opts FCOpts) Layer {
 		})
 	}
 
-	return func(inputs ...*gorgonia.Node) (Result, error) {
-		err := nn.CheckArity(lt, inputs, 1)
-		if err != nil {
-			return Result{}, err
-		}
-
-		x := inputs[0]
-		xShape := x.Shape()
-
-		if x.Dims() > 2 {
-			b, v := xShape[0], tensor.Shape(xShape[1:]).TotalSize()
-			x = gorgonia.Must(gorgonia.Reshape(x, tensor.Shape{b, v}))
-		}
-
-		wT := gorgonia.Must(gorgonia.Transpose(w, 1, 0))
-
-		layer, err := gorgonia.Mul(x, wT)
-		if err != nil {
-			return Result{}, ErrorF(lt, "error applying mul %v x %v: %w ", x.Shape(), w.Shape(), err)
-		}
-
-		if opts.WithBias {
-			layer, err = gorgonia.BroadcastAdd(layer, bias, nil, []byte{0})
-			if err != nil {
-				return Result{}, ErrorF(lt, "error adding bias %w", err)
-			}
-		}
-
-		if opts.Activation != nil {
-			layer, err = opts.Activation(layer)
-			if err != nil {
-				return Result{}, ErrorF(lt, "error applying activation %w", err)
-			}
-		}
-
-		if opts.Dropout > 0.0 {
-			layer, err = gorgonia.Dropout(layer, opts.Dropout)
-			if err != nil {
-				return Result{}, ErrorF(lt, "error applying dropout %w", err)
-			}
-		}
-
-		return Result{Output: layer}, nil
+	return &LinearModule{
+		model:  nn,
+		layer:  lt,
+		opts:   opts,
+		bias:   bias,
+		weight: w,
 	}
 }

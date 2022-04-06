@@ -33,12 +33,12 @@ type MSELossOpts struct {
 	Reduction Reduction
 }
 
-type CostFn func(output *gorgonia.Node, target *gorgonia.Node) *gorgonia.Node
+type CostFn func(output Nodes, target *Node) *gorgonia.Node
 
 // MSELoss defines the mean square root cost function
 func MSELoss(opts MSELossOpts) CostFn {
-	return func(output *gorgonia.Node, target *gorgonia.Node) *gorgonia.Node {
-		sub := gorgonia.Must(gorgonia.Sub(output, target))
+	return func(output Nodes, target *gorgonia.Node) *gorgonia.Node {
+		sub := gorgonia.Must(gorgonia.Sub(output[0], target))
 
 		return gorgonia.Must(opts.Reduction.Func()(gorgonia.Must(gorgonia.Square(sub))))
 	}
@@ -50,8 +50,8 @@ type CrossEntropyLossOpt struct {
 
 // CrossEntropyLoss implements cross entropy loss function
 func CrossEntropyLoss(opts CrossEntropyLossOpt) CostFn {
-	return func(output *gorgonia.Node, target *gorgonia.Node) *gorgonia.Node {
-		cost := gorgonia.Must(gorgonia.HadamardProd(gorgonia.Must(gorgonia.Neg(gorgonia.Must(gorgonia.Log(output)))), target))
+	return func(output Nodes, target *Node) *gorgonia.Node {
+		cost := gorgonia.Must(gorgonia.HadamardProd(gorgonia.Must(gorgonia.Neg(gorgonia.Must(gorgonia.Log(output[0])))), target))
 
 		return gorgonia.Must(opts.Reduction.Func()(cost))
 	}
@@ -59,10 +59,10 @@ func CrossEntropyLoss(opts CrossEntropyLossOpt) CostFn {
 
 // CategoricalCrossEntropyLoss is softmax + cce
 func CategoricalCrossEntropyLoss(opts CrossEntropyLossOpt) CostFn {
-	return func(output *gorgonia.Node, target *gorgonia.Node) *gorgonia.Node {
-		output = gorgonia.Must(gorgonia.SoftMax(output))
+	return func(output Nodes, target *Node) *Node {
+		cost := gorgonia.Must(gorgonia.SoftMax(output[0]))
 
-		return CrossEntropyLoss(opts)(output, target)
+		return CrossEntropyLoss(opts)(Nodes{cost}, target)
 	}
 }
 

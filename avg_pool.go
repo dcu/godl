@@ -21,36 +21,58 @@ func (opts *AvgPool2DOpts) setDefaults() {
 	}
 }
 
-// AvgPool2D applies the average pool operation to the given image
-func AvgPool2D(nn *Model, opts AvgPool2DOpts) Layer {
-	lt := AddLayer("AvgPool2D")
+type GlobalAvgPool2DModule struct {
+	model *Model
+	layer LayerType
+}
 
-	return func(inputs ...*gorgonia.Node) (Result, error) {
-		err := nn.CheckArity(lt, inputs, 1)
-		if err != nil {
-			return Result{}, err
-		}
-
-		x := inputs[0]
-		x = gorgonia.Must(gorgonia.AveragePool2D(x, opts.Kernel, opts.Padding, opts.Stride))
-
-		return Result{Output: x}, nil
+func (m *GlobalAvgPool2DModule) Forward(inputs ...*Node) Nodes {
+	err := m.model.CheckArity(m.layer, inputs, 1)
+	if err != nil {
+		panic(err)
 	}
+
+	x := inputs[0]
+	x = gorgonia.Must(gorgonia.GlobalAveragePool2D(x))
+
+	return Nodes{x}
 }
 
 // GlobalAvgPool2D applies the global average pool operation to the given image
-func GlobalAvgPool2D(nn *Model) Layer {
+func GlobalAvgPool2D(nn *Model) *GlobalAvgPool2DModule {
 	lt := AddLayer("GlobalAvgPool2D")
 
-	return func(inputs ...*gorgonia.Node) (Result, error) {
-		err := nn.CheckArity(lt, inputs, 1)
-		if err != nil {
-			return Result{}, err
-		}
+	return &GlobalAvgPool2DModule{
+		model: nn,
+		layer: lt,
+	}
+}
 
-		x := inputs[0]
-		x = gorgonia.Must(gorgonia.GlobalAveragePool2D(x))
+type AvgPool2DModule struct {
+	model *Model
+	opts  AvgPool2DOpts
+	layer LayerType
+}
 
-		return Result{Output: x}, nil
+func (m *AvgPool2DModule) Forward(inputs ...*Node) Nodes {
+	err := m.model.CheckArity(m.layer, inputs, 1)
+	if err != nil {
+		panic(err)
+	}
+
+	x := inputs[0]
+	x = gorgonia.Must(gorgonia.AveragePool2D(x, m.opts.Kernel, m.opts.Padding, m.opts.Stride))
+
+	return Nodes{x}
+}
+
+// AvgPool2D applies the average pool operation to the given image
+func AvgPool2D(nn *Model, opts AvgPool2DOpts) *AvgPool2DModule {
+	lt := AddLayer("AvgPool2D")
+
+	return &AvgPool2DModule{
+		model: nn,
+		opts:  opts,
+		layer: lt,
 	}
 }

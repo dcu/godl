@@ -19,7 +19,7 @@ func TestGLU(t *testing.T) {
 		expectedOutput []float32
 		expectedGrad   []float32
 		expectedCost   float64
-		fcOpts         *FCOpts
+		fcOpts         *LinearOpts
 	}{
 		{
 			desc: "Example 1",
@@ -77,40 +77,30 @@ func TestGLU(t *testing.T) {
 
 			input := gorgonia.NewTensor(g, tensor.Float32, tcase.input.Shape().Dims(), gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithName("input"), gorgonia.WithValue(tcase.input))
 
-			var fc Layer
+			var fc *LinearModule
 			if tcase.fcOpts != nil {
-				fc = FC(tn, *tcase.fcOpts)
+				fc = Linear(tn, *tcase.fcOpts)
 			}
 
-			y, err := GLU(tn, GLUOpts{
+			y := GLU(tn, GLUOpts{
 				InputDimension:   tcase.vbs,
 				OutputDimension:  tcase.output,
 				WeightsInit:      initDummyWeights,
 				VirtualBatchSize: 2,
-				FC:               fc,
-			})(input)
+				Linear:           fc,
+			}).Forward(input)[0]
 
-			if tcase.expectedErr != "" {
-				c.Error(err)
-
-				c.Equal(tcase.expectedErr, err.Error())
-
-				return
-			} else {
-				c.NoError(err)
-			}
-
-			cost := gorgonia.Must(gorgonia.Mean(y.Output))
-			_, err = gorgonia.Grad(cost, input)
+			cost := gorgonia.Must(gorgonia.Mean(y))
+			_, err := gorgonia.Grad(cost, input)
 			c.NoError(err)
 
 			vm := gorgonia.NewTapeMachine(g, gorgonia.BindDualValues(tn.learnables...))
 			c.NoError(vm.RunAll())
 
-			t.Logf("y: %v", y.Output.Value())
+			t.Logf("y: %v", y.Value())
 			t.Logf("dx: %v", input.Deriv().Value())
 
-			yGrad, err := y.Output.Grad()
+			yGrad, err := y.Grad()
 			c.NoError(err)
 
 			c.Equal(tcase.expectedShape, y.Shape())

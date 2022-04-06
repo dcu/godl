@@ -63,8 +63,7 @@ func TestEmbedding(t *testing.T) {
 			ts := tensor.New(tensor.WithShape(tcase.inputShape...), tensor.WithBacking(tcase.input))
 
 			selector := gorgonia.NewTensor(tn.trainGraph, tensor.Int, tcase.inputShape.Dims(), gorgonia.WithShape(ts.Shape()...), gorgonia.WithValue(ts), gorgonia.WithName("selector"))
-			output, err := emb(selector)
-			c.NoError(err)
+			output := emb.Forward(selector)[0]
 
 			vm := gorgonia.NewTapeMachine(tn.trainGraph, gorgonia.BindDualValues(tn.learnables...))
 			c.NoError(vm.RunAll())

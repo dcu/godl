@@ -19,22 +19,18 @@ type Classifier struct {
 	mutex  sync.Mutex
 }
 
-func NewClassifier(builder func(m *godl.Model) godl.Layer, width, height int) *Classifier {
+func NewClassifier(builder func(m *godl.Model) godl.Module, width, height int) *Classifier {
 	m := godl.NewModel()
-	layer := builder(m)
+	module := builder(m)
 	x := gorgonia.NewTensor(m.TrainGraph(), tensor.Float32, 4, gorgonia.WithShape(1, 3, width, height), gorgonia.WithName("x"))
 
-	result, err := layer(x)
-	if err != nil {
-		panic(err)
-	}
-
+	result := module.Forward(x)
 	c := &Classifier{
 		m: m,
 		x: x,
 	}
 
-	gorgonia.Read(result.Output, &c.output)
+	gorgonia.Read(result[0], &c.output)
 
 	return c
 }

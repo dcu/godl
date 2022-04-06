@@ -54,21 +54,13 @@ func TestGBN(t *testing.T) {
 
 			input := gorgonia.NewTensor(g, tensor.Float32, 2, gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithName("GBNInput"), gorgonia.WithValue(tcase.input))
 
-			y, err := GBN(tn, GBNOpts{
+			y := GhostBatchNorm(tn, GhostBatchNormOpts{
 				VirtualBatchSize: tcase.vbs,
 				OutputDimension:  tcase.input.Shape()[1],
-			})(input)
-			if tcase.expectedErr != "" {
-				c.Error(err)
+			}).Forward(input)[0]
 
-				c.Equal(tcase.expectedErr, err.Error())
-
-				return
-			}
-			c.NoError(err)
-
-			cost := gorgonia.Must(gorgonia.Mean(y.Output))
-			_, err = gorgonia.Grad(cost, append(tn.Learnables(), input)...)
+			cost := gorgonia.Must(gorgonia.Mean(y))
+			_, err := gorgonia.Grad(cost, append(tn.Learnables(), input)...)
 			c.NoError(err)
 
 			c.Equal(tcase.expectedShape, y.Shape())
@@ -83,7 +75,7 @@ func TestGBN(t *testing.T) {
 
 			t.Logf("dx: %v", input.Deriv().Value())
 
-			yGrad, err := y.Output.Grad()
+			yGrad, err := y.Grad()
 			c.NoError(err)
 
 			c.InDeltaSlice(tcase.expectedOutput, y.Value().Data().([]float32), 1e-5, "actual: %#v", y.Value().Data())

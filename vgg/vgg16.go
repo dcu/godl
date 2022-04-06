@@ -16,16 +16,32 @@ type Opts struct {
 	OnlyFeatureExtraction bool
 }
 
-// VGG16 is a convolutional neural network for classification and object detection
-// The input must be a 224x224 RGB image
-func VGG16(opts Opts) func(m *godl.Model) godl.Layer {
-	return func(m *godl.Model) godl.Layer {
-		return VGG16Layer(m, opts)
+type VGG16Module struct {
+	model *godl.Model
+	opts  Opts
+	layer godl.LayerType
+
+	seq godl.ModuleList
+}
+
+func (m *VGG16Module) Forward(inputs ...*godl.Node) godl.Nodes {
+	if err := m.model.CheckArity(m.layer, inputs, 1); err != nil {
+		panic(err)
+	}
+
+	x := inputs[0]
+
+	return m.seq.Forward(x)
+}
+
+func VGG16Builder(opts Opts) func(*godl.Model) godl.Module {
+	return func(m *godl.Model) godl.Module {
+		return VGG16(m, opts)
 	}
 }
 
-// VGG16Layer returns the layer for the VGG16 network
-func VGG16Layer(m *godl.Model, opts Opts) godl.Layer {
+// VGG16 returns the layer for the VGG16 network
+func VGG16(m *godl.Model, opts Opts) *VGG16Module {
 	lt := godl.AddLayer("vgg.VGG16")
 	fixedWeights := false
 
@@ -44,7 +60,7 @@ func VGG16Layer(m *godl.Model, opts Opts) godl.Layer {
 		opts.WithBias = true
 	}
 
-	layers := []godl.Layer{
+	layers := []godl.Module{
 		Block(m, BlockOpts{
 			InputDimension:  3,
 			OutputDimension: 64,
@@ -210,7 +226,7 @@ func VGG16Layer(m *godl.Model, opts Opts) godl.Layer {
 
 	if !opts.OnlyFeatureExtraction {
 		layers = append(layers,
-			godl.FC(m, godl.FCOpts{
+			godl.Linear(m, godl.LinearOpts{
 				InputDimension:  25088,
 				OutputDimension: 4096,
 				WithBias:        opts.WithBias,
@@ -222,7 +238,7 @@ func VGG16Layer(m *godl.Model, opts Opts) godl.Layer {
 				BiasName:        "/fc1/fc1_b:0",
 				FixedWeights:    fixedWeights,
 			}),
-			godl.FC(m, godl.FCOpts{
+			godl.Linear(m, godl.LinearOpts{
 				InputDimension:  4096,
 				OutputDimension: 4096,
 				WithBias:        opts.WithBias,
@@ -234,7 +250,7 @@ func VGG16Layer(m *godl.Model, opts Opts) godl.Layer {
 				BiasName:        "/fc2/fc2_b:0",
 				FixedWeights:    fixedWeights,
 			}),
-			godl.FC(m, godl.FCOpts{
+			godl.Linear(m, godl.LinearOpts{
 				InputDimension:  4096,
 				OutputDimension: 1000,
 				WithBias:        opts.WithBias,
@@ -251,13 +267,10 @@ func VGG16Layer(m *godl.Model, opts Opts) godl.Layer {
 
 	seq := godl.Sequential(m, layers...)
 
-	return func(inputs ...*gorgonia.Node) (godl.Result, error) {
-		if err := m.CheckArity(lt, inputs, 1); err != nil {
-			return godl.Result{}, err
-		}
-
-		x := inputs[0]
-
-		return seq(x)
+	return &VGG16Module{
+		model: m,
+		opts:  opts,
+		layer: lt,
+		seq:   seq,
 	}
 }

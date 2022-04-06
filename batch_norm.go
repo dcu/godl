@@ -33,8 +33,6 @@ func (o *BatchNormOpts) setDefaults() {
 
 	if o.ScaleInit == nil {
 		o.ScaleInit = gorgonia.Ones()
-		// gain := math.Sqrt(float64(o.InputDim+o.OutputDim) / math.Sqrt(float64(4*o.InputDim)))
-		// o.ScaleInit = gorgonia.GlorotN(gain)
 	}
 
 	if o.BiasInit == nil {
@@ -42,8 +40,31 @@ func (o *BatchNormOpts) setDefaults() {
 	}
 }
 
+type BatchNormModule struct {
+	model *Model
+	layer LayerType
+	opts  BatchNormOpts
+
+	scale, bias *Node
+}
+
+func (m *BatchNormModule) Forward(inputs ...*Node) Nodes {
+	if err := m.model.CheckArity(m.layer, inputs, 1); err != nil {
+		panic(err)
+	}
+
+	x := inputs[0]
+
+	ret, _, _, _, err := gorgonia.BatchNorm(x, m.scale, m.bias, float64(m.opts.Momentum), float64(m.opts.Epsilon))
+	if err != nil {
+		panic(fmt.Errorf("%v: %w", m.layer, err))
+	}
+
+	return Nodes{ret}
+}
+
 // BatchNorm1d defines the batch norm operation for tensors with shape (B, N)
-func BatchNorm1d(nn *Model, opts BatchNormOpts) Layer {
+func BatchNorm1d(nn *Model, opts BatchNormOpts) *BatchNormModule {
 	opts.setDefaults()
 	lt := AddLayer("BatchNorm1d")
 
@@ -56,11 +77,17 @@ func BatchNorm1d(nn *Model, opts BatchNormOpts) Layer {
 		InitFN:     opts.BiasInit,
 	})
 
-	return batchNorm(nn, lt, scale, bias, opts)
+	return &BatchNormModule{
+		model: nn,
+		layer: lt,
+		opts:  opts,
+		scale: scale,
+		bias:  bias,
+	}
 }
 
 // BatchNorm2d defines the batch norm operation for tensors with shape (B, C, W, H)
-func BatchNorm2d(nn *Model, opts BatchNormOpts) Layer {
+func BatchNorm2d(nn *Model, opts BatchNormOpts) *BatchNormModule {
 	opts.setDefaults()
 	lt := AddLayer("BatchNorm2d")
 
@@ -73,25 +100,11 @@ func BatchNorm2d(nn *Model, opts BatchNormOpts) Layer {
 		InitFN:     opts.BiasInit,
 	})
 
-	return batchNorm(nn, lt, scale, bias, opts)
-}
-
-// batchNorm runs a batch normalization on the input x
-func batchNorm(nn *Model, lt LayerType, scale, bias *gorgonia.Node, opts BatchNormOpts) Layer {
-	opts.setDefaults()
-
-	return func(nodes ...*gorgonia.Node) (Result, error) {
-		if err := nn.CheckArity(lt, nodes, 1); err != nil {
-			return Result{}, err
-		}
-
-		x := nodes[0]
-
-		ret, _, _, _, err := gorgonia.BatchNorm(x, scale, bias, float64(opts.Momentum), float64(opts.Epsilon))
-		if err != nil {
-			return Result{}, fmt.Errorf("%v: %w", lt, err)
-		}
-
-		return Result{Output: ret}, nil
+	return &BatchNormModule{
+		model: nn,
+		layer: lt,
+		opts:  opts,
+		scale: scale,
+		bias:  bias,
 	}
 }

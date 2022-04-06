@@ -30,8 +30,34 @@ func (o *AttentiveTransformerOpts) setDefaults() {
 	}
 }
 
+type AttentiveTransformerModule struct {
+	model  *godl.Model
+	layer  godl.LayerType
+	opts   AttentiveTransformerOpts
+	linear *godl.LinearModule
+	gbn    *godl.GhostBatchNormModule
+}
+
+func (m *AttentiveTransformerModule) Forward(inputs ...*godl.Node) godl.Nodes {
+	if err := m.model.CheckArity(m.layer, inputs, 2); err != nil {
+		panic(err)
+	}
+
+	x := inputs[0]
+	prior := inputs[1]
+
+	fc := m.linear.Forward(x)
+	bn := m.gbn.Forward(fc...)
+
+	mul := gorgonia.Must(gorgonia.HadamardProd(bn[0], prior))
+
+	sm := gorgonia.Must(m.opts.Activation(mul))
+
+	return godl.Nodes{sm}
+}
+
 // AttentiveTransformer implements an attetion transformer layer
-func AttentiveTransformer(nn *godl.Model, opts AttentiveTransformerOpts) godl.Layer {
+func AttentiveTransformer(nn *godl.Model, opts AttentiveTransformerOpts) *AttentiveTransformerModule {
 	lt := godl.AddLayer("AttentiveTransformer")
 
 	opts.setDefaults()
@@ -42,14 +68,14 @@ func AttentiveTransformer(nn *godl.Model, opts AttentiveTransformerOpts) godl.La
 		weightsInit = gorgonia.GlorotN(gain)
 	}
 
-	fcLayer := godl.FC(nn, godl.FCOpts{
+	fcLayer := godl.Linear(nn, godl.LinearOpts{
 		InputDimension:  opts.InputDimension,
 		OutputDimension: opts.OutputDimension,
 		WeightsInit:     weightsInit,
 		WithBias:        opts.WithBias,
 	})
 
-	gbnLayer := godl.GBN(nn, godl.GBNOpts{
+	gbnLayer := godl.GhostBatchNorm(nn, godl.GhostBatchNormOpts{
 		Momentum:         opts.Momentum,
 		Epsilon:          opts.Epsilon,
 		VirtualBatchSize: opts.VirtualBatchSize,
@@ -58,36 +84,11 @@ func AttentiveTransformer(nn *godl.Model, opts AttentiveTransformerOpts) godl.La
 		BiasInit:         opts.BiasInit,
 	})
 
-	return func(nodes ...*gorgonia.Node) (godl.Result, error) {
-		if err := nn.CheckArity(lt, nodes, 2); err != nil {
-			return godl.Result{}, err
-		}
-
-		x := nodes[0]
-		prior := nodes[1]
-
-		fc, err := fcLayer(x)
-		if err != nil {
-			return godl.Result{}, godl.ErrorF(lt, "fc%v failed failed: %w", x.Shape(), err)
-		}
-
-		bn, err := gbnLayer(fc.Output)
-		if err != nil {
-			return godl.Result{}, godl.ErrorF(lt, "gbn%v failed: %w", fc.Shape(), err)
-		}
-
-		mul, err := gorgonia.HadamardProd(bn.Output, prior)
-		if err != nil {
-			return godl.Result{}, godl.ErrorF(lt, "hadamardProd(%v, %v) failed: %w", bn.Shape(), prior.Shape(), err)
-		}
-
-		sm, err := opts.Activation(mul)
-		if err != nil {
-			return godl.Result{}, godl.ErrorF(lt, "fn(%v) failed: %w", mul.Shape(), err)
-		}
-
-		// nn.Watch("sparsemax", sm)
-
-		return godl.Result{Output: sm}, nil
+	return &AttentiveTransformerModule{
+		model:  nn,
+		layer:  lt,
+		opts:   opts,
+		linear: fcLayer,
+		gbn:    gbnLayer,
 	}
 }

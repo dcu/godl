@@ -56,30 +56,21 @@ func TestAttentiveTransformer(t *testing.T) {
 			),
 				gorgonia.WithName("priors"),
 			)
-			result, err := AttentiveTransformer(tn, AttentiveTransformerOpts{
+			result := AttentiveTransformer(tn, AttentiveTransformerOpts{
 				VirtualBatchSize: tcase.vbs,
 				InputDimension:   input.Shape()[1],
 				OutputDimension:  tcase.output,
 				WeightsInit:      initDummyWeights,
-			})(input, priors)
+			}).Forward(input, priors)
 
 			fcWeight := gorgonia.NewTensor(g, tensor.Float32, 2, gorgonia.WithShape(input.Shape()[1], tcase.output), gorgonia.WithInit(gorgonia.RangedFromWithStep(-0.05, 0.03)), gorgonia.WithName("fcWeight"))
 
-			y := result.Output
+			y := result[0]
 			wT := gorgonia.Must(gorgonia.Transpose(fcWeight, 1, 0))
 			y = gorgonia.Must(gorgonia.Mul(y, wT))
 
-			if tcase.expectedErr != "" {
-				c.Error(err)
-				c.Equal(tcase.expectedErr, err.Error())
-
-				return
-			} else {
-				c.NoError(err)
-			}
-
 			cost := gorgonia.Must(gorgonia.Mean(y))
-			_, err = gorgonia.Grad(cost, input)
+			_, err := gorgonia.Grad(cost, input)
 			c.NoError(err)
 
 			vm := gorgonia.NewTapeMachine(g, gorgonia.BindDualValues(append(tn.Learnables(), fcWeight)...))
@@ -90,7 +81,7 @@ func TestAttentiveTransformer(t *testing.T) {
 			t.Logf("input: %v", input.Value())
 			t.Logf("priors: %v", priors.Value())
 			t.Logf("dx: %v", input.Deriv().Value())
-			t.Logf("att output: %v", result.Output.Value())
+			t.Logf("att output: %v", y.Value())
 
 			c.Equal(tcase.expectedShape, y.Shape())
 			c.Equal(tcase.expectedOutput, y.Value().Data().([]float32))

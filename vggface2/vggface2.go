@@ -22,16 +22,53 @@ func (opts *Opts) setDefaults() {
 	}
 }
 
-func VGGFace2(opts Opts) func(m *godl.Model) godl.Layer {
-	return func(m *godl.Model) godl.Layer {
-		return VGGFace2Layer(m, opts)
+type VGGFace2Module struct {
+	model *godl.Model
+	layer godl.LayerType
+
+	seq godl.ModuleList
+}
+
+func (m *VGGFace2Module) Forward(inputs ...*godl.Node) godl.Nodes {
+	if err := m.model.CheckArity(m.layer, inputs, 1); err != nil {
+		panic(err)
+	}
+
+	x := inputs[0]
+
+	result := godl.Conv2d(m.model, godl.Conv2dOpts{
+		InputDimension:  64,
+		OutputDimension: 3,
+		KernelSize:      tensor.Shape{7, 7},
+		Pad:             []int{0, 0},
+		WeightsName:     "/conv1/7x7_s2/gamma",
+		BiasName:        "/conv1/7x7_s2/beta",
+	}).Forward(x)
+
+	result = godl.BatchNorm2d(m.model, godl.BatchNormOpts{
+		InputSize: result[0].Shape()[0],
+		ScaleName: "/conv1/7x7_s2/bn/gamma",
+		BiasName:  "/conv1/7x7_s2/bn/beta",
+	}).Forward(result[0])
+
+	x = gorgonia.Must(gorgonia.Rectify(result[0]))
+	x = gorgonia.Must(gorgonia.MaxPool2D(x, tensor.Shape{3, 3}, []int{0, 0}, []int{1, 1}))
+
+	result = m.seq.Forward(x)
+
+	return result
+}
+
+func VGGFace2Builder(opts Opts) func(*godl.Model) godl.Module {
+	return func(m *godl.Model) godl.Module {
+		return VGGFace2(m, opts)
 	}
 }
 
-func VGGFace2Layer(m *godl.Model, opts Opts) godl.Layer {
+func VGGFace2(m *godl.Model, opts Opts) *VGGFace2Module {
 	lt := godl.AddLayer("VGGFace2")
 
-	blocks := []godl.Layer{
+	blocks := []godl.Module{
 		// Stage 2
 		ConvBlock(m, BlockOpts{
 			KernelSize: tensor.Shape{3, 3},
@@ -142,7 +179,7 @@ func VGGFace2Layer(m *godl.Model, opts Opts) godl.Layer {
 	}
 
 	if !opts.OnlyFeatureExtraction {
-		blocks = append(blocks, godl.FC(m, godl.FCOpts{
+		blocks = append(blocks, godl.Linear(m, godl.LinearOpts{
 			InputDimension:  0, // FIXME
 			OutputDimension: opts.Classes,
 			WeightsName:     "classifier/kernel",
@@ -155,36 +192,10 @@ func VGGFace2Layer(m *godl.Model, opts Opts) godl.Layer {
 
 	seq := godl.Sequential(m, blocks...)
 
-	return func(inputs ...*gorgonia.Node) (godl.Result, error) {
-		if err := m.CheckArity(lt, inputs, 1); err != nil {
-			return godl.Result{}, err
-		}
-
-		x := inputs[0]
-
-		result, err := godl.Conv2d(m, godl.Conv2dOpts{
-			InputDimension:  64,
-			OutputDimension: 3,
-			KernelSize:      tensor.Shape{7, 7},
-			Pad:             []int{0, 0},
-			WeightsName:     "/conv1/7x7_s2/gamma",
-			BiasName:        "/conv1/7x7_s2/beta",
-		})(x)
-		handleErr(err)
-
-		result, err = godl.BatchNorm2d(m, godl.BatchNormOpts{
-			InputSize: result.Output.Shape()[0],
-			ScaleName: "/conv1/7x7_s2/bn/gamma",
-			BiasName:  "/conv1/7x7_s2/bn/beta",
-		})(result.Output)
-
-		x = gorgonia.Must(gorgonia.Rectify(result.Output))
-		x = gorgonia.Must(gorgonia.MaxPool2D(x, tensor.Shape{3, 3}, []int{0, 0}, []int{1, 1}))
-
-		result, err = seq(x)
-		handleErr(err)
-
-		return godl.Result{}, nil
+	return &VGGFace2Module{
+		model: m,
+		layer: lt,
+		seq:   seq,
 	}
 }
 

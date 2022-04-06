@@ -4,67 +4,64 @@ import (
 	"gorgonia.org/gorgonia"
 )
 
-func Sigmoid() Layer {
-	return func(inputs ...*gorgonia.Node) (result Result, err error) {
-		x := inputs[0]
+type ActivationModule struct {
+	name string
+	fn   func(x *Node) (*Node, error)
+}
 
-		r, err := gorgonia.Sigmoid(x)
-		if err != nil {
-			return Result{}, err
-		}
+func (m *ActivationModule) Forward(inputs ...*Node) Nodes {
+	x := inputs[0]
+	y := gorgonia.Must(m.fn(x))
 
-		return Result{Output: r}, nil
+	return Nodes{y}
+}
+
+type ActivationAxisModule struct {
+	name string
+	axis []int
+	fn   func(x *Node, axis ...int) (*Node, error)
+}
+
+func (m *ActivationAxisModule) Forward(inputs ...*Node) Nodes {
+	x := inputs[0]
+	y := gorgonia.Must(m.fn(x, m.axis...))
+
+	return Nodes{y}
+}
+
+func Sigmoid() Module {
+	return &ActivationModule{
+		name: "Sigmoid",
+		fn:   gorgonia.Sigmoid,
 	}
 }
 
-func Tanh() Layer {
-	return func(inputs ...*gorgonia.Node) (result Result, err error) {
-		x := inputs[0]
-
-		r, err := gorgonia.Tanh(x)
-		if err != nil {
-			return Result{}, err
-		}
-
-		return Result{Output: r}, nil
+func Tanh() Module {
+	return &ActivationModule{
+		name: "Tanh",
+		fn:   gorgonia.Tanh,
 	}
 }
 
-func Rectify() Layer {
-	return func(inputs ...*gorgonia.Node) (result Result, err error) {
-		x := inputs[0]
-
-		r, err := gorgonia.Rectify(x)
-		if err != nil {
-			return Result{}, err
-		}
-
-		return Result{Output: r}, nil
+func Rectify() Module {
+	return &ActivationModule{
+		name: "Rectify",
+		fn:   gorgonia.Rectify,
 	}
 }
 
-func SparseMax(axis ...int) Layer {
-	return func(inputs ...*gorgonia.Node) (result Result, err error) {
-		x := inputs[0]
-
-		r, err := gorgonia.Sparsemax(x, axis...)
-		if err != nil {
-			return Result{}, err
-		}
-
-		return Result{Output: r}, nil
+func SparseMax(axis ...int) Module {
+	return &ActivationAxisModule{
+		name: "SparseMax",
+		axis: axis,
+		fn:   gorgonia.Sparsemax,
 	}
 }
 
-func SoftMax(axis ...int) Layer {
-	return func(inputs ...*gorgonia.Node) (result Result, err error) {
-		x := inputs[0]
-
-		r, err := gorgonia.SoftMax(x, axis...)
-		if err != nil {
-			return Result{}, err
-		}
-
-		return Result{Output: r}, nil
+func SoftMax(axis ...int) Module {
+	return &ActivationAxisModule{
+		name: "SoftMax",
+		axis: axis,
+		fn:   gorgonia.SoftMax,
 	}
 }

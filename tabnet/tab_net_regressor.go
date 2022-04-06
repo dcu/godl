@@ -10,9 +10,9 @@ import (
 )
 
 type Regressor struct {
-	opts  RegressorOpts
-	model *godl.Model
-	layer godl.Layer
+	opts   RegressorOpts
+	model  *godl.Model
+	tabnet *TabNetModule
 }
 
 type RegressorOpts struct {
@@ -34,7 +34,7 @@ type RegressorOpts struct {
 	WeightsInit, ScaleInit, BiasInit gorgonia.InitWFn
 }
 
-func newModel(training bool, batchSize int, inputDim int, catDims []int, catIdxs []int, catEmbDim []int, opts RegressorOpts) (*godl.Model, godl.Layer) {
+func newModel(training bool, batchSize int, inputDim int, catDims []int, catIdxs []int, catEmbDim []int, opts RegressorOpts) (*godl.Model, *TabNetModule) {
 	nn := godl.NewModel()
 
 	layer := TabNet(nn, TabNetOpts{
@@ -67,9 +67,9 @@ func NewRegressor(inputDim int, catDims []int, catIdxs []int, catEmbDim []int, o
 	model, layer := newModel(true, opts.BatchSize, inputDim, catDims, catIdxs, catEmbDim, opts)
 
 	return &Regressor{
-		opts:  opts,
-		model: model,
-		layer: layer,
+		opts:   opts,
+		model:  model,
+		tabnet: layer,
 	}
 }
 
@@ -78,10 +78,11 @@ func (r *Regressor) Train(trainX, trainY, validateX, validateY tensor.Tensor, op
 
 	if opts.CostFn == nil {
 		lambdaSparse := gorgonia.NewConstant(float32(1e-3), gorgonia.WithName("LambdaSparse"))
-		opts.CostFn = godl.MSELoss(godl.MSELossOpts{})
+		mseLoss := godl.MSELoss(godl.MSELossOpts{})
 
-		opts.CustomCost = func(cost *gorgonia.Node, result godl.Result) *gorgonia.Node {
-			tmpLoss := gorgonia.Must(gorgonia.Mul(result.Loss, lambdaSparse))
+		opts.CostFn = func(output godl.Nodes, target *godl.Node) *gorgonia.Node {
+			cost := mseLoss(output, target)
+			tmpLoss := gorgonia.Must(gorgonia.Mul(output[1], lambdaSparse))
 			cost = gorgonia.Must(gorgonia.Sub(cost, tmpLoss))
 
 			return cost
@@ -92,12 +93,12 @@ func (r *Regressor) Train(trainX, trainY, validateX, validateY tensor.Tensor, op
 		opts.Solver = gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(opts.BatchSize)), gorgonia.WithLearnRate(0.02))
 	}
 
-	return godl.Train(r.model, r.layer, trainX, trainY, validateX, validateY, opts)
+	return godl.Train(r.model, r.tabnet, trainX, trainY, validateX, validateY, opts)
 }
 
 // FIXME: this shouldn't receive Y
 func (r *Regressor) Solve(x tensor.Tensor, y tensor.Tensor) (tensor.Tensor, error) {
-	predictor, err := r.model.Predictor(r.layer, godl.PredictOpts{
+	predictor, err := r.model.Predictor(r.tabnet, godl.PredictOpts{
 		InputShape: tensor.Shape{r.opts.BatchSize, x.Shape()[1]},
 	})
 	if err != nil {

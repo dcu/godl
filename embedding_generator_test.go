@@ -67,11 +67,10 @@ func TestEmbeddingGenerator(t *testing.T) {
 			)
 
 			input := gorgonia.NewTensor(tn.trainGraph, tensor.Float32, tcase.inputShape.Dims(), gorgonia.WithShape(tcase.inputShape...), gorgonia.WithValue(ts), gorgonia.WithName("input"))
-			result, err := embedder(input)
-			c.NoError(err)
+			result := embedder.Forward(input)[0]
 
-			cost := gorgonia.Must(gorgonia.Mean(result.Output))
-			_, err = gorgonia.Grad(cost, tn.Learnables()...)
+			cost := gorgonia.Must(gorgonia.Mean(result))
+			_, err := gorgonia.Grad(cost, tn.Learnables()...)
 			c.NoError(err)
 
 			vm := gorgonia.NewTapeMachine(tn.trainGraph)
@@ -80,7 +79,7 @@ func TestEmbeddingGenerator(t *testing.T) {
 			c.Equal(tcase.expectedOutputShape, result.Shape())
 			c.Equal(tcase.expectedOutput, result.Value().Data())
 
-			yGrad, err := result.Output.Grad()
+			yGrad, err := result.Grad()
 			c.NoError(err)
 
 			c.Equal(tcase.expectedGrad, yGrad.Data())

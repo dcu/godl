@@ -9,8 +9,37 @@ type EmbeddingOpts struct {
 	WeightsInit gorgonia.InitWFn
 }
 
+type EmbeddingModule struct {
+	model                       *Model
+	layer                       LayerType
+	opts                        EmbeddingOpts
+	embeddingSize, embeddingDim int
+
+	weight *Node
+}
+
+func (m *EmbeddingModule) Forward(inputs ...*Node) Nodes {
+	err := m.model.CheckArity(m.layer, inputs, 1)
+	if err != nil {
+		panic(err)
+	}
+
+	indices := inputs[0]
+	indicesShape := indices.Shape().Clone()
+	indices = gorgonia.Must(gorgonia.Reshape(indices, tensor.Shape{indicesShape.TotalSize()}))
+
+	embedding, err := gorgonia.ByIndices(m.weight, indices, 0)
+	if err != nil {
+		panic(err)
+	}
+
+	embedding = gorgonia.Must(gorgonia.Reshape(embedding, append(indicesShape, m.embeddingDim)))
+
+	return Nodes{embedding}
+}
+
 // Embedding implements a embedding layer
-func Embedding(m *Model, embeddingSize int, embeddingDim int, opts EmbeddingOpts) Layer {
+func Embedding(m *Model, embeddingSize int, embeddingDim int, opts EmbeddingOpts) *EmbeddingModule {
 	lt := AddLayer("Embedding")
 
 	if opts.WeightsInit == nil {
@@ -21,23 +50,12 @@ func Embedding(m *Model, embeddingSize int, embeddingDim int, opts EmbeddingOpts
 		InitFN: opts.WeightsInit,
 	})
 
-	return func(inputs ...*gorgonia.Node) (Result, error) {
-		err := m.CheckArity(lt, inputs, 1)
-		if err != nil {
-			return Result{}, err
-		}
-
-		indices := inputs[0]
-		indicesShape := indices.Shape().Clone()
-		indices = gorgonia.Must(gorgonia.Reshape(indices, tensor.Shape{indicesShape.TotalSize()}))
-
-		embedding, err := gorgonia.ByIndices(w, indices, 0)
-		if err != nil {
-			return Result{}, err
-		}
-
-		embedding = gorgonia.Must(gorgonia.Reshape(embedding, append(indicesShape, embeddingDim)))
-
-		return Result{Output: embedding}, nil
+	return &EmbeddingModule{
+		model:         m,
+		layer:         lt,
+		opts:          opts,
+		embeddingSize: embeddingSize,
+		embeddingDim:  embeddingDim,
+		weight:        w,
 	}
 }

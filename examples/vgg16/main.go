@@ -30,7 +30,7 @@ func main() {
 	})
 	handleErr(err)
 
-	vgg16 := vgg.VGG16(vgg.Opts{
+	vgg16 := vgg.VGG16Builder(vgg.Opts{
 		PreTrained: true,
 		Learnable:  false,
 	})

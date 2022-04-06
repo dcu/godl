@@ -45,26 +45,26 @@ func TestBatchNorm(t *testing.T) {
 			solver := gorgonia.NewAdamSolver(gorgonia.WithLearnRate(0.1))
 
 			m := NewModel()
+			opts := BatchNormOpts{
+				InputSize: tC.input.Shape()[1],
+			}
 
-			bnFunc := BatchNorm1d
+			var bnFunc func(*Model, BatchNormOpts) *BatchNormModule
+			bnFunc = BatchNorm1d
 			if tC.input.Dims() == 4 {
 				bnFunc = BatchNorm2d
 			}
 
-			bn := bnFunc(m, BatchNormOpts{
-				InputSize: tC.input.Shape()[1],
-			})
-
 			x := gorgonia.NewTensor(m.trainGraph, tensor.Float32, tC.input.Shape().Dims(), gorgonia.WithShape(tC.input.Shape()...), gorgonia.WithValue(tC.input), gorgonia.WithName("x"))
 
-			result, err := bn(x)
-			c.NoError(err)
+			bn := bnFunc(m, opts)
+			result := bn.Forward(x)
 
-			cost := gorgonia.Must(gorgonia.Mean(result.Output))
+			cost := gorgonia.Must(gorgonia.Mean(result[0]))
 
 			l := m.learnables
 
-			_, err = gorgonia.Grad(cost, l...)
+			_, err := gorgonia.Grad(cost, l...)
 			c.NoError(err)
 
 			vm := gorgonia.NewTapeMachine(m.trainGraph,
@@ -75,7 +75,7 @@ func TestBatchNorm(t *testing.T) {
 			c.NoError(vm.RunAll())
 			c.NoError(vm.Close())
 
-			outputGrad, err := result.Output.Grad()
+			outputGrad, err := result[0].Grad()
 			c.NoError(err)
 
 			scaleGrad, err := l[0].Grad()
@@ -85,13 +85,13 @@ func TestBatchNorm(t *testing.T) {
 			c.NoError(err)
 
 			log.Printf("input: %v", tC.input)
-			log.Printf("output: %v", result.Value())
+			log.Printf("output: %v", result[0].Value())
 			log.Printf("output grad: %v", outputGrad)
 			log.Printf("scale grad: %v", scaleGrad)
 			log.Printf("bias grad: %v", biasGrad)
 			log.Printf("cost: %v", cost.Value())
 
-			c.InDeltaSlice(tC.expectedOutput.Data(), result.Value().Data(), 1e-5, "actual: %#v", result.Value().Data())
+			c.InDeltaSlice(tC.expectedOutput.Data(), result[0].Value().Data(), 1e-5, "actual: %#v", result[0].Value().Data())
 			c.Equal(tC.expectedOutputGrad.Data(), outputGrad.Data())
 			c.Equal(tC.expectedScaleGrad.Data(), scaleGrad.Data())
 			c.Equal(tC.expectedBiasGrad.Data(), biasGrad.Data())

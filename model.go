@@ -93,7 +93,7 @@ func (o *PredictOpts) setDefaults() {
 	}
 }
 
-func (m *Model) Predictor(layer Layer, opts PredictOpts) (Predictor, error) {
+func (m *Model) Predictor(module Module, opts PredictOpts) (Predictor, error) {
 	opts.setDefaults()
 
 	x := gorgonia.NewTensor(
@@ -104,11 +104,7 @@ func (m *Model) Predictor(layer Layer, opts PredictOpts) (Predictor, error) {
 		gorgonia.WithShape(opts.InputShape...),
 	)
 
-	result, err := layer(x)
-	if err != nil {
-		return nil, fmt.Errorf("error running layer: %w", err)
-	}
-
+	result := module.Forward(x)
 	vmOpts := []gorgonia.VMOpt{
 		gorgonia.EvalMode(),
 	}
@@ -124,7 +120,7 @@ func (m *Model) Predictor(layer Layer, opts PredictOpts) (Predictor, error) {
 
 	var predVal gorgonia.Value
 
-	gorgonia.Read(result.Output, &predVal)
+	gorgonia.Read(result[0], &predVal)
 
 	return func(input tensor.Tensor) (gorgonia.Value, error) {
 		gorgonia.Let(x, input)

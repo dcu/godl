@@ -7,7 +7,50 @@ import (
 	"gorgonia.org/tensor"
 )
 
-func EmbeddingGenerator(m *Model, inputDims int, catDims []int, catIdxs []int, catEmbDim []int, opts EmbeddingOpts) Layer {
+type EmbeddingGeneratorModule struct {
+	model         *Model
+	opts          EmbeddingOpts
+	skipEmbedding bool
+
+	categoricalColumnIndexes []bool
+	embeddings               []*EmbeddingModule
+}
+
+func (m *EmbeddingGeneratorModule) Forward(inputs ...*Node) Nodes {
+	err := m.model.CheckArity("EmbeddingGenerator", inputs, 1)
+	if err != nil {
+		panic(err)
+	}
+
+	x := inputs[0]
+	if m.skipEmbedding {
+		return Nodes{x}
+	}
+
+	cols := make([]*gorgonia.Node, len(m.categoricalColumnIndexes))
+	catFeatCounter := 0
+
+	for featInitIdx, isCategorical := range m.categoricalColumnIndexes {
+		s := gorgonia.Must(gorgonia.Slice(x, nil, gorgonia.S(featInitIdx)))
+
+		if isCategorical {
+			s := gorgonia.Must(gorgonia.ConvType(s, tensor.Float32, tensor.Int))
+			result := m.embeddings[catFeatCounter].Forward(s)
+
+			cols[featInitIdx] = result[0]
+
+			catFeatCounter++
+		} else {
+			cols[featInitIdx] = gorgonia.Must(gorgonia.Reshape(s, tensor.Shape{s.Shape().TotalSize(), 1}))
+		}
+	}
+
+	output := gorgonia.Must(gorgonia.Concat(1, cols...))
+
+	return Nodes{output}
+}
+
+func EmbeddingGenerator(m *Model, inputDims int, catDims []int, catIdxs []int, catEmbDim []int, opts EmbeddingOpts) *EmbeddingGeneratorModule {
 	skipEmbedding := false
 	if len(catDims) == 0 || len(catIdxs) == 0 {
 		skipEmbedding = true
@@ -17,7 +60,7 @@ func EmbeddingGenerator(m *Model, inputDims int, catDims []int, catIdxs []int, c
 		return catIdxs[i] < catIdxs[j]
 	})
 
-	embeddings := make([]Layer, len(catIdxs))
+	embeddings := make([]*EmbeddingModule, len(catIdxs))
 	categoricalColumnIndexes := make([]bool, inputDims)
 
 	for i, v := range catIdxs {
@@ -31,40 +74,11 @@ func EmbeddingGenerator(m *Model, inputDims int, catDims []int, catIdxs []int, c
 		categoricalColumnIndexes[v] = true
 	}
 
-	return func(inputs ...*gorgonia.Node) (Result, error) {
-		err := m.CheckArity("EmbeddingGenerator", inputs, 1)
-		if err != nil {
-			return Result{}, err
-		}
-
-		x := inputs[0]
-		if skipEmbedding {
-			return Result{Output: x}, nil
-		}
-
-		cols := make([]*gorgonia.Node, len(categoricalColumnIndexes))
-		catFeatCounter := 0
-
-		for featInitIdx, isCategorical := range categoricalColumnIndexes {
-			s := gorgonia.Must(gorgonia.Slice(x, nil, gorgonia.S(featInitIdx)))
-
-			if isCategorical {
-				s := gorgonia.Must(gorgonia.ConvType(s, tensor.Float32, tensor.Int))
-				result, err := embeddings[catFeatCounter](s)
-				if err != nil {
-					panic(err)
-				}
-
-				cols[featInitIdx] = result.Output
-
-				catFeatCounter++
-			} else {
-				cols[featInitIdx] = gorgonia.Must(gorgonia.Reshape(s, tensor.Shape{s.Shape().TotalSize(), 1}))
-			}
-		}
-
-		output := gorgonia.Must(gorgonia.Concat(1, cols...))
-
-		return Result{Output: output}, nil
+	return &EmbeddingGeneratorModule{
+		model:                    m,
+		opts:                     opts,
+		skipEmbedding:            skipEmbedding,
+		categoricalColumnIndexes: categoricalColumnIndexes,
+		embeddings:               embeddings,
 	}
 }

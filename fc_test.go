@@ -31,7 +31,7 @@ func TestFC(t *testing.T) {
 			c := require.New(t)
 
 			m := NewModel()
-			fc := FC(m, FCOpts{
+			fc := Linear(m, LinearOpts{
 				InputDimension:  tC.input.Shape()[1],
 				OutputDimension: 4,
 				WeightsInit:     gorgonia.RangedFromWithStep(-0.05, 0.03),
@@ -39,14 +39,13 @@ func TestFC(t *testing.T) {
 
 			x := gorgonia.NewTensor(m.trainGraph, tensor.Float32, 2, gorgonia.WithShape(tC.input.Shape()...), gorgonia.WithValue(tC.input), gorgonia.WithName("x"))
 
-			result, err := fc(x)
-			c.NoError(err)
+			result := fc.Forward(x)[0]
 
-			cost := gorgonia.Must(gorgonia.Mean(result.Output))
+			cost := gorgonia.Must(gorgonia.Mean(result))
 
 			l := m.learnables
 
-			_, err = gorgonia.Grad(cost, append(l, x)...)
+			_, err := gorgonia.Grad(cost, append(l, x)...)
 			c.NoError(err)
 
 			// _ = ioutil.WriteFile("fc.dot", []byte(m.g.ToDot()), 0644)
@@ -60,9 +59,9 @@ func TestFC(t *testing.T) {
 			c.NoError(vm.Close())
 
 			c.Equal(tC.expectedInputGrad.Data(), x.Deriv().Value().Data())
-			c.Equal(tC.expectedOutput.Data(), result.Output.Value().Data())
+			c.Equal(tC.expectedOutput.Data(), result.Value().Data())
 
-			outputGrad, err := result.Output.Grad()
+			outputGrad, err := result.Grad()
 			c.NoError(err)
 			c.Equal(tC.expectedOutputGrad.Data(), outputGrad.Data())
 

@@ -11,7 +11,7 @@ import (
 type GLUBlockOpts struct {
 	InputDimension   int
 	OutputDimension  int
-	Shared           []godl.Layer
+	Shared           []*godl.LinearModule
 	VirtualBatchSize int
 
 	Size int
@@ -21,10 +21,44 @@ type GLUBlockOpts struct {
 	WeightsInit gorgonia.InitWFn
 }
 
-func GLUBlock(nn *godl.Model, opts GLUBlockOpts) godl.Layer {
+type GLUBlockModule struct {
+	model *godl.Model
+	layer godl.LayerType
+	opts  GLUBlockOpts
+
+	gluLayers []*godl.GLUModule
+	scale     *godl.Node
+}
+
+func (m *GLUBlockModule) Forward(inputs ...*godl.Node) godl.Nodes {
+	if err := m.model.CheckArity(m.layer, inputs, 1); err != nil {
+		panic(err)
+	}
+
+	x := inputs[0]
+	startAt := 0
+
+	if len(m.opts.Shared) > 0 {
+		result := m.gluLayers[0].Forward(x)
+
+		x = result[0]
+		startAt = 1
+	}
+
+	for _, glu := range m.gluLayers[startAt:] {
+		result := glu.Forward(x)[0]
+
+		x = gorgonia.Must(gorgonia.Add(x, result))
+		x = gorgonia.Must(gorgonia.Mul(x, m.scale))
+	}
+
+	return godl.Nodes{x}
+}
+
+func GLUBlock(nn *godl.Model, opts GLUBlockOpts) *GLUBlockModule {
 	lt := godl.AddLayer("GLUBlock")
 
-	gluLayers := make([]godl.Layer, 0, opts.Size)
+	gluLayers := make([]*godl.GLUModule, 0, opts.Size)
 	gluInput := opts.InputDimension
 	if len(opts.Shared) == 0 { // for independent layers
 		gluInput = opts.OutputDimension
@@ -39,7 +73,7 @@ func GLUBlock(nn *godl.Model, opts GLUBlockOpts) godl.Layer {
 	}
 
 	for i := 0; i < opts.Size; i++ {
-		var fcLayer godl.Layer
+		var fcLayer *godl.LinearModule
 		if len(opts.Shared) > 0 {
 			fcLayer = opts.Shared[i]
 		}
@@ -48,7 +82,7 @@ func GLUBlock(nn *godl.Model, opts GLUBlockOpts) godl.Layer {
 			InputDimension:   gluInput,
 			OutputDimension:  gluOutput,
 			VirtualBatchSize: opts.VirtualBatchSize,
-			FC:               fcLayer,
+			Linear:           fcLayer,
 			WeightsInit:      weightsInit,
 			WithBias:         opts.WithBias,
 			Momentum:         opts.Momentum,
@@ -59,42 +93,11 @@ func GLUBlock(nn *godl.Model, opts GLUBlockOpts) godl.Layer {
 
 	scale := gorgonia.NewConstant(math32.Sqrt(0.5), gorgonia.WithName("ft.scale"))
 
-	return func(nodes ...*gorgonia.Node) (godl.Result, error) {
-		if err := nn.CheckArity(lt, nodes, 1); err != nil {
-			return godl.Result{}, err
-		}
-
-		x := nodes[0]
-		startAt := 0
-
-		if len(opts.Shared) > 0 {
-			result, err := gluLayers[0](x)
-			if err != nil {
-				return godl.Result{}, err
-			}
-
-			x = result.Output
-			startAt = 1
-		}
-
-		for _, glu := range gluLayers[startAt:] {
-			result, err := glu(x)
-			if err != nil {
-				return godl.Result{}, godl.ErrorF(lt, "executing GLU layer with %v: %w", x.Shape(), err)
-			}
-
-			xShape := x.Shape()
-			x, err = gorgonia.Add(x, result.Output)
-			if err != nil {
-				return godl.Result{}, godl.ErrorF(lt, "%v + %v: %w", xShape, result.Shape(), err)
-			}
-
-			x, err = gorgonia.Mul(x, scale)
-			if err != nil {
-				return godl.Result{}, err
-			}
-		}
-
-		return godl.Result{Output: x}, nil
+	return &GLUBlockModule{
+		model:     nn,
+		layer:     lt,
+		opts:      opts,
+		gluLayers: gluLayers,
+		scale:     scale,
 	}
 }

@@ -69,7 +69,7 @@ func TestTabNetEmbeddings(t *testing.T) {
 			a := gorgonia.NewTensor(g, tensor.Float32, tcase.input.Dims(), gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithInit(gorgonia.Ones()), gorgonia.WithName("AttentiveX"))
 			priors := gorgonia.NewTensor(g, tensor.Float32, tcase.input.Dims(), gorgonia.WithShape(tcase.input.Shape()...), gorgonia.WithInit(gorgonia.Ones()), gorgonia.WithName("Priors"))
 
-			result, err := TabNet(tn, TabNetOpts{
+			result := TabNet(tn, TabNetOpts{
 				VirtualBatchSize:   tcase.vbs,
 				IndependentBlocks:  tcase.independentBlocks,
 				PredictionLayerDim: tcase.prediction,
@@ -87,22 +87,12 @@ func TestTabNetEmbeddings(t *testing.T) {
 				CatIdxs:            []int{3},
 				CatDims:            []int{4},
 				CatEmbDim:          []int{2},
-			})(x, a, priors)
+			}).Forward(x, a, priors)
 
-			y := result.Output
-
-			if tcase.expectedErr != "" {
-				c.Error(err)
-
-				c.Equal(tcase.expectedErr, err.Error())
-
-				return
-			} else {
-				c.NoError(err)
-			}
+			y := result[0]
 
 			cost := gorgonia.Must(gorgonia.Mean(y))
-			_, err = gorgonia.Grad(cost, append([]*gorgonia.Node{x}, tn.Learnables()...)...)
+			_, err := gorgonia.Grad(cost, append([]*gorgonia.Node{x}, tn.Learnables()...)...)
 			c.NoError(err)
 
 			optimizer := gorgonia.NewAdamSolver(gorgonia.WithLearnRate(0.02))
@@ -133,12 +123,12 @@ func TestTabNetEmbeddings(t *testing.T) {
 
 			log.Printf("[train] y: %#v", y.Value().Data())
 			log.Printf("[train] cost: %#v", cost.Value().Data())
-			log.Printf("[train] accum lost: %#v", result.Loss.Value().Data())
+			log.Printf("[train] accum lost: %#v", result[1].Value().Data())
 
 			c.InDeltaSlice(tcase.expectedOutput, y.Value().Data().([]float32), 1e-5)
 
 			c.InDelta(tcase.expectedCost, cost.Value().Data(), 1e-5)
-			c.Equal(tcase.expectedAcumLoss, result.Loss.Value().Data())
+			c.Equal(tcase.expectedAcumLoss, result[1].Value().Data())
 
 			vmEval := gorgonia.NewTapeMachine(g,
 				gorgonia.EvalMode(),
@@ -154,7 +144,7 @@ func TestTabNetEmbeddings(t *testing.T) {
 			c.NoError(err)
 
 			log.Printf("[eval] y: %#v", y.Value().Data())
-			log.Printf("[eval] accum lost: %#v", result.Loss.Value().Data())
+			log.Printf("[eval] accum lost: %#v", result[1].Value().Data())
 		})
 	}
 }

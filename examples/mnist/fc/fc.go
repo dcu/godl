@@ -34,7 +34,7 @@ func main() {
 	model := godl.NewModel()
 	layer := godl.Sequential(
 		model,
-		godl.FC(model, godl.FCOpts{
+		godl.Linear(model, godl.LinearOpts{
 			InputDimension:  784,
 			OutputDimension: 300,
 			WithBias:        true,
@@ -43,7 +43,7 @@ func main() {
 			InputSize: 300,
 		}),
 		godl.Rectify(),
-		godl.FC(model, godl.FCOpts{
+		godl.Linear(model, godl.LinearOpts{
 			InputDimension:  300,
 			OutputDimension: 100,
 			WithBias:        true,
@@ -52,7 +52,7 @@ func main() {
 			InputSize: 100,
 		}),
 		godl.Rectify(),
-		godl.FC(model, godl.FCOpts{
+		godl.Linear(model, godl.LinearOpts{
 			InputDimension:  100,
 			OutputDimension: 10,
 			WithBias:        true,
