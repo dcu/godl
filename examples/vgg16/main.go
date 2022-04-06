@@ -33,12 +33,16 @@ func main() {
 	vgg16 := vgg.VGG16Builder(vgg.Opts{
 		PreTrained: true,
 		Learnable:  false,
+		WithBias:   true,
 	})
 
 	classifier := imagenet.NewClassifier(vgg16, 224, 224)
 
 	label, prob, err := classifier.Predict(img)
-	handleErr(err)
+	if err != nil {
+		// classifier.Model().WriteSVG("model.svg")
+		handleErr(err)
+	}
 
 	log.Printf("%v: %.2f%%", label, prob*100)
 }

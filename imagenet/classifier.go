@@ -39,7 +39,7 @@ func (c *Classifier) Model() *godl.Model {
 	return c.m
 }
 
-func (c *Classifier) Predict(img image.Image) (string, float64, error) {
+func (c *Classifier) Predict(img image.Image) (string, float32, error) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
@@ -68,5 +68,5 @@ func (c *Classifier) Predict(img image.Image) (string, float64, error) {
 		return "", 0.0, err
 	}
 
-	return Labels[index], val.(float64), nil
+	return Labels[index], val.(float32), nil
 }

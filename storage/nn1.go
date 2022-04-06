@@ -36,7 +36,7 @@ func LoadNN1(loader *Storage, filePath string) error {
 		return err
 	}
 
-	if err = dec.Decode(&loader.cost); err != nil {
+	if err = dec.Decode(&loader.Cost); err != nil {
 		return err
 	}
 

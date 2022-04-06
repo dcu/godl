@@ -46,7 +46,7 @@ func VGG16(m *godl.Model, opts Opts) *VGG16Module {
 	fixedWeights := false
 
 	if opts.PreTrained {
-		fileName := "vgg16_weights_th_dim_ordering_th_kernels.nn1"
+		fileName := "vgg16.nn1"
 		if opts.OnlyFeatureExtraction {
 			fileName = "vgg16_weights_th_dim_ordering_th_kernels_notop.nn1"
 		}

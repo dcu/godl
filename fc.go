@@ -46,7 +46,7 @@ func (m *LinearModule) Forward(inputs ...*Node) (out Nodes) {
 
 	result, err := gorgonia.Mul(x, wT)
 	if err != nil {
-		panic(ErrorF(m.layer, "error applying mul %v x %v: %w ", x.Shape(), m.weight.Shape(), err))
+		panic(ErrorF(m.layer, "error applying mul %v x %v: %w ", x.Shape(), wT.Shape(), err))
 	}
 
 	if m.opts.WithBias {
