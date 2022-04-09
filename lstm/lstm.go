@@ -53,6 +53,10 @@ type LSTMModule struct {
 	weights []lstmParams
 }
 
+func (m *LSTMModule) Name() string {
+	return "LSTM"
+}
+
 func (m *LSTMModule) Forward(inputs ...*godl.Node) godl.Nodes {
 	two := gorgonia.NewConstant(float32(2.0), gorgonia.WithName("two"))
 
@@ -65,8 +69,8 @@ func (m *LSTMModule) Forward(inputs ...*godl.Node) godl.Nodes {
 		x = inputs[0]
 		batchSize := x.Shape()[1]
 
-		dummyHidden := gorgonia.NewTensor(m.model.TrainGraph(), tensor.Float32, 3, gorgonia.WithShape(1, batchSize, m.opts.HiddenSize), gorgonia.WithInit(gorgonia.Zeroes()), gorgonia.WithName("LSTMDummyHidden")) // FIXME: unique name
-		dummyCell := gorgonia.NewTensor(m.model.TrainGraph(), tensor.Float32, 3, gorgonia.WithShape(1, batchSize, m.opts.HiddenSize), gorgonia.WithInit(gorgonia.Zeroes()), gorgonia.WithName("LSTMDummyCell"))
+		dummyHidden := gorgonia.NewTensor(m.model.TrainGraph(), tensor.Float32, 3, gorgonia.WithShape(1, batchSize, m.opts.HiddenSize), gorgonia.WithInit(gorgonia.Zeroes()), gorgonia.WithName(string(m.layer)+"LSTMDummyHidden"))
+		dummyCell := gorgonia.NewTensor(m.model.TrainGraph(), tensor.Float32, 3, gorgonia.WithShape(1, batchSize, m.opts.HiddenSize), gorgonia.WithInit(gorgonia.Zeroes()), gorgonia.WithName(string(m.layer)+"LSTMDummyCell"))
 
 		prevHidden = dummyHidden
 		prevCell = dummyCell
@@ -78,19 +82,31 @@ func (m *LSTMModule) Forward(inputs ...*godl.Node) godl.Nodes {
 		panic(fmt.Errorf("%v: invalid input size", m.layer))
 	}
 
+	if m.opts.InputDimension != x.Shape()[2] {
+		panic(fmt.Errorf("expecting input size = %v and got %v", m.opts.InputDimension, x.Shape()[2]))
+	}
+
 	if !m.opts.Bidirectional {
 		return lstm(m.model, x, m.weights[0].inputWeights, prevHidden, m.weights[0].hiddenWeights, prevCell, m.weights[0].bias, false, m.opts)
+	}
+
+	xShape := x.Shape()
+
+	if xShape.Dims() != 3 {
+		var err error
+		x, err = gorgonia.Reshape(x, m.weights[0].inputWeights.Shape().Clone())
+		if err != nil {
+			panic(fmt.Errorf("x %v cannot be reshaped as %v", xShape, m.weights[0].inputWeights.Shape()))
+		}
 	}
 
 	x1 := gorgonia.Must(gorgonia.BatchedMatMul(x, m.weights[0].inputWeights))
 	forwardOutput := lstm(m.model, x1, m.weights[0].inputWeights, prevHidden, m.weights[0].hiddenWeights, prevCell, m.weights[0].bias, true, m.opts)
 
 	x2 := gorgonia.Must(gorgonia.BatchedMatMul(x, m.weights[1].inputWeights))
-	x2 = gorgonia.Must(gorgonia.ApplyOp(OrderingOp{}, x2))
-
+	x2 = gorgonia.Must(Reverse(x2, 0))
 	backwardOutput := lstm(m.model, x2, m.weights[1].inputWeights, prevHidden, m.weights[1].hiddenWeights, prevCell, m.weights[1].bias, true, m.opts)
-
-	backwardOutputReversed := gorgonia.Must(gorgonia.ApplyOp(OrderingOp{}, backwardOutput[0]))
+	backwardOutputReversed := gorgonia.Must(Reverse(backwardOutput[0], 0))
 
 	var output *godl.Node
 
@@ -109,6 +125,18 @@ func (m *LSTMModule) Forward(inputs ...*godl.Node) godl.Nodes {
 	cell := gorgonia.Must(gorgonia.Concat(0, forwardOutput[2], backwardOutput[2]))
 
 	return godl.Nodes{output, hidden, cell}
+}
+
+func Reverse(x *gorgonia.Node, axis int) (*gorgonia.Node, error) {
+	indicesA := make([]int, 0, x.Shape()[axis])
+	for i := x.Shape()[axis] - 1; i >= 0; i-- {
+		indicesA = append(indicesA, i)
+	}
+
+	t := tensor.New(tensor.WithShape(len(indicesA)), tensor.WithBacking(indicesA))
+	indices := gorgonia.NewTensor(x.Graph(), tensor.Int, 1, gorgonia.WithShape(len(indicesA)), gorgonia.WithValue(t), gorgonia.WithName("indices-"+x.Name()))
+
+	return gorgonia.ByIndices(x, indices, axis)
 }
 
 func LSTM(m *godl.Model, opts LSTMOpts) *LSTMModule {
@@ -217,6 +245,7 @@ func lstmGate(m *godl.Model, seqX, inputWeights, prevHidden, hiddenWeights, prev
 	cellGate = gorgonia.Must(opts.Activation(cellGate))
 
 	outputGate := gorgonia.Must(gorgonia.Slice(gates, nil, nil, gorgonia.S(opts.HiddenSize*3, opts.HiddenSize*4)))
+
 	outputGate = gorgonia.Must(opts.RecurrentActivation(outputGate))
 
 	retain, err := gorgonia.BroadcastHadamardProd(forgetGate, prevCell, nil, []byte{0})
@@ -243,3 +272,7 @@ func lstmGate(m *godl.Model, seqX, inputWeights, prevHidden, hiddenWeights, prev
 
 	return prevHidden, prevCell, nil
 }
+
+var (
+	_ godl.Module = &LSTMModule{}
+)

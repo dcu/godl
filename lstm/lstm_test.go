@@ -23,6 +23,7 @@ func TestLSTM(t *testing.T) {
 		ExpectedOutput       tensor.Tensor
 		ExpectedHiddenOutput tensor.Tensor
 		ExpectedCellOutput   tensor.Tensor
+		ExpectedInputGrad    tensor.Tensor
 	}{
 		{
 			desc:       "Example 1",
@@ -51,6 +52,10 @@ func TestLSTM(t *testing.T) {
 			ExpectedCellOutput: tensor.New(
 				tensor.WithShape(1, 1, 3),
 				tensor.WithBacking([]float32{1.0147436, 1.0964341, 3.5663624}),
+			),
+			ExpectedInputGrad: tensor.New(
+				tensor.WithShape(1, 1, 2),
+				tensor.WithBacking([]float32{0.033584386, 0.033584386}),
 			),
 		},
 		{
@@ -81,6 +86,10 @@ func TestLSTM(t *testing.T) {
 				tensor.WithShape(1, 1, 3),
 				tensor.WithBacking([]float32{-0.20725529, -0.21224551, -0.19728966}),
 			),
+			ExpectedInputGrad: tensor.New(
+				tensor.WithShape(2, 1, 2),
+				tensor.WithBacking([]float32{-0.0021789202, -0.0021789202, -0.027363524, -0.027363524}),
+			),
 		},
 		{
 			desc:       "Example 3",
@@ -110,6 +119,10 @@ func TestLSTM(t *testing.T) {
 				tensor.WithShape(1, 2, 3),
 				tensor.WithBacking([]float32{0.90001315, 0.72165096, 0.65663207, 1.3595006, 1.209836, 0.61456656}),
 			),
+			ExpectedInputGrad: tensor.New(
+				tensor.WithShape(2, 2, 2),
+				tensor.WithBacking([]float32{-0.027185109, -0.027185109, 0.14518824, 0.14518824, 0.02383744, 0.02383744, 0.053274453, 0.053274453}),
+			),
 		},
 		{
 			desc:       "Example 4",
@@ -132,6 +145,10 @@ func TestLSTM(t *testing.T) {
 			ExpectedCellOutput: tensor.New(
 				tensor.WithShape(1, 2, 3),
 				tensor.WithBacking([]float32{0.078712106, 0.078712106, 0.078712106, 0.13200212, 0.13200212, 0.13200212}),
+			),
+			ExpectedInputGrad: tensor.New(
+				tensor.WithShape(2, 2, 2),
+				tensor.WithBacking([]float32{0.16547559, 0.16547559, 0.18561587, 0.18561587, 0.079165556, 0.079165556, 0.08774052, 0.08774052}),
 			),
 		},
 		{
@@ -156,6 +173,38 @@ func TestLSTM(t *testing.T) {
 			ExpectedCellOutput: tensor.New(
 				tensor.WithShape(2, 2, 3),
 				tensor.WithBacking([]float32{0.078712106, 0.078712106, 0.078712106, 0.13200212, 0.13200212, 0.13200212, 0.09468048, 0.09468048, 0.09468048, 0.1517626, 0.1517626, 0.1517626}),
+			),
+			ExpectedInputGrad: tensor.New(
+				tensor.WithShape(2, 2, 2),
+				tensor.WithBacking([]float32{0.12292944, 0.12292944, 0.13752875, 0.13752875, 0.13302928, 0.13302928, 0.14761692, 0.14761692}),
+			),
+		},
+		{
+			desc:          "Example 6 (Bidirectional)",
+			HiddenSize:    3,
+			Bidirectional: true,
+			WithBias:      false,
+			Input: tensor.New(
+				tensor.WithShape(2, 5, 7),
+				tensor.WithBacking([]float32{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70}),
+			),
+			HiddenInput: nil,
+			CellInput:   nil,
+			ExpectedOutput: tensor.New(
+				tensor.WithShape(2, 5, 6),
+				tensor.WithBacking([]float32{0.7615942, 0.7615942, 0.7615942, 0.9640276, 0.9640276, 0.9640276, 0.7615942, 0.7615942, 0.7615942, 0.9640276, 0.9640276, 0.9640276, 0.7615942, 0.7615942, 0.7615942, 0.9640276, 0.9640276, 0.9640276, 0.7615942, 0.7615942, 0.7615942, 0.9640276, 0.9640276, 0.9640276, 0.7615942, 0.7615942, 0.7615942, 0.9640276, 0.9640276, 0.9640276, 0.9640276, 0.9640276, 0.9640276, 0.7615942, 0.7615942, 0.7615942, 0.9640276, 0.9640276, 0.9640276, 0.7615942, 0.7615942, 0.7615942, 0.9640276, 0.9640276, 0.9640276, 0.7615942, 0.7615942, 0.7615942, 0.9640276, 0.9640276, 0.9640276, 0.7615942, 0.7615942, 0.7615942, 0.9640276, 0.9640276, 0.9640276, 0.7615942, 0.7615942, 0.7615942}),
+			),
+			ExpectedHiddenOutput: tensor.New(
+				tensor.WithShape(2, 5, 3),
+				tensor.WithBacking([]float32{0.9640276, 0.9640276, 0.9640276, 0.9640276, 0.9640276, 0.9640276, 0.9640276, 0.9640276, 0.9640276, 0.9640276, 0.9640276, 0.9640276, 0.9640276, 0.9640276, 0.9640276, 0.9640276, 0.9640276, 0.9640276, 0.9640276, 0.9640276, 0.9640276, 0.9640276, 0.9640276, 0.9640276, 0.9640276, 0.9640276, 0.9640276, 0.9640276, 0.9640276, 0.9640276}),
+			),
+			ExpectedCellOutput: tensor.New(
+				tensor.WithShape(2, 5, 3),
+				tensor.WithBacking([]float32{2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2}),
+			),
+			ExpectedInputGrad: tensor.New(
+				tensor.WithShape(2, 5, 7),
+				tensor.WithBacking([]float32{4.7181707e-14, 4.7181707e-14, 4.7181707e-14, 4.7181707e-14, 4.7181707e-14, 4.7181707e-14, 4.7181707e-14, 2.4736832e-35, 2.4736832e-35, 2.4736832e-35, 2.4736832e-35, 2.4736832e-35, 2.4736832e-35, 2.4736832e-35, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}),
 			),
 		},
 	}
@@ -183,6 +232,7 @@ func TestLSTM(t *testing.T) {
 			l := LSTM(m, LSTMOpts{
 				InputDimension: input.Shape()[2],
 				Bidirectional:  tC.Bidirectional,
+				WithBias:       false,
 				HiddenSize:     tC.HiddenSize,
 				WeightsInit:    gorgonia.Ones(),
 				BiasInit:       gorgonia.Zeroes(),
@@ -190,23 +240,47 @@ func TestLSTM(t *testing.T) {
 
 			result := l.Forward(args...)
 
-			vm := gorgonia.NewTapeMachine(m.TrainGraph())
-			c.NoError(vm.RunAll())
+			cost := gorgonia.Must(gorgonia.Mean(result[0]))
+
+			m.WriteSVG("pre_grad_lstm.svg")
+
+			_, err := gorgonia.Grad(cost, append(m.Learnables(), input)...)
+			if err != nil {
+				m.WriteSVG("post_grad_lstm.svg")
+			}
+
+			c.NoError(err)
+
+			vm := gorgonia.NewTapeMachine(m.TrainGraph(), gorgonia.BindDualValues(m.Learnables()...))
+			err = vm.RunAll()
+
+			if err != nil {
+				m.WriteSVG("lstm.svg")
+			}
+
+			c.NoError(err)
 
 			m.PrintWatchables()
 
-			// log.Printf("output: %v %v \n", result.Output.Shape(), result.Output.Value())
-			// log.Printf("hidden output: %v %v \n", result.Nodes[0].Shape(), result.Nodes[0].Value())
-			// log.Printf("cell output: %v %v \n", result.Nodes[1].Shape(), result.Nodes[1].Value())
-
 			maxDiffAllowed := 1e-7
 
-			c.InDeltaSlice(tC.ExpectedOutput.Data(), result[0].Value().Data(), maxDiffAllowed, "actual: %#v", result[0].Value().Data())
+			inputGrad, err := input.Grad()
+			c.NoError(err)
+
+			t.Logf("output: %v %v \n", result[0].Shape(), result[0].Value())
+			t.Logf("hidden output: %v %v \n", result[1].Shape(), result[1].Value())
+			t.Logf("cell output: %v %v \n", result[2].Shape(), result[2].Value())
+			t.Logf("inputGrad: %#v", inputGrad.Data())
+
+			c.InDeltaSlice(tC.ExpectedOutput.Data(), result[0].Value().Data(), maxDiffAllowed, "actual output: %#v", result[0].Value().Data())
 			c.Equal(tC.ExpectedOutput.Shape(), result[0].Shape())
-			c.InDeltaSlice(tC.ExpectedHiddenOutput.Data(), result[1].Value().Data(), maxDiffAllowed)
+			c.InDeltaSlice(tC.ExpectedHiddenOutput.Data(), result[1].Value().Data(), maxDiffAllowed, "actual hidden output: %#v", result[1].Value().Data())
 			c.Equal(tC.ExpectedHiddenOutput.Shape(), result[1].Shape())
-			c.InDeltaSlice(tC.ExpectedCellOutput.Data(), result[2].Value().Data(), maxDiffAllowed, "actual: %#v", result[2].Value().Data())
+			c.InDeltaSlice(tC.ExpectedCellOutput.Data(), result[2].Value().Data(), maxDiffAllowed, "actual cell output: %#v", result[2].Value().Data())
 			c.Equal(tC.ExpectedCellOutput.Shape(), result[2].Shape())
+
+			c.InDeltaSlice(tC.ExpectedInputGrad.Data(), inputGrad.Data(), maxDiffAllowed, "actual input grad: %#v", inputGrad.Data())
+			c.Equal(tC.ExpectedInputGrad.Shape(), inputGrad.Shape())
 		})
 	}
 }
