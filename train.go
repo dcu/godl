@@ -85,8 +85,8 @@ func Train(m *Model, module Module, trainX, trainY, validateX, validateY tensor.
 
 	xShape := append(tensor.Shape{opts.BatchSize}, trainX.Shape()[1:]...)
 
-	x := gorgonia.NewTensor(m.trainGraph, tensor.Float32, trainX.Shape().Dims(), gorgonia.WithShape(xShape...), gorgonia.WithName("x"))
-	y := gorgonia.NewMatrix(m.trainGraph, tensor.Float32, gorgonia.WithShape(opts.BatchSize, trainY.Shape()[1]), gorgonia.WithName("y"))
+	x := gorgonia.NewTensor(m.trainGraph, trainX.Dtype(), trainX.Shape().Dims(), gorgonia.WithShape(xShape...), gorgonia.WithName("x"))
+	y := gorgonia.NewMatrix(m.trainGraph, trainY.Dtype(), gorgonia.WithShape(opts.BatchSize, trainY.Shape()[1]), gorgonia.WithName("y"))
 
 	result := module.Forward(x)
 

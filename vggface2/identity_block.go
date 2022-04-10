@@ -24,6 +24,10 @@ type IdentityBlockModule struct {
 	weights []*godl.Node
 }
 
+func (m *IdentityBlockModule) Name() string {
+	return "IdentityBlock"
+}
+
 func (m *IdentityBlockModule) Forward(inputs ...*godl.Node) godl.Nodes {
 	if err := m.model.CheckArity(m.layer, inputs, 1); err != nil {
 		panic(err)

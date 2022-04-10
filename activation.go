@@ -9,6 +9,10 @@ type ActivationModule struct {
 	fn   func(x *Node) (*Node, error)
 }
 
+func (m *ActivationModule) Name() string {
+	return m.name
+}
+
 func (m *ActivationModule) Forward(inputs ...*Node) Nodes {
 	x := inputs[0]
 	y := gorgonia.Must(m.fn(x))
@@ -27,6 +31,10 @@ func (m *ActivationAxisModule) Forward(inputs ...*Node) Nodes {
 	y := gorgonia.Must(m.fn(x, m.axis...))
 
 	return Nodes{y}
+}
+
+func (m *ActivationAxisModule) Name() string {
+	return m.name
 }
 
 func Sigmoid() Module {

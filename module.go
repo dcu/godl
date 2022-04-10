@@ -1,6 +1,8 @@
 package godl
 
-import "gorgonia.org/gorgonia"
+import (
+	"gorgonia.org/gorgonia"
+)
 
 type (
 	Node  = gorgonia.Node
@@ -9,6 +11,7 @@ type (
 
 type Module interface {
 	Forward(inputs ...*Node) Nodes
+	Name() string
 }
 
 type ModuleList []Module
@@ -25,6 +28,10 @@ func (m ModuleList) Forward(inputs ...*Node) (out Nodes) {
 	}
 
 	return out
+}
+
+func (m ModuleList) Name() string {
+	return "ModuleList"
 }
 
 var (

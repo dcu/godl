@@ -28,12 +28,11 @@ type LinearModule struct {
 	weight, bias *Node
 }
 
-func (m *LinearModule) Forward(inputs ...*Node) (out Nodes) {
-	err := m.model.CheckArity(m.layer, inputs, 1)
-	if err != nil {
-		panic(err)
-	}
+func (m *LinearModule) Name() string {
+	return "Linear"
+}
 
+func (m *LinearModule) Forward(inputs ...*Node) (out Nodes) {
 	x := inputs[0]
 	xShape := x.Shape()
 
@@ -104,3 +103,7 @@ func Linear(nn *Model, opts LinearOpts) *LinearModule {
 		weight: w,
 	}
 }
+
+var (
+	_ Module = &LinearModule{}
+)

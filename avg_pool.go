@@ -26,6 +26,10 @@ type GlobalAvgPool2DModule struct {
 	layer LayerType
 }
 
+func (m *GlobalAvgPool2DModule) Name() string {
+	return "GlobalAvgPool2d"
+}
+
 func (m *GlobalAvgPool2DModule) Forward(inputs ...*Node) Nodes {
 	err := m.model.CheckArity(m.layer, inputs, 1)
 	if err != nil {
@@ -54,6 +58,10 @@ type AvgPool2DModule struct {
 	layer LayerType
 }
 
+func (m *AvgPool2DModule) Name() string {
+	return "AvgPool2d"
+}
+
 func (m *AvgPool2DModule) Forward(inputs ...*Node) Nodes {
 	err := m.model.CheckArity(m.layer, inputs, 1)
 	if err != nil {
@@ -69,6 +77,8 @@ func (m *AvgPool2DModule) Forward(inputs ...*Node) Nodes {
 // AvgPool2D applies the average pool operation to the given image
 func AvgPool2D(nn *Model, opts AvgPool2DOpts) *AvgPool2DModule {
 	lt := AddLayer("AvgPool2D")
+
+	opts.setDefaults()
 
 	return &AvgPool2DModule{
 		model: nn,

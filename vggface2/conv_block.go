@@ -16,6 +16,10 @@ type ConvBlockModule struct {
 	weights godl.Nodes
 }
 
+func (m *ConvBlockModule) Name() string {
+	return "ConvBlock"
+}
+
 func (m *ConvBlockModule) Forward(inputs ...*godl.Node) godl.Nodes {
 	if err := m.model.CheckArity(m.layer, inputs, 1); err != nil {
 		panic(err)

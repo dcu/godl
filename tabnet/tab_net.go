@@ -38,6 +38,10 @@ type TabNetModule struct {
 	tabnet   *TabNetNoEmbeddingsModule
 }
 
+func (m *TabNetModule) Name() string {
+	return "TabNet"
+}
+
 func (m *TabNetModule) Forward(inputs ...*godl.Node) godl.Nodes {
 	x := inputs[0]
 	res := m.embedder.Forward(x)
@@ -82,3 +86,7 @@ func TabNet(nn *godl.Model, opts TabNetOpts) *TabNetModule {
 		embedder: embedder,
 	}
 }
+
+var (
+	_ godl.Module = &TabNetModule{}
+)

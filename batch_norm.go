@@ -48,6 +48,10 @@ type BatchNormModule struct {
 	scale, bias *Node
 }
 
+func (m *BatchNormModule) Name() string {
+	return "BatchNorm"
+}
+
 func (m *BatchNormModule) Forward(inputs ...*Node) Nodes {
 	if err := m.model.CheckArity(m.layer, inputs, 1); err != nil {
 		panic(err)

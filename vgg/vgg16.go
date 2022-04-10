@@ -24,6 +24,10 @@ type VGG16Module struct {
 	seq godl.ModuleList
 }
 
+func (m *VGG16Module) Name() string {
+	return "VGG16"
+}
+
 func (m *VGG16Module) Forward(inputs ...*godl.Node) godl.Nodes {
 	if err := m.model.CheckArity(m.layer, inputs, 1); err != nil {
 		panic(err)

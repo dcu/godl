@@ -61,6 +61,10 @@ type Conv2dModule struct {
 	weight, bias *Node
 }
 
+func (m *Conv2dModule) Name() string {
+	return "Conv2d"
+}
+
 func (m *Conv2dModule) Forward(inputs ...*Node) Nodes {
 	err := m.model.CheckArity(m.layer, inputs, 1)
 	if err != nil {
@@ -105,3 +109,7 @@ func Conv2d(m *Model, opts Conv2dOpts) *Conv2dModule {
 		bias:   bias,
 	}
 }
+
+var (
+	_ Module = &Conv2dModule{}
+)

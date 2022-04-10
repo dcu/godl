@@ -33,7 +33,7 @@ type MSELossOpts struct {
 	Reduction Reduction
 }
 
-type CostFn func(output Nodes, target *Node) *gorgonia.Node
+type CostFn func(output Nodes, target *Node) *Node
 
 // MSELoss defines the mean square root cost function
 func MSELoss(opts MSELossOpts) CostFn {

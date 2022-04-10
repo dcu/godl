@@ -16,30 +16,30 @@ The following items are in the current roadmap, some of them need to be implemen
 - [x] Base storage (save/load)  
 - [ ] CLI to scaffold a project  
 - [x] Embeddings  
-- [x] Dense/Linear/FC
+- [x] Dense/Linear/FC  
 
 ### Losses
-- [x] Cross Entropy
-- [x] MSE
-- [ ] BCE
-- [ ] BinaryXent
-- [ ] CTC Losses 
+- [x] Cross Entropy  
+- [x] MSE  
+- [ ] BCE  
+- [ ] BinaryXent  
+- [ ] CTC Losses  
 
 ### Pooling
-- [x] MaxPool
-- [x] AvgPool
-- [ ] GlobalMaxPool
-- [x] GlobalAvgPool
+- [x] MaxPool  
+- [x] AvgPool  
+- [x] GlobalMaxPool  
+- [x] GlobalAvgPool  
 
 ### Normalization
-- [x] Batch Norm
-- [x] Ghost Batch Norm
+- [x] Batch Norm  
+- [x] Ghost Batch Norm  
 - [ ] GroupNorm  
 - [ ] LayerNorm  
 
 ### Recurrent Layers
 - [x] LSTM  
-- [ ] Bidirectional  
+- [x] Bidirectional  
 - [ ] GRU
 - [ ] ConvLSTM2D
 

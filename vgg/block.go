@@ -68,6 +68,10 @@ type BlockModule struct {
 	weight, bias *godl.Node
 }
 
+func (m *BlockModule) Name() string {
+	return "VGGBlock"
+}
+
 func (m *BlockModule) Forward(inputs ...*godl.Node) godl.Nodes {
 	if err := m.model.CheckArity(m.layer, inputs, 1); err != nil {
 		panic(err)
@@ -124,3 +128,7 @@ func Block(m *godl.Model, opts BlockOpts) *BlockModule {
 		bias:   bias,
 	}
 }
+
+var (
+	_ godl.Module = &BlockModule{}
+)

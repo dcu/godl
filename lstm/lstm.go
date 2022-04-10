@@ -59,14 +59,26 @@ func (m *LSTMModule) Name() string {
 
 func (m *LSTMModule) Forward(inputs ...*godl.Node) godl.Nodes {
 	two := gorgonia.NewConstant(float32(2.0), gorgonia.WithName("two"))
+	x := inputs[0]
 
 	var (
-		x, prevHidden, prevCell *gorgonia.Node
+		prevHidden, prevCell *gorgonia.Node
 	)
+
+	xShape := x.Shape()
+
+	if xShape.Dims() != 3 {
+		var err error
+		newShape := tensor.Shape{m.weights[0].inputWeights.Shape()[0], m.opts.HiddenSize * 4, m.opts.InputDimension}
+
+		x, err = gorgonia.Reshape(x, newShape)
+		if err != nil {
+			panic(fmt.Errorf("x %v cannot be reshaped as %v", xShape, newShape))
+		}
+	}
 
 	switch len(inputs) {
 	case 1:
-		x = inputs[0]
 		batchSize := x.Shape()[1]
 
 		dummyHidden := gorgonia.NewTensor(m.model.TrainGraph(), tensor.Float32, 3, gorgonia.WithShape(1, batchSize, m.opts.HiddenSize), gorgonia.WithInit(gorgonia.Zeroes()), gorgonia.WithName(string(m.layer)+"LSTMDummyHidden"))
@@ -75,7 +87,6 @@ func (m *LSTMModule) Forward(inputs ...*godl.Node) godl.Nodes {
 		prevHidden = dummyHidden
 		prevCell = dummyCell
 	case 3:
-		x = inputs[0]
 		prevHidden = inputs[1]
 		prevCell = inputs[2]
 	default:
@@ -88,16 +99,6 @@ func (m *LSTMModule) Forward(inputs ...*godl.Node) godl.Nodes {
 
 	if !m.opts.Bidirectional {
 		return lstm(m.model, x, m.weights[0].inputWeights, prevHidden, m.weights[0].hiddenWeights, prevCell, m.weights[0].bias, false, m.opts)
-	}
-
-	xShape := x.Shape()
-
-	if xShape.Dims() != 3 {
-		var err error
-		x, err = gorgonia.Reshape(x, m.weights[0].inputWeights.Shape().Clone())
-		if err != nil {
-			panic(fmt.Errorf("x %v cannot be reshaped as %v", xShape, m.weights[0].inputWeights.Shape()))
-		}
 	}
 
 	x1 := gorgonia.Must(gorgonia.BatchedMatMul(x, m.weights[0].inputWeights))
