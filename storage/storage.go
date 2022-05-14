@@ -3,7 +3,7 @@ package storage
 import (
 	"fmt"
 	"log"
-	"path/filepath"
+	"strings"
 
 	"gorgonia.org/tensor"
 )
@@ -34,13 +34,10 @@ func (l *Storage) TensorByName(name string) (tensor.Tensor, error) {
 
 // Load loads the weights in the given path
 func (l *Storage) LoadFile(filePath string) error {
-	ext := filepath.Ext(filePath)
-
-	switch ext {
-	case ".nn1":
+	if strings.Contains(filePath, ".nn1") {
 		return LoadNN1(l, filePath)
-	default:
-		return fmt.Errorf("extension %v is not supported yet", ext)
+	} else {
+		return fmt.Errorf("extension %v is not supported yet", filePath)
 	}
 }
 

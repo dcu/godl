@@ -5,7 +5,6 @@ go 1.18
 require (
 	github.com/anthonynsimon/bild v0.13.0
 	github.com/cheggaaa/pb/v3 v3.0.8
-	github.com/chewxy/hm v1.0.0
 	github.com/chewxy/math32 v1.10.1
 	github.com/dcu/resize v0.0.0-20201120200444-0e5185b92511
 	github.com/fatih/color v1.13.0
@@ -15,7 +14,7 @@ require (
 	github.com/oliamb/cutter v0.2.2
 	github.com/stretchr/testify v1.7.0
 	gonum.org/v1/plot v0.11.0
-	gorgonia.org/gorgonia v0.9.18-0.20220313000357-1286a412f2bf
+	gorgonia.org/gorgonia v0.9.18-0.20220428013624-8f3502bcdaf8
 	gorgonia.org/qol v0.0.0-20220326215349-708736a2aac5
 	gorgonia.org/tensor v0.9.23
 )
@@ -26,6 +25,7 @@ require (
 	github.com/ajstarks/svgo v0.0.0-20211024235047-1546f124cd8b // indirect
 	github.com/apache/arrow/go/arrow v0.0.0-20211112161151-bc219186db40 // indirect
 	github.com/awalterschulze/gographviz v2.0.3+incompatible // indirect
+	github.com/chewxy/hm v1.0.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/go-fonts/liberation v0.2.0 // indirect
 	github.com/go-latex/latex v0.0.0-20210823091927-c0d11ff05a81 // indirect
@@ -50,7 +50,7 @@ require (
 	golang.org/x/image v0.0.0-20220321031419-a8550c1d254a // indirect
 	golang.org/x/sys v0.0.0-20220403205710-6acee93ad0eb // indirect
 	golang.org/x/text v0.3.7 // indirect
-	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
+	golang.org/x/xerrors v0.0.0-20220411194840-2f41105eb62f // indirect
 	gonum.org/v1/gonum v0.11.0 // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
